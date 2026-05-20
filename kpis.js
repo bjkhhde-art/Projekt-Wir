@@ -42,3 +42,9 @@ document.getElementById("anniversaryPlace").textContent =
 
 document.getElementById("daysTogether").textContent =
   calculateDaysTogether(anniversary.date) + " Tage";
+
+document.getElementById("firstDateDate").textContent =
+  formatDate(firstDate.date);
+
+document.getElementById("firstDatePlace").textContent =
+  firstDate.place;
