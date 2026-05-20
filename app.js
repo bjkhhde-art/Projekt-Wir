@@ -64,7 +64,7 @@ function addItem() {
   if (!title) return;
 
   if (items.length >= 16) {
-    alert("Das Bingo ist voll. Es können maximal 25 Felder genutzt werden.");
+    alert("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.");
     return;
   }
 
@@ -79,7 +79,7 @@ function addItem() {
   saveItems();
 
   input.value = "";
-  categoryInput.value = "Liebe";
+  categoryInput.value = "Liebe ❤️";
   targetInput.value = "1";
 
   addModal.classList.add("hidden");
