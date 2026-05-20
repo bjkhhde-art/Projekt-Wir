@@ -50,15 +50,19 @@
         <option value="10">10x</option>
       </select>
 
-      <button id="addBtn">Hinzufügen</button>
-      <button id="closeModal" class="secondary">Abbrechen</button>
+      <div class="modal-buttons">
+        <button id="addBtn">Hinzufügen</button>
+        <button id="closeModal" class="secondary">Abbrechen</button>
+      </div>
     </div>
   </div>
 
   <div id="deleteBar" class="delete-bar hidden">
     <span>Felder zum Löschen auswählen</span>
-    <button id="confirmDelete">Löschen bestätigen</button>
-    <button id="cancelDelete" class="secondary">Abbrechen</button>
+    <div class="delete-buttons">
+      <button id="confirmDelete">Löschen bestätigen</button>
+      <button id="cancelDelete" class="secondary">Abbrechen</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
