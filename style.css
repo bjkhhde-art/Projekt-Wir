@@ -8,7 +8,25 @@ body {
 
 h1 {
   font-size: clamp(32px, 9vw, 46px);
-  margin: 28px 0 26px;
+  margin: 28px 0 18px;
+}
+
+.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.main-nav a {
+  text-decoration: none;
+  background: white;
+  color: #222;
+  padding: 10px 16px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  font-weight: bold;
 }
 
 #board {
@@ -195,7 +213,6 @@ select {
   margin-bottom: 10px;
 }
 
-/* Handy Ansicht */
 @media (max-width: 700px) {
   body {
     padding: 10px;
@@ -204,7 +221,7 @@ select {
   h1 {
     font-size: 36px;
     margin-top: 24px;
-    margin-bottom: 24px;
+    margin-bottom: 18px;
   }
 
   #board {
