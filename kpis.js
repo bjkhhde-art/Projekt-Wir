@@ -48,3 +48,9 @@ document.getElementById("firstDateDate").textContent =
 
 document.getElementById("firstDatePlace").textContent =
   firstDate.place;
+
+document.querySelectorAll(".flip-card").forEach(card => {
+  card.addEventListener("click", () => {
+    card.classList.toggle("flipped");
+  });
+});
