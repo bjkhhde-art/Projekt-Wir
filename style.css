@@ -41,6 +41,15 @@ h1 {
   text-decoration: line-through;
 }
 
+.cell.delete-mode {
+  outline: 4px dashed #ff5c5c;
+}
+
+.cell.selected-delete {
+  background: #ffd6d6;
+  outline: 5px solid #ff2f2f;
+}
+
 .category {
   font-size: 13px;
   opacity: 0.7;
@@ -52,20 +61,29 @@ h1 {
   font-size: 18px;
 }
 
-.floating-plus {
+.floating-plus,
+.floating-minus {
   position: fixed;
-  right: 28px;
   bottom: 28px;
   width: 64px;
   height: 64px;
   border-radius: 50%;
   border: none;
-  background: #000;
   color: white;
   font-size: 46px;
   line-height: 60px;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+.floating-plus {
+  right: 28px;
+  background: #000;
+}
+
+.floating-minus {
+  left: 28px;
+  background: #cc0000;
 }
 
 .modal {
@@ -128,22 +146,20 @@ button {
   color: #222;
 }
 
-.delete-field {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+.delete-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 25px;
+  transform: translateX(-50%);
   background: white;
-  color: #222;
-  border: 1px solid #aaa;
-  border-radius: 50%;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  margin: 0;
-  font-size: 17px;
-  cursor: pointer;
+  padding: 14px 18px;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  z-index: 20;
 }
 
-.hidden-delete {
-  display: none;
+.delete-bar span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 6px;
 }
