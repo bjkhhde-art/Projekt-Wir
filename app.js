@@ -63,7 +63,7 @@ function addItem() {
 
   if (!title) return;
 
-  if (items.length >= 25) {
+  if (items.length >= 16) {
     alert("Das Bingo ist voll. Es können maximal 25 Felder genutzt werden.");
     return;
   }
