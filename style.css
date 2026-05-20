@@ -8,7 +8,6 @@ body {
 
 h1 {
   display: inline-block;
-  background: #f7f3ef;
   padding: 8px 16px;
 }
 
@@ -27,8 +26,6 @@ h1 {
   border-bottom: 2px solid #222;
   min-height: 140px;
   padding: 10px;
-  cursor: pointer;
-  position: relative;
   box-sizing: border-box;
   font-size: 17px;
   display: flex;
@@ -39,15 +36,6 @@ h1 {
 .cell.done {
   background: #d8ffd8;
   text-decoration: line-through;
-}
-
-.cell.delete-mode {
-  outline: 4px dashed #ff5c5c;
-}
-
-.cell.selected-delete {
-  background: #ffd6d6;
-  outline: 5px solid #ff2f2f;
 }
 
 .category {
@@ -67,110 +55,8 @@ h1 {
   font-size: 18px;
 }
 
-.button-row {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  margin-top: 25px;
-}
-
-.plus-btn,
-.minus-btn {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  border: none;
-  color: white;
-  font-size: 42px;
-  line-height: 58px;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  margin: 0;
-  padding: 0;
-}
-
-.plus-btn {
-  background: #22c55e;
-}
-
-.minus-btn {
-  background: #ef4444;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hidden {
-  display: none;
-}
-
-.modal-box {
-  background: white;
-  padding: 25px;
-  border-radius: 18px;
-  width: 330px;
-  text-align: left;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-
-.modal-box h2 {
-  text-align: center;
-  margin-top: 0;
-}
-
-label {
-  display: block;
-  margin-top: 12px;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-input,
-select {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  border: 1px solid #aaa;
-}
-
-button {
-  padding: 12px 18px;
-  margin-top: 15px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  background: #ff5c8a;
-  color: white;
-  font-size: 16px;
-}
-
-.secondary {
-  background: #ddd;
-  color: #222;
-}
-
-.delete-bar {
-  position: fixed;
-  left: 50%;
-  bottom: 25px;
-  transform: translateX(-50%);
-  background: white;
-  padding: 14px 18px;
-  border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.25);
-  z-index: 20;
-}
-
-.delete-bar span {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 6px;
+.hint {
+  margin-top: 20px;
+  font-size: 14px;
+  opacity: 0.7;
 }
