@@ -7,6 +7,7 @@ const board = document.getElementById("board");
 const input = document.getElementById("newItemInput");
 const categoryInput = document.getElementById("categoryInput");
 const authorInput = document.getElementById("authorInput");
+const dueDateInput = document.getElementById("dueDateInput");
 const targetInput = document.getElementById("targetInput");
 
 const addBtn = document.getElementById("addBtn");
@@ -70,6 +71,7 @@ function renderBoard() {
       cell.innerHTML = `
         <div class="category">${item.category || "Sonstiges ⭐"}</div>
         <div class="author">Von: ${item.author || "Unbekannt"}</div>
+        <div class="due-date">${item.due_date ? "Fällig: " + formatDate(item.due_date) : ""}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
@@ -104,6 +106,7 @@ async function addItem() {
       title: title,
       category: categoryInput.value,
       author: authorInput.value,
+      due_date: dueDateInput.value || null,
       target: Number(targetInput.value),
       current: 0,
       done: false
@@ -118,6 +121,7 @@ async function addItem() {
   input.value = "";
   categoryInput.value = "Liebe ❤️";
   authorInput.value = "Isi";
+  dueDateInput.value = "";
   targetInput.value = "1";
   addModal.classList.add("hidden");
 
@@ -125,8 +129,14 @@ async function addItem() {
 }
 
 async function updateProgress(item) {
-  const newCurrent = item.current < item.target ? item.current + 1 : 0;
-  const newDone = newCurrent >= item.target;
+  const target = Number(item.target);
+
+  if (target === 0) {
+    return;
+  }
+
+  const newCurrent = item.current < target ? item.current + 1 : 0;
+  const newDone = newCurrent >= target;
 
   const { error } = await supabaseClient
     .from("bingo_items")
@@ -143,6 +153,10 @@ async function updateProgress(item) {
   }
 
   await loadItems();
+}
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString("de-DE");
 }
 
 function startDeleteMode() {
