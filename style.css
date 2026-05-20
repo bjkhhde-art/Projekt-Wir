@@ -6,31 +6,6 @@ body {
   padding: 30px;
 }
 
-.input-area {
-  margin: 20px auto;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-input {
-  padding: 12px;
-  width: 280px;
-  border-radius: 10px;
-  border: 1px solid #aaa;
-  font-size: 16px;
-}
-
-button {
-  padding: 12px 18px;
-  border: none;
-  border-radius: 10px;
-  background: #ff6b9a;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
 #board {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -44,8 +19,8 @@ button {
   border: 2px solid #222;
   min-height: 110px;
   padding: 10px;
-  cursor: pointer;
   border-radius: 8px;
+  cursor: pointer;
   position: relative;
 }
 
@@ -54,12 +29,52 @@ button {
   text-decoration: line-through;
 }
 
-.delete-btn {
-  position: absolute;
-  top: 5px;
-  right: 7px;
-  background: transparent;
-  color: #999;
-  font-size: 18px;
-  padding: 0;
+.floating-plus {
+  position: fixed;
+  right: 25px;
+  bottom: 25px;
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: none;
+  background: #ff5c8a;
+  color: white;
+  font-size: 42px;
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.modal-box {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  width: 300px;
+}
+
+input {
+  width: 90%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+button {
+  padding: 12px 18px;
+  margin: 5px;
+}
+
+.secondary {
+  background: #ddd;
 }
