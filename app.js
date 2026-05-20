@@ -1,6 +1,7 @@
 const board = document.getElementById("board");
 const input = document.getElementById("newItemInput");
 const categoryInput = document.getElementById("categoryInput");
+const authorInput = document.getElementById("authorInput");
 const targetInput = document.getElementById("targetInput");
 
 const addBtn = document.getElementById("addBtn");
@@ -54,7 +55,8 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
-        <div class="category">${item.category}</div>
+        <div class="category">${item.category || "Sonstiges ⭐"}</div>
+        <div class="author">Von: ${item.author || "Unbekannt"}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
@@ -101,6 +103,7 @@ function addItem() {
   items.push({
     title: title,
     category: categoryInput.value,
+    author: authorInput.value,
     target: Number(targetInput.value),
     current: 0,
     done: false
@@ -110,6 +113,7 @@ function addItem() {
 
   input.value = "";
   categoryInput.value = "Liebe ❤️";
+  authorInput.value = "Isi";
   targetInput.value = "1";
 
   addModal.classList.add("hidden");
