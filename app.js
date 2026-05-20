@@ -8,9 +8,17 @@ const openAddModal = document.getElementById("openAddModal");
 const closeModal = document.getElementById("closeModal");
 const addModal = document.getElementById("addModal");
 
-let items = JSON.parse(localStorage.getItem("bingoItems")) || [];
+const openDeleteMode = document.getElementById("openDeleteMode");
+const deleteBar = document.getElementById("deleteBar");
+const confirmDelete = document.getElementById("confirmDelete");
+const cancelDelete = document.getElementById("cancelDelete");
 
+let items = JSON.parse(localStorage.getItem("bingoItems")) || [];
 items = items.slice(0, 16);
+
+let deleteMode = false;
+let selectedForDelete = [];
+
 saveItems();
 
 function saveItems() {
@@ -26,6 +34,14 @@ function renderBoard() {
 
     const item = items[i];
 
+    if (deleteMode && item) {
+      cell.classList.add("delete-mode");
+    }
+
+    if (selectedForDelete.includes(i)) {
+      cell.classList.add("selected-delete");
+    }
+
     if (item) {
       if (item.done) {
         cell.classList.add("done");
@@ -38,50 +54,22 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
-        <button class="delete-field hidden-delete">🗑️</button>
         <div class="category">${item.category}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
 
-      let pressTimer;
+      cell.addEventListener("click", () => {
+        if (deleteMode) {
+          if (selectedForDelete.includes(i)) {
+            selectedForDelete = selectedForDelete.filter(index => index !== i);
+          } else {
+            selectedForDelete.push(i);
+          }
 
-      cell.addEventListener("mousedown", () => {
-        pressTimer = setTimeout(() => {
-          cell.querySelector(".delete-field").classList.remove("hidden-delete");
-        }, 700);
-      });
-
-      cell.addEventListener("mouseup", () => {
-        clearTimeout(pressTimer);
-      });
-
-      cell.addEventListener("mouseleave", () => {
-        clearTimeout(pressTimer);
-      });
-
-      cell.addEventListener("touchstart", () => {
-        pressTimer = setTimeout(() => {
-          cell.querySelector(".delete-field").classList.remove("hidden-delete");
-        }, 700);
-      });
-
-      cell.addEventListener("touchend", () => {
-        clearTimeout(pressTimer);
-      });
-
-      cell.querySelector(".delete-field").addEventListener("click", (event) => {
-        event.stopPropagation();
-
-        if (confirm("Eintrag wirklich löschen?")) {
-          items.splice(i, 1);
-          saveItems();
           renderBoard();
+          return;
         }
-      });
-
-      cell.addEventListener("click", (event) => {
-        if (event.target.classList.contains("delete-field")) return;
 
         if (item.current < item.target) {
           item.current++;
@@ -128,6 +116,40 @@ function addItem() {
   renderBoard();
 }
 
+function startDeleteMode() {
+  deleteMode = true;
+  selectedForDelete = [];
+  deleteBar.classList.remove("hidden");
+  renderBoard();
+}
+
+function cancelDeleteMode() {
+  deleteMode = false;
+  selectedForDelete = [];
+  deleteBar.classList.add("hidden");
+  renderBoard();
+}
+
+function deleteSelectedItems() {
+  if (selectedForDelete.length === 0) {
+    alert("Bitte erst mindestens ein Feld auswählen.");
+    return;
+  }
+
+  if (!confirm("Ausgewählte Einträge wirklich löschen?")) {
+    return;
+  }
+
+  items = items.filter((item, index) => !selectedForDelete.includes(index));
+
+  deleteMode = false;
+  selectedForDelete = [];
+  deleteBar.classList.add("hidden");
+
+  saveItems();
+  renderBoard();
+}
+
 openAddModal.addEventListener("click", () => {
   addModal.classList.remove("hidden");
   input.focus();
@@ -144,5 +166,9 @@ input.addEventListener("keydown", (event) => {
     addItem();
   }
 });
+
+openDeleteMode.addEventListener("click", startDeleteMode);
+cancelDelete.addEventListener("click", cancelDeleteMode);
+confirmDelete.addEventListener("click", deleteSelectedItems);
 
 renderBoard();
