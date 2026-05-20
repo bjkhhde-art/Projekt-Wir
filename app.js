@@ -1,5 +1,15 @@
 const board = document.getElementById("board");
 
+const input = document.getElementById("newItemInput");
+const categoryInput = document.getElementById("categoryInput");
+const authorInput = document.getElementById("authorInput");
+const targetInput = document.getElementById("targetInput");
+
+const openAddModal = document.getElementById("openAddModal");
+const addModal = document.getElementById("addModal");
+const addBtn = document.getElementById("addBtn");
+const closeModal = document.getElementById("closeModal");
+
 let items = [];
 
 async function loadCSV() {
@@ -7,7 +17,7 @@ async function loadCSV() {
     const response = await fetch("bingo.csv?v=" + Date.now());
     const text = await response.text();
 
-    const lines = text.trim().split("\n").slice(1);
+    const lines = text.trim().split("\n").slice(1).filter(line => line.trim() !== "");
 
     items = lines.map(line => {
       const values = parseCSVLine(line);
@@ -18,7 +28,7 @@ async function loadCSV() {
         author: values[2],
         target: Number(values[3]),
         current: Number(values[4]),
-        done: values[5].trim() === "true"
+        done: values[5]?.trim() === "true"
       };
     });
 
@@ -26,8 +36,8 @@ async function loadCSV() {
     renderBoard();
 
   } catch (error) {
-    board.innerHTML = "<p>CSV konnte nicht geladen werden.</p>";
-    console.error(error);
+    items = [];
+    renderBoard();
   }
 }
 
@@ -82,5 +92,46 @@ function renderBoard() {
     board.appendChild(cell);
   }
 }
+
+function addItem() {
+  const title = input.value.trim();
+
+  if (!title) return;
+
+  if (items.length >= 16) {
+    alert("Das Bingo ist voll.");
+    return;
+  }
+
+  items.push({
+    title: title,
+    category: categoryInput.value,
+    author: authorInput.value,
+    target: Number(targetInput.value),
+    current: 0,
+    done: false
+  });
+
+  input.value = "";
+  addModal.classList.add("hidden");
+  renderBoard();
+}
+
+openAddModal.addEventListener("click", () => {
+  addModal.classList.remove("hidden");
+  input.focus();
+});
+
+closeModal.addEventListener("click", () => {
+  addModal.classList.add("hidden");
+});
+
+addBtn.addEventListener("click", addItem);
+
+input.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    addItem();
+  }
+});
 
 loadCSV();
