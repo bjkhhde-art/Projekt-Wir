@@ -9,12 +9,18 @@
 
   <h1>Unser Bingo 💗</h1>
 
-  <div class="input-area">
-    <input id="newItemInput" type="text" placeholder="Neues Ziel eintragen...">
-    <button id="addBtn">Hinzufügen</button>
-  </div>
+  <button id="openAddModal" class="floating-plus">+</button>
 
   <div id="board"></div>
+
+  <div id="addModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Neues Ziel</h2>
+      <input id="newItemInput" type="text" placeholder="Ziel eingeben...">
+      <button id="addBtn">Hinzufügen</button>
+      <button id="closeModal" class="secondary">Abbrechen</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
