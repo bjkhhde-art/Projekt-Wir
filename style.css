@@ -3,18 +3,18 @@ body {
   text-align: center;
   background: #f7f3ef;
   margin: 0;
-  padding: 18px;
+  padding: 16px;
 }
 
 h1 {
-  font-size: clamp(26px, 7vw, 42px);
-  margin: 18px 0 22px;
+  font-size: clamp(32px, 9vw, 46px);
+  margin: 28px 0 26px;
 }
 
 #board {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  width: min(96vw, 850px);
+  width: min(94vw, 900px);
   margin: 0 auto;
   border-top: 2px solid #222;
   border-left: 2px solid #222;
@@ -24,11 +24,11 @@ h1 {
   background: #f1f1f1;
   border-right: 2px solid #222;
   border-bottom: 2px solid #222;
-  min-height: clamp(95px, 22vw, 150px);
-  padding: clamp(6px, 2vw, 12px);
+  min-height: 145px;
+  padding: 10px;
   cursor: pointer;
   box-sizing: border-box;
-  font-size: clamp(12px, 3.4vw, 17px);
+  font-size: 17px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -50,42 +50,42 @@ h1 {
 }
 
 .category {
-  font-size: clamp(10px, 2.8vw, 13px);
+  font-size: 13px;
   opacity: 0.7;
   margin-bottom: 4px;
 }
 
 .author,
 .due-date {
-  font-size: clamp(10px, 2.6vw, 12px);
+  font-size: 12px;
   opacity: 0.7;
   margin-bottom: 4px;
 }
 
 .progress {
   margin-top: 8px;
-  font-size: clamp(12px, 3.3vw, 18px);
+  font-size: 18px;
   line-height: 1.4;
 }
 
 .button-row {
   display: flex;
   justify-content: center;
-  gap: 18px;
-  margin: 20px 0;
+  gap: 24px;
+  margin: 26px 0 34px;
 }
 
 .plus-btn,
 .minus-btn {
-  width: clamp(54px, 14vw, 66px);
-  height: clamp(54px, 14vw, 66px);
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   border: none;
   color: white;
-  font-size: clamp(34px, 9vw, 46px);
+  font-size: 48px;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
   margin: 0;
   padding: 0;
 }
@@ -117,8 +117,8 @@ h1 {
 .modal-box {
   background: white;
   padding: 22px;
-  border-radius: 18px;
-  width: min(92vw, 380px);
+  border-radius: 22px;
+  width: min(92vw, 390px);
   max-height: 90vh;
   overflow-y: auto;
   text-align: left;
@@ -129,7 +129,7 @@ h1 {
 .modal-box h2 {
   text-align: center;
   margin-top: 0;
-  font-size: clamp(22px, 6vw, 28px);
+  font-size: 26px;
 }
 
 label {
@@ -142,10 +142,10 @@ label {
 input,
 select {
   width: 100%;
-  padding: 13px;
+  padding: 14px;
   font-size: 16px;
   box-sizing: border-box;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid #aaa;
 }
 
@@ -163,7 +163,7 @@ select {
   padding: 12px 18px;
   margin: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   background: #ff5c8a;
   color: white;
@@ -195,20 +195,53 @@ select {
   margin-bottom: 10px;
 }
 
-@media (max-width: 600px) {
+/* Handy Ansicht */
+@media (max-width: 700px) {
   body {
     padding: 10px;
   }
 
+  h1 {
+    font-size: 36px;
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+
   #board {
-    width: 96vw;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
   }
 
   .cell {
-    min-height: 105px;
+    min-height: 145px;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .category {
+    font-size: 12px;
+  }
+
+  .author,
+  .due-date {
+    font-size: 11px;
   }
 
   .progress {
-    font-size: 13px;
+    font-size: 15px;
+  }
+
+  .button-row {
+    position: sticky;
+    bottom: 14px;
+    z-index: 20;
+    margin-top: 24px;
+  }
+
+  .plus-btn,
+  .minus-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 50px;
   }
 }
