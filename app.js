@@ -38,12 +38,51 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
+        <button class="delete-field hidden-delete">🗑️</button>
         <div class="category">${item.category}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
 
-      cell.addEventListener("click", () => {
+      let pressTimer;
+
+      cell.addEventListener("mousedown", () => {
+        pressTimer = setTimeout(() => {
+          cell.querySelector(".delete-field").classList.remove("hidden-delete");
+        }, 700);
+      });
+
+      cell.addEventListener("mouseup", () => {
+        clearTimeout(pressTimer);
+      });
+
+      cell.addEventListener("mouseleave", () => {
+        clearTimeout(pressTimer);
+      });
+
+      cell.addEventListener("touchstart", () => {
+        pressTimer = setTimeout(() => {
+          cell.querySelector(".delete-field").classList.remove("hidden-delete");
+        }, 700);
+      });
+
+      cell.addEventListener("touchend", () => {
+        clearTimeout(pressTimer);
+      });
+
+      cell.querySelector(".delete-field").addEventListener("click", (event) => {
+        event.stopPropagation();
+
+        if (confirm("Eintrag wirklich löschen?")) {
+          items.splice(i, 1);
+          saveItems();
+          renderBoard();
+        }
+      });
+
+      cell.addEventListener("click", (event) => {
+        if (event.target.classList.contains("delete-field")) return;
+
         if (item.current < item.target) {
           item.current++;
         } else {
