@@ -11,6 +11,7 @@
 
   <div id="board"></div>
 
+  <button id="openDeleteMode" class="floating-minus">−</button>
   <button id="openAddModal" class="floating-plus">+</button>
 
   <div id="addModal" class="modal hidden">
@@ -44,6 +45,12 @@
       <button id="addBtn">Hinzufügen</button>
       <button id="closeModal" class="secondary">Abbrechen</button>
     </div>
+  </div>
+
+  <div id="deleteBar" class="delete-bar hidden">
+    <span>Felder zum Löschen auswählen</span>
+    <button id="confirmDelete">Löschen bestätigen</button>
+    <button id="cancelDelete" class="secondary">Abbrechen</button>
   </div>
 
   <script src="app.js"></script>
