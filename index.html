@@ -12,6 +12,7 @@
   <div id="board"></div>
 
   <div class="button-row">
+    <button id="openDeleteMode" class="minus-btn">−</button>
     <button id="openAddModal" class="plus-btn">+</button>
   </div>
 
@@ -54,10 +55,13 @@
     </div>
   </div>
 
-  <p class="hint">
-    Inhalte werden aus <b>bingo.csv</b> geladen.
-  </p>
+  <div id="deleteBar" class="delete-bar hidden">
+    <span>Felder zum Löschen auswählen</span>
+    <button id="confirmDelete">Löschen bestätigen</button>
+    <button id="cancelDelete" class="secondary">Abbrechen</button>
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>
