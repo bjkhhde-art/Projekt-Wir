@@ -1,11 +1,11 @@
 const firstMeeting = {
-  date: "2024-08-01",
-  place: "Ort vom ersten Treffen"
+  date: "2025-11-27",
+  place: "Prof's Night (Park Theater Kempten)"
 };
 
 const anniversary = {
-  date: "2025-02-01",
-  place: "Ort vom Jahrestag"
+  date: "2026-01-05",
+  place: "Botanischer Garten Hamburg Nienstedten"
 };
 
 function formatDate(dateString) {
