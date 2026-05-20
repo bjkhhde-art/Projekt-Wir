@@ -1,3 +1,66 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f7f3ef;
+  margin: 0;
+  padding: 25px;
+}
+
+h1 {
+  display: inline-block;
+  background: #f7f3ef;
+  padding: 8px 16px;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 850px;
+  margin: 10px auto;
+  border-top: 2px solid #222;
+  border-left: 2px solid #222;
+}
+
+.cell {
+  background: #f1f1f1;
+  border-right: 2px solid #222;
+  border-bottom: 2px solid #222;
+  min-height: 140px;
+  padding: 10px;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  font-size: 17px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cell.done {
+  background: #d8ffd8;
+  text-decoration: line-through;
+}
+
+.cell.delete-mode {
+  outline: 4px dashed #ff5c5c;
+}
+
+.cell.selected-delete {
+  background: #ffd6d6;
+  outline: 5px solid #ff2f2f;
+}
+
+.category {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.progress {
+  margin-top: 10px;
+  font-size: 18px;
+}
+
 .button-row {
   display: flex;
   justify-content: center;
@@ -26,4 +89,82 @@
 
 .minus-btn {
   background: #ef4444;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.modal-box {
+  background: white;
+  padding: 25px;
+  border-radius: 18px;
+  width: 330px;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.modal-box h2 {
+  text-align: center;
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #aaa;
+}
+
+button {
+  padding: 12px 18px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #ff5c8a;
+  color: white;
+  font-size: 16px;
+}
+
+.secondary {
+  background: #ddd;
+  color: #222;
+}
+
+.delete-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 25px;
+  transform: translateX(-50%);
+  background: white;
+  padding: 14px 18px;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  z-index: 20;
+}
+
+.delete-bar span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 6px;
 }
