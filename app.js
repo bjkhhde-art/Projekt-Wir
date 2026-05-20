@@ -10,6 +10,9 @@ const addModal = document.getElementById("addModal");
 
 let items = JSON.parse(localStorage.getItem("bingoItems")) || [];
 
+items = items.slice(0, 16);
+saveItems();
+
 function saveItems() {
   localStorage.setItem("bingoItems", JSON.stringify(items));
 }
