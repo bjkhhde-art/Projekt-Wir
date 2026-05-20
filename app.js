@@ -1,5 +1,8 @@
 const board = document.getElementById("board");
 const input = document.getElementById("newItemInput");
+const categoryInput = document.getElementById("categoryInput");
+const targetInput = document.getElementById("targetInput");
+
 const addBtn = document.getElementById("addBtn");
 const openAddModal = document.getElementById("openAddModal");
 const closeModal = document.getElementById("closeModal");
@@ -21,14 +24,31 @@ function renderBoard() {
     const item = items[i];
 
     if (item) {
-      cell.textContent = item.title;
-
       if (item.done) {
         cell.classList.add("done");
       }
 
+      const progressIcons = [];
+
+      for (let j = 0; j < item.target; j++) {
+        progressIcons.push(j < item.current ? "✅" : "⬜");
+      }
+
+      cell.innerHTML = `
+        <div class="category">${item.category}</div>
+        <div>${item.title}</div>
+        <div class="progress">${progressIcons.join(" ")}</div>
+      `;
+
       cell.addEventListener("click", () => {
-        items[i].done = !items[i].done;
+        if (item.current < item.target) {
+          item.current++;
+        } else {
+          item.current = 0;
+        }
+
+        item.done = item.current >= item.target;
+
         saveItems();
         renderBoard();
       });
@@ -50,12 +70,18 @@ function addItem() {
 
   items.push({
     title: title,
+    category: categoryInput.value,
+    target: Number(targetInput.value),
+    current: 0,
     done: false
   });
 
   saveItems();
 
   input.value = "";
+  categoryInput.value = "Liebe";
+  targetInput.value = "1";
+
   addModal.classList.add("hidden");
   renderBoard();
 }
