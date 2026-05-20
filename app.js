@@ -1,64 +1,42 @@
-const board = document.getElementById("board");
+const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
+const SUPABASE_KEY = "HIER_DEIN_ANON_PUBLIC_KEY_EINFÜGEN";
 
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const board = document.getElementById("board");
 const input = document.getElementById("newItemInput");
 const categoryInput = document.getElementById("categoryInput");
 const authorInput = document.getElementById("authorInput");
 const targetInput = document.getElementById("targetInput");
 
-const openAddModal = document.getElementById("openAddModal");
-const addModal = document.getElementById("addModal");
 const addBtn = document.getElementById("addBtn");
+const openAddModal = document.getElementById("openAddModal");
 const closeModal = document.getElementById("closeModal");
+const addModal = document.getElementById("addModal");
+
+const openDeleteMode = document.getElementById("openDeleteMode");
+const deleteBar = document.getElementById("deleteBar");
+const confirmDelete = document.getElementById("confirmDelete");
+const cancelDelete = document.getElementById("cancelDelete");
 
 let items = [];
+let deleteMode = false;
+let selectedForDelete = [];
 
-async function loadCSV() {
-  try {
-    const response = await fetch("bingo.csv?v=" + Date.now());
-    const text = await response.text();
+async function loadItems() {
+  const { data, error } = await supabaseClient
+    .from("bingo_items")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-    const lines = text.trim().split("\n").slice(1).filter(line => line.trim() !== "");
-
-    items = lines.map(line => {
-      const values = parseCSVLine(line);
-
-      return {
-        title: values[0],
-        category: values[1],
-        author: values[2],
-        target: Number(values[3]),
-        current: Number(values[4]),
-        done: values[5]?.trim() === "true"
-      };
-    });
-
-    items = items.slice(0, 16);
-    renderBoard();
-
-  } catch (error) {
-    items = [];
-    renderBoard();
-  }
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let current = "";
-  let insideQuotes = false;
-
-  for (let char of line) {
-    if (char === '"') {
-      insideQuotes = !insideQuotes;
-    } else if (char === "," && !insideQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
+  if (error) {
+    console.error("Fehler beim Laden:", error);
+    alert("Daten konnten nicht geladen werden.");
+    return;
   }
 
-  result.push(current.trim());
-  return result;
+  items = data.slice(0, 16);
+  renderBoard();
 }
 
 function renderBoard() {
@@ -69,6 +47,14 @@ function renderBoard() {
     cell.className = "cell";
 
     const item = items[i];
+
+    if (deleteMode && item) {
+      cell.classList.add("delete-mode");
+    }
+
+    if (selectedForDelete.includes(item?.id)) {
+      cell.classList.add("selected-delete");
+    }
 
     if (item) {
       if (item.done) {
@@ -82,39 +68,133 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
-        <div class="category">${item.category}</div>
-        <div class="author">Von: ${item.author}</div>
+        <div class="category">${item.category || "Sonstiges ⭐"}</div>
+        <div class="author">Von: ${item.author || "Unbekannt"}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
+
+      cell.addEventListener("click", async () => {
+        if (deleteMode) {
+          toggleDeleteSelection(item.id);
+          return;
+        }
+
+        await updateProgress(item);
+      });
     }
 
     board.appendChild(cell);
   }
 }
 
-function addItem() {
+async function addItem() {
   const title = input.value.trim();
 
   if (!title) return;
 
   if (items.length >= 16) {
-    alert("Das Bingo ist voll.");
+    alert("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.");
     return;
   }
 
-  items.push({
-    title: title,
-    category: categoryInput.value,
-    author: authorInput.value,
-    target: Number(targetInput.value),
-    current: 0,
-    done: false
-  });
+  const { error } = await supabaseClient
+    .from("bingo_items")
+    .insert({
+      title: title,
+      category: categoryInput.value,
+      author: authorInput.value,
+      target: Number(targetInput.value),
+      current: 0,
+      done: false
+    });
+
+  if (error) {
+    console.error("Fehler beim Speichern:", error);
+    alert("Speichern hat nicht geklappt.");
+    return;
+  }
 
   input.value = "";
+  categoryInput.value = "Liebe ❤️";
+  authorInput.value = "Isi";
+  targetInput.value = "1";
   addModal.classList.add("hidden");
+
+  await loadItems();
+}
+
+async function updateProgress(item) {
+  const newCurrent = item.current < item.target ? item.current + 1 : 0;
+  const newDone = newCurrent >= item.target;
+
+  const { error } = await supabaseClient
+    .from("bingo_items")
+    .update({
+      current: newCurrent,
+      done: newDone
+    })
+    .eq("id", item.id);
+
+  if (error) {
+    console.error("Fehler beim Aktualisieren:", error);
+    alert("Aktualisieren hat nicht geklappt.");
+    return;
+  }
+
+  await loadItems();
+}
+
+function startDeleteMode() {
+  deleteMode = true;
+  selectedForDelete = [];
+  deleteBar.classList.remove("hidden");
   renderBoard();
+}
+
+function cancelDeleteMode() {
+  deleteMode = false;
+  selectedForDelete = [];
+  deleteBar.classList.add("hidden");
+  renderBoard();
+}
+
+function toggleDeleteSelection(id) {
+  if (selectedForDelete.includes(id)) {
+    selectedForDelete = selectedForDelete.filter(itemId => itemId !== id);
+  } else {
+    selectedForDelete.push(id);
+  }
+
+  renderBoard();
+}
+
+async function deleteSelectedItems() {
+  if (selectedForDelete.length === 0) {
+    alert("Bitte erst mindestens ein Feld auswählen.");
+    return;
+  }
+
+  if (!confirm("Ausgewählte Einträge wirklich löschen?")) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("bingo_items")
+    .delete()
+    .in("id", selectedForDelete);
+
+  if (error) {
+    console.error("Fehler beim Löschen:", error);
+    alert("Löschen hat nicht geklappt.");
+    return;
+  }
+
+  deleteMode = false;
+  selectedForDelete = [];
+  deleteBar.classList.add("hidden");
+
+  await loadItems();
 }
 
 openAddModal.addEventListener("click", () => {
@@ -134,4 +214,23 @@ input.addEventListener("keydown", event => {
   }
 });
 
-loadCSV();
+openDeleteMode.addEventListener("click", startDeleteMode);
+cancelDelete.addEventListener("click", cancelDeleteMode);
+confirmDelete.addEventListener("click", deleteSelectedItems);
+
+loadItems();
+
+supabaseClient
+  .channel("bingo_items_changes")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "bingo_items"
+    },
+    () => {
+      loadItems();
+    }
+  )
+  .subscribe();
