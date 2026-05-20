@@ -8,6 +8,11 @@ const anniversary = {
   place: "Botanischer Garten Hamburg Nienstedten"
 };
 
+const firstDate = {
+  date: "2025-12-01",
+  place: "Weihnachtsmarkt Kempten"
+};
+
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("de-DE");
 }
