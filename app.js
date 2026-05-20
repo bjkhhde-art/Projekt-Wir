@@ -14,28 +14,45 @@ function saveItems() {
 function renderBoard() {
   board.innerHTML = "";
 
-  items.forEach((item, index) => {
+  for (let i = 0; i < 25; i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
-    cell.textContent = item.title;
 
-    if (item.done) cell.classList.add("done");
+    const item = items[i];
 
-    cell.addEventListener("click", () => {
-      items[index].done = !items[index].done;
-      saveItems();
-      renderBoard();
-    });
+    if (item) {
+      cell.textContent = item.title;
+
+      if (item.done) {
+        cell.classList.add("done");
+      }
+
+      cell.addEventListener("click", () => {
+        items[i].done = !items[i].done;
+        saveItems();
+        renderBoard();
+      });
+    }
 
     board.appendChild(cell);
-  });
+  }
 }
 
 function addItem() {
   const title = input.value.trim();
+
   if (!title) return;
 
-  items.push({ title, done: false });
+  if (items.length >= 25) {
+    alert("Das Bingo ist voll. Es können maximal 25 Felder genutzt werden.");
+    return;
+  }
+
+  items.push({
+    title: title,
+    done: false
+  });
+
   saveItems();
 
   input.value = "";
@@ -55,7 +72,9 @@ closeModal.addEventListener("click", () => {
 addBtn.addEventListener("click", addItem);
 
 input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") addItem();
+  if (event.key === "Enter") {
+    addItem();
+  }
 });
 
 renderBoard();
