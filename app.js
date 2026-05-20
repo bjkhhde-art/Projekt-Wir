@@ -1,29 +1,54 @@
 const board = document.getElementById("board");
-const input = document.getElementById("newItemInput");
-const categoryInput = document.getElementById("categoryInput");
-const authorInput = document.getElementById("authorInput");
-const targetInput = document.getElementById("targetInput");
 
-const addBtn = document.getElementById("addBtn");
-const openAddModal = document.getElementById("openAddModal");
-const closeModal = document.getElementById("closeModal");
-const addModal = document.getElementById("addModal");
+let items = [];
 
-const openDeleteMode = document.getElementById("openDeleteMode");
-const deleteBar = document.getElementById("deleteBar");
-const confirmDelete = document.getElementById("confirmDelete");
-const cancelDelete = document.getElementById("cancelDelete");
+async function loadCSV() {
+  try {
+    const response = await fetch("bingo.csv?v=" + Date.now());
+    const text = await response.text();
 
-let items = JSON.parse(localStorage.getItem("bingoItems")) || [];
-items = items.slice(0, 16);
+    const lines = text.trim().split("\n").slice(1);
 
-let deleteMode = false;
-let selectedForDelete = [];
+    items = lines.map(line => {
+      const values = parseCSVLine(line);
 
-saveItems();
+      return {
+        title: values[0],
+        category: values[1],
+        author: values[2],
+        target: Number(values[3]),
+        current: Number(values[4]),
+        done: values[5].trim() === "true"
+      };
+    });
 
-function saveItems() {
-  localStorage.setItem("bingoItems", JSON.stringify(items));
+    items = items.slice(0, 16);
+    renderBoard();
+
+  } catch (error) {
+    board.innerHTML = "<p>CSV konnte nicht geladen werden.</p>";
+    console.error(error);
+  }
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let char of line) {
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === "," && !insideQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
 }
 
 function renderBoard() {
@@ -34,14 +59,6 @@ function renderBoard() {
     cell.className = "cell";
 
     const item = items[i];
-
-    if (deleteMode && item) {
-      cell.classList.add("delete-mode");
-    }
-
-    if (selectedForDelete.includes(i)) {
-      cell.classList.add("selected-delete");
-    }
 
     if (item) {
       if (item.done) {
@@ -55,124 +72,15 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
-        <div class="category">${item.category || "Sonstiges ⭐"}</div>
-        <div class="author">Von: ${item.author || "Unbekannt"}</div>
+        <div class="category">${item.category}</div>
+        <div class="author">Von: ${item.author}</div>
         <div>${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
-
-      cell.addEventListener("click", () => {
-        if (deleteMode) {
-          if (selectedForDelete.includes(i)) {
-            selectedForDelete = selectedForDelete.filter(index => index !== i);
-          } else {
-            selectedForDelete.push(i);
-          }
-
-          renderBoard();
-          return;
-        }
-
-        if (item.current < item.target) {
-          item.current++;
-        } else {
-          item.current = 0;
-        }
-
-        item.done = item.current >= item.target;
-
-        saveItems();
-        renderBoard();
-      });
     }
 
     board.appendChild(cell);
   }
 }
 
-function addItem() {
-  const title = input.value.trim();
-
-  if (!title) return;
-
-  if (items.length >= 16) {
-    alert("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.");
-    return;
-  }
-
-  items.push({
-    title: title,
-    category: categoryInput.value,
-    author: authorInput.value,
-    target: Number(targetInput.value),
-    current: 0,
-    done: false
-  });
-
-  saveItems();
-
-  input.value = "";
-  categoryInput.value = "Liebe ❤️";
-  authorInput.value = "Isi";
-  targetInput.value = "1";
-
-  addModal.classList.add("hidden");
-  renderBoard();
-}
-
-function startDeleteMode() {
-  deleteMode = true;
-  selectedForDelete = [];
-  deleteBar.classList.remove("hidden");
-  renderBoard();
-}
-
-function cancelDeleteMode() {
-  deleteMode = false;
-  selectedForDelete = [];
-  deleteBar.classList.add("hidden");
-  renderBoard();
-}
-
-function deleteSelectedItems() {
-  if (selectedForDelete.length === 0) {
-    alert("Bitte erst mindestens ein Feld auswählen.");
-    return;
-  }
-
-  if (!confirm("Ausgewählte Einträge wirklich löschen?")) {
-    return;
-  }
-
-  items = items.filter((item, index) => !selectedForDelete.includes(index));
-
-  deleteMode = false;
-  selectedForDelete = [];
-  deleteBar.classList.add("hidden");
-
-  saveItems();
-  renderBoard();
-}
-
-openAddModal.addEventListener("click", () => {
-  addModal.classList.remove("hidden");
-  input.focus();
-});
-
-closeModal.addEventListener("click", () => {
-  addModal.classList.add("hidden");
-});
-
-addBtn.addEventListener("click", addItem);
-
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    addItem();
-  }
-});
-
-openDeleteMode.addEventListener("click", startDeleteMode);
-cancelDelete.addEventListener("click", cancelDeleteMode);
-confirmDelete.addEventListener("click", deleteSelectedItems);
-
-renderBoard();
+loadCSV();
