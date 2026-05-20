@@ -11,6 +11,49 @@
 
   <div id="board"></div>
 
+  <div class="button-row">
+    <button id="openAddModal" class="plus-btn">+</button>
+  </div>
+
+  <div id="addModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Neues Bingo-Feld</h2>
+
+      <label>Titel</label>
+      <input id="newItemInput" type="text" placeholder="z. B. 6x Wandern">
+
+      <label>Kategorie</label>
+      <select id="categoryInput">
+        <option value="Liebe ❤️">Liebe ❤️</option>
+        <option value="Reisen ✈️">Reisen ✈️</option>
+        <option value="Sport 🏃">Sport 🏃</option>
+        <option value="Lernen 📚">Lernen 📚</option>
+        <option value="Geld 💰">Geld 💰</option>
+        <option value="Sonstiges ⭐">Sonstiges ⭐</option>
+      </select>
+
+      <label>Verfasst von</label>
+      <select id="authorInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <label>Fortschritt</label>
+      <select id="targetInput">
+        <option value="1">Einmalig</option>
+        <option value="2">2x</option>
+        <option value="3">3x</option>
+        <option value="4">4x</option>
+        <option value="5">5x</option>
+        <option value="6">6x</option>
+        <option value="10">10x</option>
+      </select>
+
+      <button id="addBtn">Hinzufügen</button>
+      <button id="closeModal" class="secondary">Abbrechen</button>
+    </div>
+  </div>
+
   <p class="hint">
     Inhalte werden aus <b>bingo.csv</b> geladen.
   </p>
