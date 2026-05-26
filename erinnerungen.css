@@ -1,0 +1,288 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f3ef;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+}
+
+h1 {
+  font-size: clamp(30px, 8vw, 46px);
+  margin: 28px 0 18px;
+}
+
+.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.main-nav a {
+  text-decoration: none;
+  background: white;
+  color: #222;
+  padding: 10px 16px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  font-weight: bold;
+}
+
+.main-button,
+.back-button {
+  width: min(92vw, 420px);
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  background: #22c55e;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
+
+.back-button {
+  background: #ff5c8a;
+}
+
+.memory-grid {
+  width: min(94vw, 1000px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.memory-card {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.14);
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+}
+
+.memory-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.memory-content {
+  padding: 14px;
+}
+
+.memory-content h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.memory-content p {
+  margin: 4px 0;
+  opacity: 0.75;
+}
+
+.delete-memory-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.gallery-header {
+  margin-bottom: 18px;
+}
+
+.gallery-header h2 {
+  font-size: 34px;
+  margin: 8px 0;
+}
+
+.gallery-header p {
+  opacity: 0.7;
+  margin: 0;
+}
+
+.upload-card {
+  background: white;
+  width: min(92vw, 520px);
+  margin: 0 auto 24px;
+  padding: 18px;
+  border-radius: 22px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.14);
+  box-sizing: border-box;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #aaa;
+  box-sizing: border-box;
+}
+
+.upload-card button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #22c55e;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.image-grid {
+  width: min(94vw, 1000px);
+  margin: 0 auto 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.image-card {
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.14);
+  position: relative;
+}
+
+.image-card img {
+  width: 100%;
+  height: 230px;
+  object-fit: cover;
+  display: block;
+}
+
+.image-card p {
+  padding: 10px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.delete-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none;
+}
+
+.modal-box {
+  background: white;
+  padding: 22px;
+  border-radius: 22px;
+  width: min(92vw, 420px);
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-sizing: border-box;
+}
+
+.modal-box h2 {
+  text-align: center;
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.modal-buttons button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #22c55e;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.secondary {
+  background: #ddd !important;
+  color: #222 !important;
+}
+
+@media (max-width: 800px) {
+  .memory-grid,
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .memory-card img {
+    height: 150px;
+  }
+
+  .image-card img {
+    height: 190px;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    padding: 12px;
+  }
+
+  .memory-grid,
+  .image-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-card img {
+    height: 210px;
+  }
+
+  .image-card img {
+    height: 260px;
+  }
+}
