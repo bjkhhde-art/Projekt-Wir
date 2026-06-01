@@ -137,14 +137,8 @@ function displayQuestion(question) {
 }
 
 function updateCounter() {
-  const seenIds = getSeenIds(currentGroupKey);
-
-  const seenInCurrentGroup = currentQuestions.filter(question => {
-    return seenIds.includes(question.id);
-  }).length;
-
   questionCounter.textContent =
-    `${seenInCurrentGroup} / ${currentQuestions.length} Fragen in dieser Kategorie gesehen`;
+    `${currentQuestions.length} Fragen in dieser Kategorie`;
 }
 
 function updatePreviousButtonState() {
