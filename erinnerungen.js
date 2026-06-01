@@ -60,7 +60,12 @@ function renderMemories() {
     const card = document.createElement("div");
     card.className = "memory-card";
 
+    if (isFutureMemory(memory.start_date)) {
+      card.classList.add("future-memory");
+    }
+
     card.innerHTML = `
+      ${isFutureMemory(memory.start_date) ? `<span class="future-badge">Geplant</span>` : ""}
       <button class="delete-memory-btn">×</button>
       <img src="${memory.cover_url || ""}" alt="${memory.title}">
       <div class="memory-content">
@@ -276,6 +281,18 @@ async function deleteMemory(id) {
   }
 
   await loadMemories();
+}
+
+function isFutureMemory(startDate) {
+  if (!startDate) return false;
+
+  const today = new Date();
+  const memoryDate = new Date(startDate);
+
+  today.setHours(0, 0, 0, 0);
+  memoryDate.setHours(0, 0, 0, 0);
+
+  return memoryDate > today;
 }
 
 function formatDate(dateString) {
