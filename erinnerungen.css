@@ -194,6 +194,7 @@ input {
   height: 230px;
   object-fit: cover;
   display: block;
+  cursor: zoom-in;
 }
 
 .image-card p {
@@ -214,6 +215,7 @@ input {
   color: white;
   font-size: 20px;
   cursor: pointer;
+  z-index: 5;
 }
 
 .modal {
@@ -279,6 +281,61 @@ label {
   color: #222 !important;
 }
 
+/* Lightbox / Großansicht */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.lightbox.hidden {
+  display: none;
+}
+
+.lightbox img {
+  max-width: 95vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+}
+
+.close-lightbox {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  font-size: 32px;
+  line-height: 42px;
+  cursor: pointer;
+  z-index: 210;
+}
+
+.lightbox-caption {
+  color: white;
+  font-size: 16px;
+  max-width: 90vw;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Tablet */
+
 @media (max-width: 800px) {
   .memory-grid,
   .image-grid {
@@ -293,6 +350,8 @@ label {
     height: 190px;
   }
 }
+
+/* Handy */
 
 @media (max-width: 520px) {
   body {
@@ -310,5 +369,20 @@ label {
 
   .image-card img {
     height: 260px;
+  }
+
+  .lightbox {
+    padding: 12px;
+  }
+
+  .lightbox img {
+    max-width: 96vw;
+    max-height: 78vh;
+    border-radius: 12px;
+  }
+
+  .close-lightbox {
+    top: 12px;
+    right: 12px;
   }
 }
