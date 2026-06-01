@@ -28,6 +28,11 @@ const imageInput = document.getElementById("imageInput");
 const captionInput = document.getElementById("captionInput");
 const uploadImageBtn = document.getElementById("uploadImageBtn");
 
+const imageLightbox = document.getElementById("imageLightbox");
+const lightboxImage = document.getElementById("lightboxImage");
+const lightboxCaption = document.getElementById("lightboxCaption");
+const closeLightbox = document.getElementById("closeLightbox");
+
 let memories = [];
 let images = [];
 let currentMemory = null;
@@ -181,8 +186,14 @@ function renderImages() {
       ${image.caption ? `<p>${image.caption}</p>` : ""}
     `;
 
-    card.querySelector(".delete-image-btn").addEventListener("click", () => {
+    card.querySelector(".delete-image-btn").addEventListener("click", event => {
+      event.stopPropagation();
       deleteImage(image.id);
+    });
+
+    card.querySelector("img").addEventListener("click", event => {
+      event.stopPropagation();
+      openLightbox(image.image_url, image.caption);
     });
 
     imageGrid.appendChild(card);
@@ -283,6 +294,18 @@ async function deleteMemory(id) {
   await loadMemories();
 }
 
+function openLightbox(imageUrl, caption) {
+  lightboxImage.src = imageUrl;
+  lightboxCaption.textContent = caption || "";
+  imageLightbox.classList.remove("hidden");
+}
+
+function closeImageLightbox() {
+  imageLightbox.classList.add("hidden");
+  lightboxImage.src = "";
+  lightboxCaption.textContent = "";
+}
+
 function isFutureMemory(startDate) {
   if (!startDate) return false;
 
@@ -324,6 +347,20 @@ backToMemories.addEventListener("click", () => {
 });
 
 uploadImageBtn.addEventListener("click", uploadImage);
+
+closeLightbox.addEventListener("click", closeImageLightbox);
+
+imageLightbox.addEventListener("click", event => {
+  if (event.target === imageLightbox) {
+    closeImageLightbox();
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !imageLightbox.classList.contains("hidden")) {
+    closeImageLightbox();
+  }
+});
 
 loadMemories();
 
