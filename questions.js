@@ -44,13 +44,17 @@ const questionRealCategory = document.getElementById("questionRealCategory");
 const questionText = document.getElementById("questionText");
 const questionCounter = document.getElementById("questionCounter");
 const newQuestionBtn = document.getElementById("newQuestionBtn");
-const resetSeenBtn = document.getElementById("resetSeenBtn");
+const previousQuestionBtn = document.getElementById("resetSeenBtn");
 
 let currentGroupKey = "easy";
 let currentQuestions = [];
+let questionHistory = [];
+let currentQuestionIndex = -1;
 
 async function loadQuestionsForGroup(groupKey) {
   currentGroupKey = groupKey;
+  questionHistory = [];
+  currentQuestionIndex = -1;
 
   const group = QUESTION_GROUPS[groupKey];
 
@@ -58,6 +62,8 @@ async function loadQuestionsForGroup(groupKey) {
   questionRealCategory.textContent = "";
   questionText.textContent = "Lade Fragen...";
   questionCounter.textContent = "";
+
+  updatePreviousButtonState();
 
   const { data, error } = await supabaseClient
     .from("questions")
@@ -80,6 +86,7 @@ function showRandomQuestion() {
     questionText.textContent = "Keine Fragen in dieser Kategorie gefunden.";
     questionRealCategory.textContent = "";
     questionCounter.textContent = "";
+    updatePreviousButtonState();
     return;
   }
 
@@ -99,20 +106,57 @@ function showRandomQuestion() {
 
   markQuestionAsSeen(currentGroupKey, selectedQuestion.id);
 
-  questionText.textContent = selectedQuestion.question;
-  questionRealCategory.textContent = selectedQuestion.category;
+  if (currentQuestionIndex < questionHistory.length - 1) {
+    questionHistory = questionHistory.slice(0, currentQuestionIndex + 1);
+  }
 
+  questionHistory.push(selectedQuestion);
+  currentQuestionIndex = questionHistory.length - 1;
+
+  displayQuestion(selectedQuestion);
   updateCounter();
+  updatePreviousButtonState();
+}
+
+function showPreviousQuestion() {
+  if (questionHistory.length === 0 || currentQuestionIndex <= 0) {
+    return;
+  }
+
+  currentQuestionIndex--;
+
+  const previousQuestion = questionHistory[currentQuestionIndex];
+
+  displayQuestion(previousQuestion);
+  updatePreviousButtonState();
+}
+
+function displayQuestion(question) {
+  questionText.textContent = question.question;
+  questionRealCategory.textContent = question.category;
 }
 
 function updateCounter() {
   const seenIds = getSeenIds(currentGroupKey);
+
   const seenInCurrentGroup = currentQuestions.filter(question => {
     return seenIds.includes(question.id);
   }).length;
 
   questionCounter.textContent =
     `${seenInCurrentGroup} / ${currentQuestions.length} Fragen in dieser Kategorie gesehen`;
+}
+
+function updatePreviousButtonState() {
+  if (currentQuestionIndex <= 0) {
+    previousQuestionBtn.disabled = true;
+    previousQuestionBtn.style.opacity = "0.45";
+    previousQuestionBtn.style.cursor = "not-allowed";
+  } else {
+    previousQuestionBtn.disabled = false;
+    previousQuestionBtn.style.opacity = "1";
+    previousQuestionBtn.style.cursor = "pointer";
+  }
 }
 
 function getSeenIds(groupKey) {
@@ -156,9 +200,8 @@ newQuestionBtn.addEventListener("click", () => {
   showRandomQuestion();
 });
 
-resetSeenBtn.addEventListener("click", () => {
-  clearSeenIds(currentGroupKey);
-  showRandomQuestion();
+previousQuestionBtn.addEventListener("click", () => {
+  showPreviousQuestion();
 });
 
 loadQuestionsForGroup(currentGroupKey);
