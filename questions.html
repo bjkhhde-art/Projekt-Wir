@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projekt Wir - Questions</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="questions.css">
+</head>
+<body>
+
+  <h1>Questions 💬</h1>
+
+  <nav class="main-nav">
+    <a href="index.html">🎯 Couple Quest</a>
+    <a href="shopping.html">🛒 Einkaufsliste</a>
+    <a href="kpis.html">📊 KPIs</a>
+    <a href="erinnerungen.html">📸 Erinnerungen</a>
+    <a href="questions.html">💬 Questions</a>
+  </nav>
+
+  <section class="category-section">
+    <button class="category-btn active" data-group="easy">🧊 Easy Talk</button>
+    <button class="category-btn" data-group="deep">💗 Deep Talk</button>
+    <button class="category-btn" data-group="relationship">💑 Beziehung</button>
+    <button class="category-btn sexy" data-group="sexy">🔥 Sexy Time</button>
+  </section>
+
+  <main class="question-wrapper">
+    <div class="question-card">
+      <div id="questionGroupLabel" class="question-group-label">🧊 Easy Talk</div>
+      <div id="questionRealCategory" class="question-real-category"></div>
+
+      <p id="questionText" class="question-text">
+        Lade Fragen...
+      </p>
+
+      <div class="question-actions">
+        <button id="newQuestionBtn">Neue Frage</button>
+        <button id="resetSeenBtn" class="secondary">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <p id="questionCounter" class="question-counter"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="questions.js"></script>
+</body>
+</html>
