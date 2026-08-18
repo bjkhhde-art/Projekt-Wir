@@ -1,31 +1,22 @@
-const firstMeeting = {
-  date: "2025-11-27",
-  place: "Prof's Night (Park Theater Kempten)"
-};
-
-const anniversary = {
-  date: "2026-01-05",
-  place: "Botanischer Garten Hamburg Nienstedten"
-};
-
-const firstDate = {
-  date: "2025-12-01",
-  place: "Weihnachtsmarkt Kempten"
-};
-
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString("de-DE");
-}
+const { firstMeeting, firstDate, anniversary } = MILESTONES;
 
 function calculateDaysTogether(startDate) {
+  return daysBetween(startDate);
+}
+
+function nextAnniversaryDate(startDate) {
   const start = new Date(startDate);
   const today = new Date();
-
-  start.setHours(0, 0, 0, 0);
   today.setHours(0, 0, 0, 0);
 
-  const diffMs = today - start;
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  let next = new Date(today.getFullYear(), start.getMonth(), start.getDate());
+  next.setHours(0, 0, 0, 0);
+
+  if (next < today) {
+    next = new Date(today.getFullYear() + 1, start.getMonth(), start.getDate());
+  }
+
+  return next;
 }
 
 document.getElementById("firstMeetingDate").textContent =
@@ -48,6 +39,15 @@ document.getElementById("firstDateDate").textContent =
 
 document.getElementById("firstDatePlace").textContent =
   firstDate.place;
+
+const nextAnniv = nextAnniversaryDate(anniversary.date);
+const daysUntilNext = daysBetween(new Date(), nextAnniv);
+
+document.getElementById("nextAnniversaryCountdown").textContent =
+  daysUntilNext === 0 ? "Heute! 🎉" : daysUntilNext + " Tage";
+
+document.getElementById("nextAnniversaryDate").textContent =
+  formatDate(nextAnniv.toISOString().slice(0, 10));
 
 document.querySelectorAll(".flip-card").forEach(card => {
   card.addEventListener("click", () => {

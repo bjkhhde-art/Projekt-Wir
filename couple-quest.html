@@ -8,30 +8,27 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
 
+  <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>💗 I + B 💗</h1>
+  <main class="page">
+    <h1 class="page-title">Couple Quest 🎯</h1>
+    <p class="page-subtitle">Tippt ein Feld an, um den Fortschritt zu erhöhen</p>
 
-<nav class="main-nav">
-  <a href="couple-quest.html">🎯 Couple Quest</a>
-  <a href="shopping.html">🛒 Einkaufsliste</a>
-  <a href="kpis.html">📊 KPIs</a>
-  <a href="erinnerungen.html">📸 Erinnerungen</a>
-  <a href="questions.html">💬 Questions</a>
-</nav>
+    <div class="quest-toolbar">
+      <button id="openDeleteMode" class="btn btn-secondary btn-sm">🗑️ Verwalten</button>
+    </div>
 
-  <div id="board"></div>
+    <div id="board"></div>
+  </main>
 
-  <div class="button-row">
-    <button id="openDeleteMode" class="minus-btn">−</button>
-    <button id="openAddModal" class="plus-btn">+</button>
-  </div>
+  <button id="openAddModal" class="fab" title="Neues Bingo-Feld" aria-label="Neues Bingo-Feld">+</button>
 
   <div id="addModal" class="modal hidden">
     <div class="modal-box">
-      <h2>Neues Bingo-Feld</h2>
+      <h2 id="questModalTitle">Neues Bingo-Feld</h2>
 
       <label>Titel</label>
       <input id="newItemInput" type="text" placeholder="z. B. 6x Wandern">
@@ -55,7 +52,7 @@
       <label>Fälligkeitsdatum</label>
       <input id="dueDateInput" type="date">
 
-      <label>Fortschritt</label>
+      <label>Fortschrittsziel</label>
       <select id="targetInput">
         <option value="0">0</option>
         <option value="1" selected>1</option>
@@ -73,22 +70,32 @@
       </select>
 
       <div class="modal-buttons">
-        <button id="addBtn">Hinzufügen</button>
-        <button id="closeModal" class="secondary">Abbrechen</button>
+        <button id="addBtn" class="btn">Hinzufügen</button>
+        <button id="closeModal" class="btn btn-secondary">Abbrechen</button>
       </div>
     </div>
   </div>
 
-  <div id="deleteBar" class="delete-bar hidden">
+  <div id="deleteBar" class="delete-bar card hidden">
     <span>Felder zum Löschen auswählen</span>
 
     <div class="delete-buttons">
-      <button id="confirmDelete">Löschen bestätigen</button>
-      <button id="cancelDelete" class="secondary">Abbrechen</button>
+      <button id="confirmDelete" class="btn btn-danger">Löschen bestätigen</button>
+      <button id="cancelDelete" class="btn btn-secondary">Abbrechen</button>
     </div>
   </div>
 
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="shopping.html" class="nav-item"><span class="nav-icon">🛒</span><span class="nav-label">Liste</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+  </nav>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

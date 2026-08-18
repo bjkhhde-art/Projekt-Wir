@@ -8,83 +8,96 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
 
+  <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="kpis.css">
 </head>
 <body>
 
-  <h1>Unsere KPIs 💗</h1>
+  <main class="page">
+    <h1 class="page-title">Unsere KPIs 💗</h1>
+    <p class="page-subtitle">Tippe auf eine Karte für ein Foto · Zahlen, die zählen</p>
 
-<nav class="main-nav">
-  <a href="couple-quest.html">🎯 Couple Quest</a>
-  <a href="shopping.html">🛒 Einkaufsliste</a>
-  <a href="kpis.html">📊 KPIs</a>
-  <a href="erinnerungen.html">📸 Erinnerungen</a>
-  <a href="questions.html">💬 Questions</a>
-</nav>
+    <div class="kpi-grid">
 
-  <div class="kpi-grid">
+      <div class="flip-card">
+        <div class="flip-inner">
+          <div class="kpi-card flip-front card">
+            <span class="icon">👀</span>
+            <h2>Erstes Treffen</h2>
+            <p id="firstMeetingDate"></p>
+            <p class="kpi-place" id="firstMeetingPlace"></p>
+          </div>
 
-    <div class="flip-card">
-      <div class="flip-inner">
-        <div class="kpi-card flip-front">
-          <span class="icon">👀</span>
-          <h2>Erstes Treffen</h2>
-          <p id="firstMeetingDate"></p>
-          <p id="firstMeetingPlace"></p>
-        </div>
-
-        <div class="kpi-card flip-back">
-          <img src="images/erstes-treffen.jpg" alt="Erstes Treffen">
+          <div class="kpi-card flip-back card">
+            <img src="images/erstes-treffen.jpg" alt="Erstes Treffen">
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="flip-card">
-      <div class="flip-inner">
-        <div class="kpi-card flip-front">
-          <span class="icon">🌹</span>
-          <h2>Erstes Date</h2>
-          <p id="firstDateDate"></p>
-          <p id="firstDatePlace"></p>
-        </div>
+      <div class="flip-card">
+        <div class="flip-inner">
+          <div class="kpi-card flip-front card">
+            <span class="icon">🌹</span>
+            <h2>Erstes Date</h2>
+            <p id="firstDateDate"></p>
+            <p class="kpi-place" id="firstDatePlace"></p>
+          </div>
 
-        <div class="kpi-card flip-back">
-          <img src="images/erstes-date.jpg" alt="Erstes Date">
-        </div>
-      </div>
-    </div>
-
-    <div class="flip-card">
-      <div class="flip-inner">
-        <div class="kpi-card flip-front">
-          <span class="icon">💍</span>
-          <h2>Jahrestag</h2>
-          <p id="anniversaryDate"></p>
-          <p id="anniversaryPlace"></p>
-        </div>
-
-        <div class="kpi-card flip-back">
-          <img src="images/jahrestag.jpg" alt="Jahrestag">
+          <div class="kpi-card flip-back card">
+            <img src="images/erstes-date.jpg" alt="Erstes Date">
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="flip-card">
-      <div class="flip-inner">
-        <div class="kpi-card flip-front highlight">
-          <span class="icon">⏳</span>
-          <h2>Tage zusammen</h2>
-          <p id="daysTogether" class="big-number"></p>
-        </div>
+      <div class="flip-card">
+        <div class="flip-inner">
+          <div class="kpi-card flip-front card">
+            <span class="icon">💍</span>
+            <h2>Jahrestag</h2>
+            <p id="anniversaryDate"></p>
+            <p class="kpi-place" id="anniversaryPlace"></p>
+          </div>
 
-        <div class="kpi-card flip-back">
-          <img src="images/tage-zusammen.jpg" alt="Tage zusammen">
+          <div class="kpi-card flip-back card">
+            <img src="images/jahrestag.jpg" alt="Jahrestag">
+          </div>
         </div>
       </div>
+
+      <div class="flip-card">
+        <div class="flip-inner">
+          <div class="kpi-card flip-front highlight card">
+            <span class="icon">⏳</span>
+            <h2>Tage zusammen</h2>
+            <p id="daysTogether" class="big-number"></p>
+          </div>
+
+          <div class="kpi-card flip-back card">
+            <img src="images/tage-zusammen.jpg" alt="Tage zusammen">
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card highlight card kpi-countdown">
+        <span class="icon">🎂</span>
+        <h2>Nächster Jahrestag</h2>
+        <p id="nextAnniversaryCountdown" class="big-number"></p>
+        <p class="kpi-place" id="nextAnniversaryDate"></p>
+      </div>
+
     </div>
+  </main>
 
-  </div>
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="shopping.html" class="nav-item"><span class="nav-icon">🛒</span><span class="nav-label">Liste</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+  </nav>
 
+  <script src="shared.js"></script>
   <script src="kpis.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ const categoryInput = document.getElementById("categoryInput");
 const authorInput = document.getElementById("authorInput");
 const dueDateInput = document.getElementById("dueDateInput");
 const targetInput = document.getElementById("targetInput");
+const questModalTitle = document.getElementById("questModalTitle");
 
 const addBtn = document.getElementById("addBtn");
 const openAddModal = document.getElementById("openAddModal");
@@ -23,6 +24,7 @@ const cancelDelete = document.getElementById("cancelDelete");
 let items = [];
 let deleteMode = false;
 let selectedForDelete = [];
+let editingItemId = null;
 
 async function loadItems() {
   const { data, error } = await supabaseClient
@@ -32,7 +34,7 @@ async function loadItems() {
 
   if (error) {
     console.error("Fehler beim Laden:", error);
-    alert("Daten konnten nicht geladen werden.");
+    showToast("Daten konnten nicht geladen werden.", "error");
     return;
   }
 
@@ -69,10 +71,11 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
+        ${!deleteMode ? `<button class="cell-edit-btn" title="Bearbeiten">✏️</button>` : ""}
         <div class="category">${item.category || "Sonstiges ⭐"}</div>
         <div class="author">Von: ${item.author || "Unbekannt"}</div>
         <div class="due-date">${item.due_date ? "Fällig: " + formatDate(item.due_date) : ""}</div>
-        <div>${item.title}</div>
+        <div class="cell-title">${item.title}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
 
@@ -84,47 +87,113 @@ function renderBoard() {
 
         await updateProgress(item);
       });
+
+      const editBtn = cell.querySelector(".cell-edit-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", event => {
+          event.stopPropagation();
+          openEditModal(item);
+        });
+      }
     }
 
     board.appendChild(cell);
   }
 }
 
-async function addItem() {
-  const title = input.value.trim();
-
-  if (!title) return;
-
-  if (items.length >= 16) {
-    alert("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.");
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("bingo_items")
-    .insert({
-      title: title,
-      category: categoryInput.value,
-      author: authorInput.value,
-      due_date: dueDateInput.value || null,
-      target: Number(targetInput.value),
-      current: 0,
-      done: false
-    });
-
-  if (error) {
-    console.error("Fehler beim Speichern:", error);
-    alert("Speichern hat nicht geklappt.");
-    return;
-  }
+function openAddModalHandler() {
+  editingItemId = null;
+  questModalTitle.textContent = "Neues Bingo-Feld";
+  addBtn.textContent = "Hinzufügen";
 
   input.value = "";
   categoryInput.value = "Liebe ❤️";
   authorInput.value = "Isi";
   dueDateInput.value = "";
   targetInput.value = "1";
-  addModal.classList.add("hidden");
 
+  addModal.classList.remove("hidden");
+  input.focus();
+}
+
+function openEditModal(item) {
+  editingItemId = item.id;
+  questModalTitle.textContent = "Feld bearbeiten";
+  addBtn.textContent = "Änderungen speichern";
+
+  input.value = item.title || "";
+  categoryInput.value = item.category || "Liebe ❤️";
+  authorInput.value = item.author || "Isi";
+  dueDateInput.value = item.due_date || "";
+  targetInput.value = String(item.target ?? 1);
+
+  addModal.classList.remove("hidden");
+  input.focus();
+}
+
+async function saveItem() {
+  const title = input.value.trim();
+
+  if (!title) {
+    showToast("Bitte einen Titel eingeben.", "error");
+    return;
+  }
+
+  if (editingItemId) {
+    const item = items.find(existing => existing.id === editingItemId);
+    const target = Number(targetInput.value);
+    let current = item ? item.current : 0;
+
+    if (current > target) current = target;
+
+    const { error } = await supabaseClient
+      .from("bingo_items")
+      .update({
+        title,
+        category: categoryInput.value,
+        author: authorInput.value,
+        due_date: dueDateInput.value || null,
+        target,
+        current,
+        done: target > 0 && current >= target
+      })
+      .eq("id", editingItemId);
+
+    if (error) {
+      console.error("Fehler beim Speichern:", error);
+      showToast("Speichern hat nicht geklappt.", "error");
+      return;
+    }
+
+    showToast("Feld aktualisiert 💗", "success");
+  } else {
+    if (items.length >= 16) {
+      showToast("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.", "error");
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("bingo_items")
+      .insert({
+        title,
+        category: categoryInput.value,
+        author: authorInput.value,
+        due_date: dueDateInput.value || null,
+        target: Number(targetInput.value),
+        current: 0,
+        done: false
+      });
+
+    if (error) {
+      console.error("Fehler beim Speichern:", error);
+      showToast("Speichern hat nicht geklappt.", "error");
+      return;
+    }
+
+    showToast("Neues Feld hinzugefügt ✨", "success");
+  }
+
+  addModal.classList.add("hidden");
   await loadItems();
 }
 
@@ -148,15 +217,16 @@ async function updateProgress(item) {
 
   if (error) {
     console.error("Fehler beim Aktualisieren:", error);
-    alert("Aktualisieren hat nicht geklappt.");
+    showToast("Aktualisieren hat nicht geklappt.", "error");
     return;
   }
 
-  await loadItems();
-}
+  if (newDone && !item.done) {
+    celebrate(16);
+    showToast(`"${item.title}" geschafft! 🎉`, "success");
+  }
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString("de-DE");
+  await loadItems();
 }
 
 function startDeleteMode() {
@@ -185,13 +255,12 @@ function toggleDeleteSelection(id) {
 
 async function deleteSelectedItems() {
   if (selectedForDelete.length === 0) {
-    alert("Bitte erst mindestens ein Feld auswählen.");
+    showToast("Bitte erst mindestens ein Feld auswählen.", "error");
     return;
   }
 
-  if (!confirm("Ausgewählte Einträge wirklich löschen?")) {
-    return;
-  }
+  const confirmed = await confirmDialog(`${selectedForDelete.length} Feld(er) werden endgültig gelöscht.`);
+  if (!confirmed) return;
 
   const { error } = await supabaseClient
     .from("bingo_items")
@@ -200,9 +269,11 @@ async function deleteSelectedItems() {
 
   if (error) {
     console.error("Fehler beim Löschen:", error);
-    alert("Löschen hat nicht geklappt.");
+    showToast("Löschen hat nicht geklappt.", "error");
     return;
   }
+
+  showToast("Felder gelöscht.");
 
   deleteMode = false;
   selectedForDelete = [];
@@ -211,20 +282,17 @@ async function deleteSelectedItems() {
   await loadItems();
 }
 
-openAddModal.addEventListener("click", () => {
-  addModal.classList.remove("hidden");
-  input.focus();
-});
+openAddModal.addEventListener("click", openAddModalHandler);
 
 closeModal.addEventListener("click", () => {
   addModal.classList.add("hidden");
 });
 
-addBtn.addEventListener("click", addItem);
+addBtn.addEventListener("click", saveItem);
 
 input.addEventListener("keydown", event => {
   if (event.key === "Enter") {
-    addItem();
+    saveItem();
   }
 });
 

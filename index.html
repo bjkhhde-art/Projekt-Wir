@@ -8,45 +8,51 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
 
+  <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="home.css">
 </head>
 <body>
 
-  <main class="home-wrapper">
+  <main class="page home-wrapper">
 
     <section class="hero">
       <div class="heart">💗</div>
       <h1>I + B</h1>
       <p>Weil Benji langweilig ist 😂</p>
+
+      <div id="heroStat" class="hero-stat card">
+        <span class="hero-stat-number" id="heroDays">–</span>
+        <span class="hero-stat-label">Tage zusammen seit unserem Jahrestag</span>
+      </div>
     </section>
 
     <section class="home-grid">
 
-      <a href="couple-quest.html" class="home-card">
+      <a href="couple-quest.html" class="home-card card card-hover">
         <span class="card-icon">🎯</span>
         <h2>Couple Quest</h2>
         <p>Unsere Ziele, Challenges und gemeinsamen Vorhaben</p>
       </a>
 
-      <a href="shopping.html" class="home-card">
+      <a href="shopping.html" class="home-card card card-hover">
         <span class="card-icon">🛒</span>
         <h2>Einkaufsliste</h2>
-        <p>Gemeinsame Einkaufsliste</p>
+        <p>Gemeinsame Einkaufsliste, live synchronisiert</p>
       </a>
 
-      <a href="kpis.html" class="home-card">
+      <a href="kpis.html" class="home-card card card-hover">
         <span class="card-icon">📊</span>
         <h2>KPIs</h2>
         <p>Daten, Jahrestage und Meilensteine</p>
       </a>
 
-      <a href="erinnerungen.html" class="home-card">
+      <a href="erinnerungen.html" class="home-card card card-hover">
         <span class="card-icon">📸</span>
         <h2>Erinnerungen</h2>
         <p>Trips, Bilder und schöne gemeinsame Momente</p>
       </a>
 
-      <a href="questions.html" class="home-card">
+      <a href="questions.html" class="home-card card card-hover">
         <span class="card-icon">💬</span>
         <h2>Questions</h2>
         <p>Für Gesprächsthemen</p>
@@ -56,5 +62,19 @@
 
   </main>
 
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="shopping.html" class="nav-item"><span class="nav-icon">🛒</span><span class="nav-label">Liste</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+  </nav>
+
+  <script src="shared.js"></script>
+  <script>
+    document.getElementById("heroDays").textContent =
+      daysBetween(MILESTONES.anniversary.date) + " 🎉";
+  </script>
 </body>
 </html>
