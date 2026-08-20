@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Kuschelbatterien</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="batterien.css">
+</head>
+<body>
+
+  <main class="page">
+    <h1 class="page-title">Kuschelbatterien 🔋</h1>
+    <p class="page-subtitle">Wisch eine Batterie hoch oder runter, um den Kuschel-Akku zu laden</p>
+
+    <div class="battery-row">
+
+      <div class="battery-unit">
+        <div class="battery-name">Isi G</div>
+
+        <div class="battery-shell" id="battery-isi-g" data-person="Isi G">
+          <div class="battery-nub"></div>
+          <div class="battery-inner">
+            <div class="battery-fill"></div>
+            <div class="battery-shine"></div>
+          </div>
+          <div class="battery-spark hidden">⚡</div>
+        </div>
+
+        <div class="battery-readout">
+          <span class="battery-emoji" id="emoji-isi-g">🙂</span>
+          <span class="battery-percent" id="percent-isi-g">50%</span>
+        </div>
+
+        <p class="battery-status" id="status-isi-g">Bereit zum Kuscheln</p>
+      </div>
+
+      <div class="battery-unit">
+        <div class="battery-name">Benji</div>
+
+        <div class="battery-shell" id="battery-benji" data-person="Benji">
+          <div class="battery-nub"></div>
+          <div class="battery-inner">
+            <div class="battery-fill"></div>
+            <div class="battery-shine"></div>
+          </div>
+          <div class="battery-spark hidden">⚡</div>
+        </div>
+
+        <div class="battery-readout">
+          <span class="battery-emoji" id="emoji-benji">🙂</span>
+          <span class="battery-percent" id="percent-benji">50%</span>
+        </div>
+
+        <p class="battery-status" id="status-benji">Bereit zum Kuscheln</p>
+      </div>
+
+    </div>
+  </main>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="batterien.js"></script>
+</body>
+</html>
