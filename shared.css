@@ -75,6 +75,9 @@ html {
 
 body {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   font-family: var(--font-body);
   color: var(--text);
   background: var(--bg);
@@ -83,8 +86,6 @@ body {
     radial-gradient(circle at 88% 18%, var(--bg-blob-2), transparent 40%),
     radial-gradient(circle at 50% 100%, var(--bg-blob-1), transparent 45%);
   background-attachment: fixed;
-  min-height: 100vh;
-  padding: 20px 16px calc(var(--nav-height) + 28px);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
@@ -92,6 +93,8 @@ body {
 .page {
   width: min(94vw, var(--content-max));
   margin: 0 auto;
+  padding: 20px 0 28px;
+  flex: 1 0 auto;
   animation: page-in 0.45s ease both;
 }
 
@@ -157,11 +160,10 @@ a {
 /* ---------- navigation (bottom on mobile, pill bar on desktop) ---------- */
 
 .app-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
   z-index: 100;
+  flex: none;
   display: flex;
   justify-content: space-around;
   align-items: stretch;
@@ -216,10 +218,6 @@ a {
 }
 
 @media (min-width: 760px) {
-  body {
-    padding: 20px 24px 40px;
-  }
-
   .app-nav {
     position: static;
     width: min(94vw, var(--content-max));

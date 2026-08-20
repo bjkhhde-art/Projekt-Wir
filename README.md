@@ -3,7 +3,6 @@
 Gemeinsame Couple-App mit:
 
 - 🎯 Couple Quest – Bingo-Board mit Zielen, Fortschritt & Bearbeiten
-- 🛒 Einkaufsliste – live synchronisiert, nach Kategorien sortiert
 - 📊 KPIs – Meilensteine, Tage zusammen & Countdown zum nächsten Jahrestag
 - 📸 Erinnerungen – Trips anlegen/bearbeiten, Bilder per Drag & Drop hochladen
 - 💬 Questions – Gesprächsthemen nach Kategorie
