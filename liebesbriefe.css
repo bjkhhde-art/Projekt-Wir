@@ -1,78 +1,276 @@
 .notes-feed {
   max-width: 640px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.envelope-card {
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.note-card {
-  display: flex;
+  align-items: center;
+  gap: 8px;
   animation: page-in 0.35s ease both;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
 }
 
-.note-left {
-  justify-content: flex-start;
-}
-
-.note-right {
-  justify-content: flex-end;
-}
-
-.note-bubble {
+.envelope-mini {
   position: relative;
-  max-width: 78%;
-  padding: 16px 40px 14px 18px;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.note-left .note-bubble {
-  border-bottom-left-radius: 6px;
-  background: linear-gradient(135deg, rgba(255, 92, 138, 0.12), rgba(255, 92, 138, 0.04));
-  border-color: rgba(255, 92, 138, 0.28);
+.envelope-card:hover .envelope-mini {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
 }
 
-.note-right .note-bubble {
-  border-bottom-right-radius: 6px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04));
-  border-color: rgba(139, 92, 246, 0.28);
+.envelope-card:active .envelope-mini {
+  transform: scale(0.96);
 }
 
-.note-message {
-  margin: 0 0 10px;
-  font-size: 15px;
-  line-height: 1.5;
+.envelope-mini-body {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
-.note-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 11.5px;
-  color: var(--text-faint);
+.envelope-mini-flap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 60%;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 2px rgba(20, 8, 15, 0.18));
 }
 
-.note-author {
-  font-weight: 700;
+.envelope-card.author-isi .envelope-mini-body,
+.envelope-card.author-isi .envelope-mini-flap {
+  background: linear-gradient(160deg, var(--pink), var(--pink-deep));
 }
 
-.delete-note-btn {
+.envelope-card.author-benji .envelope-mini-body,
+.envelope-card.author-benji .envelope-mini-flap {
+  background: linear-gradient(160deg, var(--purple), var(--purple-deep));
+}
+
+.envelope-mini-seal {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  z-index: 2;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+.envelope-new-badge {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 26px;
-  height: 26px;
-  font-size: 13px;
-  background: rgba(239, 68, 68, 0.14);
-  color: var(--danger);
+  z-index: 3;
+  background: white;
+  color: var(--pink-deep);
+  font-size: 10px;
+  padding: 3px 9px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.envelope-label {
+  text-align: center;
+}
+
+.envelope-author {
+  display: block;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.envelope-time {
+  display: block;
+  font-size: 11px;
+  color: var(--text-faint);
 }
 
 .note-skeleton {
-  height: 74px;
-  max-width: 78%;
+  aspect-ratio: 3 / 2;
+  width: 100%;
 }
 
-@media (max-width: 480px) {
-  .note-bubble {
-    max-width: 88%;
+/* ---------- opened letter overlay ---------- */
+
+.letter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(10, 4, 12, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.letter-overlay.hidden {
+  display: none;
+}
+
+.delete-letter-btn {
+  left: 18px;
+  right: auto;
+  font-size: 20px;
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.envelope-scene {
+  perspective: 1100px;
+  animation: envelope-pop 0.4s cubic-bezier(.2, .9, .3, 1.2);
+}
+
+@keyframes envelope-pop {
+  from { transform: scale(0.45); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.envelope-big {
+  position: relative;
+  width: min(84vw, 320px);
+  height: 210px;
+  margin-top: 160px;
+}
+
+.letter-paper {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  top: 26px;
+  max-height: min(56vh, 360px);
+  overflow-y: auto;
+  background: #fffdf8;
+  border-radius: 10px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(20px);
+  opacity: 0;
+  z-index: 1;
+  transition: transform 0.4s cubic-bezier(.2, .9, .3, 1.05), opacity 0.35s ease;
+}
+
+.letter-paper.dragging {
+  transition: none;
+}
+
+.letter-message {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #241726;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.letter-signature {
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--pink-deep);
+}
+
+.envelope-body {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(165deg, #fff5f8, #ffe1ee);
+  box-shadow: var(--shadow-lift);
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.envelope-seal {
+  font-size: 32px;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3));
+}
+
+.envelope-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 58%;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(165deg, var(--pink), var(--purple));
+  transform-origin: top center;
+  transform: rotateX(0deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  z-index: 3;
+  touch-action: none;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 14px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.envelope-flap:active {
+  cursor: grabbing;
+}
+
+.envelope-flap.settling {
+  transition: transform 0.45s cubic-bezier(.2, .9, .3, 1.05);
+}
+
+.envelope-flap.dragging {
+  transition: none;
+}
+
+.flap-arrow {
+  color: white;
+  font-size: 15px;
+  animation: flap-bounce 1.3s ease-in-out infinite;
+}
+
+@keyframes flap-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.75; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+
+.flap-hint {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.envelope-flap.opened .flap-arrow,
+.envelope-flap.opened .flap-hint {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .notes-feed {
+    gap: 14px;
+  }
+
+  .envelope-author {
+    font-size: 12.5px;
   }
 }
