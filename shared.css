@@ -607,6 +607,100 @@ textarea:focus {
   100% { transform: translateY(-100vh) rotate(30deg); opacity: 0; }
 }
 
+/* ---------- pin gate ---------- */
+
+#pin-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  visibility: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 8%, var(--bg-blob-1), transparent 42%),
+    radial-gradient(circle at 88% 18%, var(--bg-blob-2), transparent 40%),
+    radial-gradient(circle at 50% 100%, var(--bg-blob-1), transparent 45%);
+}
+
+.pin-gate-box {
+  width: min(92vw, 360px);
+  padding: 38px 28px;
+  text-align: center;
+  background: var(--surface-solid);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  animation: pop-in 0.3s cubic-bezier(.2,.9,.3,1.2);
+}
+
+.pin-gate-heart {
+  font-size: 46px;
+  margin-bottom: 8px;
+}
+
+.pin-gate-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 26px;
+  margin: 0 0 6px;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pin-gate-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0 0 24px;
+}
+
+.pin-gate-input {
+  width: 100%;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 10px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--bg);
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.pin-gate-input:focus {
+  outline: none;
+  border-color: var(--pink);
+}
+
+.pin-gate-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin: 4px 0 20px;
+}
+
+.pin-gate-error {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  margin: -10px 0 16px;
+}
+
+.pin-gate-box.shake {
+  animation: pin-shake 0.4s ease;
+}
+
+@keyframes pin-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-8px); }
+  40%, 60% { transform: translateX(8px); }
+}
+
 /* ---------- scrollbar niceties ---------- */
 
 ::-webkit-scrollbar {
