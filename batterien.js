@@ -50,6 +50,8 @@ function triggerSpark(shell) {
   spark.classList.add("pop");
 }
 
+const extremeFlags = {};
+
 function renderLevel(config, level) {
   const rounded = Math.round(clamp(level, 0, 100));
   const shell = document.getElementById(`battery-${config.slug}`);
@@ -64,18 +66,34 @@ function renderLevel(config, level) {
   emojiEl.textContent = emojiForLevel(rounded);
   statusEl.textContent = statusForLevel(rounded);
 
-  const wasFull = shell.classList.contains("full");
+  const flags = extremeFlags[config.person] || (extremeFlags[config.person] = { wasFull: false, wasEmpty: false });
+  let firedBigVibration = false;
 
   if (rounded >= 100) {
     shell.classList.add("full");
-    if (!wasFull) {
+    if (!flags.wasFull) {
       triggerSpark(shell);
       celebrate(10);
       vibrate([15, 40, 15]);
+      firedBigVibration = true;
     }
+    flags.wasFull = true;
   } else {
     shell.classList.remove("full");
+    flags.wasFull = false;
   }
+
+  if (rounded <= 0) {
+    if (!flags.wasEmpty) {
+      vibrate([10, 30, 10]);
+      firedBigVibration = true;
+    }
+    flags.wasEmpty = true;
+  } else {
+    flags.wasEmpty = false;
+  }
+
+  return firedBigVibration;
 }
 
 async function saveLevel(person, level) {
@@ -116,6 +134,7 @@ function attachDrag(config) {
   let startY = 0;
   let startLevel = levels[config.person] || 50;
   let liveLevel = startLevel;
+  let lastTickDecile = Math.floor(startLevel / 10);
 
   shell.addEventListener("pointerdown", event => {
     dragging = true;
@@ -123,8 +142,10 @@ function attachDrag(config) {
     startY = event.clientY;
     startLevel = levels[config.person] ?? 50;
     liveLevel = startLevel;
+    lastTickDecile = Math.floor(startLevel / 10);
     unit.classList.add("dragging");
     shell.classList.add("dragging");
+    vibrate(8);
   });
 
   shell.addEventListener("pointermove", event => {
@@ -135,7 +156,16 @@ function attachDrag(config) {
     const deltaPercent = (deltaY / range) * 100;
 
     liveLevel = clamp(startLevel + deltaPercent, 0, 100);
-    renderLevel(config, liveLevel);
+    const firedBig = renderLevel(config, liveLevel);
+
+    const rounded = Math.round(liveLevel);
+    const decile = Math.floor(rounded / 10);
+    if (decile !== lastTickDecile) {
+      lastTickDecile = decile;
+      if (!firedBig) {
+        vibrate(rounded === 0 || rounded === 100 ? 12 : 6);
+      }
+    }
   });
 
   function endDrag() {
@@ -150,6 +180,7 @@ function attachDrag(config) {
     if (finalLevel !== startLevel) {
       levels[config.person] = finalLevel;
       saveLevel(config.person, finalLevel);
+      vibrate(10);
     }
   }
 
