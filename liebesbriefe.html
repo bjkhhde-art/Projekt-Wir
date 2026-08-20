@@ -3,45 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>I + B | Questions</title>
+  <title>I + B | Liebesbriefe</title>
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
 
   <link rel="stylesheet" href="shared.css">
-  <link rel="stylesheet" href="questions.css">
+  <link rel="stylesheet" href="liebesbriefe.css">
 </head>
 <body>
 
   <main class="page">
-    <h1 class="page-title">Questions 💬</h1>
-    <p class="page-subtitle">Für gute Gespräche – wählt eine Kategorie</p>
+    <h1 class="page-title">Liebesbriefe 💌</h1>
+    <p class="page-subtitle">Kleine Nachrichten füreinander</p>
 
-    <section class="category-section">
-      <button class="category-btn active" data-group="easy">🧊 Easy Talk</button>
-      <button class="category-btn" data-group="deep">💗 Deep Talk</button>
-      <button class="category-btn" data-group="relationship">💑 Beziehung</button>
-      <button class="category-btn sexy" data-group="sexy">🔥 Sexy Time</button>
-    </section>
-
-    <div class="question-wrapper">
-      <div class="question-card card">
-        <div id="questionGroupLabel" class="question-group-label chip">🧊 Easy Talk</div>
-        <div id="questionRealCategory" class="question-real-category"></div>
-
-        <p id="questionText" class="question-text">
-          Lade Fragen...
-        </p>
-
-        <div class="question-actions">
-          <button id="resetSeenBtn" class="btn btn-secondary">← Vorherige</button>
-          <button id="newQuestionBtn" class="btn">Nächste Frage →</button>
-        </div>
-      </div>
-
-      <p id="questionCounter" class="question-counter"></p>
-    </div>
+    <div id="notesFeed" class="notes-feed"></div>
   </main>
+
+  <button id="openNoteModal" class="fab" title="Neue Nachricht" aria-label="Neue Nachricht">+</button>
+
+  <div id="noteModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Neue Nachricht</h2>
+
+      <label>Von</label>
+      <select id="noteAuthorInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <label>Nachricht</label>
+      <textarea id="noteMessageInput" rows="4" placeholder="Schreib etwas Liebes…"></textarea>
+
+      <div class="modal-buttons">
+        <button id="sendNoteBtn" class="btn">Absenden 💌</button>
+        <button id="closeNoteModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
 
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
@@ -56,6 +55,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
-  <script src="questions.js"></script>
+  <script src="liebesbriefe.js"></script>
 </body>
 </html>

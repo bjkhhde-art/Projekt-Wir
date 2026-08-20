@@ -1,0 +1,78 @@
+.notes-feed {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.note-card {
+  display: flex;
+  animation: page-in 0.35s ease both;
+}
+
+.note-left {
+  justify-content: flex-start;
+}
+
+.note-right {
+  justify-content: flex-end;
+}
+
+.note-bubble {
+  position: relative;
+  max-width: 78%;
+  padding: 16px 40px 14px 18px;
+}
+
+.note-left .note-bubble {
+  border-bottom-left-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 92, 138, 0.12), rgba(255, 92, 138, 0.04));
+  border-color: rgba(255, 92, 138, 0.28);
+}
+
+.note-right .note-bubble {
+  border-bottom-right-radius: 6px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04));
+  border-color: rgba(139, 92, 246, 0.28);
+}
+
+.note-message {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.note-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.note-author {
+  font-weight: 700;
+}
+
+.delete-note-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--danger);
+}
+
+.note-skeleton {
+  height: 74px;
+  max-width: 78%;
+}
+
+@media (max-width: 480px) {
+  .note-bubble {
+    max-width: 88%;
+  }
+}

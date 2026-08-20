@@ -21,6 +21,22 @@ window.daysBetween = function (startDate, endDate) {
   return Math.floor((end - start) / (1000 * 60 * 60 * 24));
 };
 
+window.timeAgo = function (dateString) {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMin = Math.round(diffMs / 60000);
+
+  if (diffMin < 1) return "gerade eben";
+  if (diffMin < 60) return `vor ${diffMin} Min.`;
+
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `vor ${diffH} Std.`;
+
+  const diffD = Math.round(diffH / 24);
+  if (diffD < 7) return `vor ${diffD} Tag${diffD === 1 ? "" : "en"}`;
+
+  return formatDate(dateString);
+};
+
 (function () {
   function ensureLayer(id, className) {
     let el = document.getElementById(id);

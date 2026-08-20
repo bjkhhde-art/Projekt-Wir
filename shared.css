@@ -165,8 +165,11 @@ a {
   z-index: 100;
   flex: none;
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start;
   align-items: stretch;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   background: var(--surface);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -175,8 +178,12 @@ a {
   padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 4px);
 }
 
+.app-nav::-webkit-scrollbar {
+  display: none;
+}
+
 .nav-item {
-  flex: 1;
+  flex: 1 0 62px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -231,11 +238,13 @@ a {
   }
 
   .nav-item {
+    flex: 0 1 auto;
     flex-direction: row;
     font-size: 14px;
     padding: 10px 16px;
     gap: 8px;
     border-radius: var(--radius-pill);
+    white-space: nowrap;
   }
 
   .nav-item .nav-icon {
