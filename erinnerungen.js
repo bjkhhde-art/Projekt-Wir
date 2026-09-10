@@ -147,40 +147,51 @@ function renderMapMarkers() {
 
   tripMarkersLayer.clearLayers();
 
-  const pinned = memories.filter(memory => memory.lat != null && memory.lng != null);
+  const allPoints = [];
 
-  pinned.forEach(memory => {
-    const icon = L.divIcon({
-      className: "",
-      html: '<div class="trip-pin" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
-      iconSize: [18, 18]
+  memories.forEach(memory => {
+    const coords = memory.coordinates || [];
+
+    coords.forEach(point => {
+      const icon = L.divIcon({
+        className: "",
+        html: '<div class="trip-pin" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
+        iconSize: [18, 18]
+      });
+
+      const marker = L.marker([point.lat, point.lng], { icon });
+      marker.on("click", () => openGallery(memory));
+      marker.addTo(tripMarkersLayer);
+      allPoints.push([point.lat, point.lng]);
     });
-
-    const marker = L.marker([memory.lat, memory.lng], { icon });
-    marker.on("click", () => openGallery(memory));
-    marker.addTo(tripMarkersLayer);
   });
 
-  if (pinned.length > 0) {
-    const bounds = L.latLngBounds(pinned.map(memory => [memory.lat, memory.lng]));
+  if (allPoints.length > 0) {
+    const bounds = L.latLngBounds(allPoints);
     tripsMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
   }
 }
 
-function parseCoords(text) {
-  const trimmed = (text || "").trim();
+function parseCoordsList(text) {
+  const lines = (text || "").split("\n").map(line => line.trim()).filter(Boolean);
 
-  if (!trimmed) return { lat: null, lng: null };
+  if (lines.length === 0) return [];
 
-  const match = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-  if (!match) return null;
+  const points = [];
 
-  const lat = parseFloat(match[1]);
-  const lng = parseFloat(match[2]);
+  for (const line of lines) {
+    const match = line.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!match) return null;
 
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
 
-  return { lat, lng };
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+    points.push({ lat, lng });
+  }
+
+  return points;
 }
 
 function openCreateModal() {
@@ -210,7 +221,7 @@ function openEditModal(memory) {
   memoryLocationInput.value = memory.location || "";
   memoryStartInput.value = memory.start_date || "";
   memoryEndInput.value = memory.end_date || "";
-  memoryCoordsInput.value = (memory.lat != null && memory.lng != null) ? `${memory.lat}, ${memory.lng}` : "";
+  memoryCoordsInput.value = (memory.coordinates || []).map(point => `${point.lat}, ${point.lng}`).join("\n");
   coverInput.value = "";
 
   if (memory.cover_url) {
@@ -236,10 +247,10 @@ async function saveMemory() {
     return;
   }
 
-  const coords = parseCoords(memoryCoordsInput.value);
+  const coords = parseCoordsList(memoryCoordsInput.value);
 
   if (coords === null) {
-    showToast("Ungültige Koordinaten. Format: Breitengrad, Längengrad (z. B. 53.5511, 9.9937)", "error");
+    showToast("Ungültige Koordinaten. Format pro Zeile: Breitengrad, Längengrad (z. B. 53.5511, 9.9937)", "error");
     return;
   }
 
@@ -259,8 +270,7 @@ async function saveMemory() {
         location,
         start_date: startDate || null,
         end_date: endDate || null,
-        lat: coords.lat,
-        lng: coords.lng
+        coordinates: coords
       };
       if (coverUrl) update.cover_url = coverUrl;
 
@@ -285,8 +295,7 @@ async function saveMemory() {
           location,
           start_date: startDate || null,
           end_date: endDate || null,
-          lat: coords.lat,
-          lng: coords.lng,
+          coordinates: coords,
           cover_url: coverUrl || ""
         });
 
