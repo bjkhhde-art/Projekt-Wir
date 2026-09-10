@@ -33,11 +33,11 @@ const MOOD_STATUS = {
 };
 
 const MOOD_MOUTH_PATHS = {
-  euphoric: "M76,136 Q100,160 124,136",
-  happy: "M80,138 Q100,154 120,138",
-  neutral: "M85,142 L115,142",
-  sad: "M82,146 Q100,134 118,146",
-  verysad: "M80,148 Q100,132 120,148"
+  euphoric: "M80,173 Q100,194 120,173",
+  happy: "M84,175 Q100,190 116,175",
+  neutral: "M90,178 Q100,183 110,178",
+  sad: "M88,179 Q100,173 112,179",
+  verysad: "M85,181 Q100,170 115,181"
 };
 
 const LONG_PRESS_MS = 850;
