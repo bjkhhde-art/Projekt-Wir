@@ -130,10 +130,10 @@ function initTripsMap() {
     worldCopyJump: true
   }).setView([20, 10], 2);
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 18,
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: '&copy; <a href="https://www.esri.com">Esri</a>',
+    maxZoom: 16,
+    maxNativeZoom: 16,
     minZoom: 2
   }).addTo(tripsMapInstance);
 
