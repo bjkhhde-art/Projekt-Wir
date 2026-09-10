@@ -19,6 +19,7 @@ const memoryTitleInput = document.getElementById("memoryTitleInput");
 const memoryLocationInput = document.getElementById("memoryLocationInput");
 const memoryStartInput = document.getElementById("memoryStartInput");
 const memoryEndInput = document.getElementById("memoryEndInput");
+const memoryCoordsInput = document.getElementById("memoryCoordsInput");
 const coverInput = document.getElementById("coverInput");
 const coverPreviewWrap = document.getElementById("coverPreviewWrap");
 const coverPreviewImg = document.getElementById("coverPreviewImg");
@@ -47,6 +48,8 @@ let images = [];
 let currentMemory = null;
 let editingTripId = null;
 let pendingFiles = [];
+let tripsMapInstance = null;
+let tripMarkersLayer = null;
 
 async function loadMemories() {
   memoryGrid.innerHTML = `<div class="skeleton memory-skeleton"></div><div class="skeleton memory-skeleton"></div><div class="skeleton memory-skeleton"></div>`;
@@ -68,6 +71,7 @@ async function loadMemories() {
 
 function renderMemories() {
   memoryGrid.innerHTML = "";
+  renderMapMarkers();
 
   if (memories.length === 0) {
     memoryGrid.innerHTML = `
@@ -119,6 +123,66 @@ function renderMemories() {
   });
 }
 
+/* ---------- world map ---------- */
+
+function initTripsMap() {
+  tripsMapInstance = L.map("tripsMap", {
+    worldCopyJump: true
+  }).setView([20, 10], 2);
+
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
+    maxZoom: 18,
+    minZoom: 2
+  }).addTo(tripsMapInstance);
+
+  tripMarkersLayer = L.layerGroup().addTo(tripsMapInstance);
+
+  setTimeout(() => tripsMapInstance.invalidateSize(), 200);
+}
+
+function renderMapMarkers() {
+  if (!tripsMapInstance) return;
+
+  tripMarkersLayer.clearLayers();
+
+  const pinned = memories.filter(memory => memory.lat != null && memory.lng != null);
+
+  pinned.forEach(memory => {
+    const icon = L.divIcon({
+      className: "",
+      html: '<div class="trip-pin" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
+      iconSize: [18, 18]
+    });
+
+    const marker = L.marker([memory.lat, memory.lng], { icon });
+    marker.on("click", () => openGallery(memory));
+    marker.addTo(tripMarkersLayer);
+  });
+
+  if (pinned.length > 0) {
+    const bounds = L.latLngBounds(pinned.map(memory => [memory.lat, memory.lng]));
+    tripsMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+  }
+}
+
+function parseCoords(text) {
+  const trimmed = (text || "").trim();
+
+  if (!trimmed) return { lat: null, lng: null };
+
+  const match = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+
+  const lat = parseFloat(match[1]);
+  const lng = parseFloat(match[2]);
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+  return { lat, lng };
+}
+
 function openCreateModal() {
   editingTripId = null;
   memoryModalTitle.textContent = "Neue Erinnerung";
@@ -128,6 +192,7 @@ function openCreateModal() {
   memoryLocationInput.value = "";
   memoryStartInput.value = "";
   memoryEndInput.value = "";
+  memoryCoordsInput.value = "";
   coverInput.value = "";
   coverPreviewWrap.classList.add("hidden");
   coverPreviewImg.src = "";
@@ -145,6 +210,7 @@ function openEditModal(memory) {
   memoryLocationInput.value = memory.location || "";
   memoryStartInput.value = memory.start_date || "";
   memoryEndInput.value = memory.end_date || "";
+  memoryCoordsInput.value = (memory.lat != null && memory.lng != null) ? `${memory.lat}, ${memory.lng}` : "";
   coverInput.value = "";
 
   if (memory.cover_url) {
@@ -170,6 +236,13 @@ async function saveMemory() {
     return;
   }
 
+  const coords = parseCoords(memoryCoordsInput.value);
+
+  if (coords === null) {
+    showToast("Ungültige Koordinaten. Format: Breitengrad, Längengrad (z. B. 53.5511, 9.9937)", "error");
+    return;
+  }
+
   saveMemoryBtn.disabled = true;
   saveMemoryBtn.innerHTML = `<span class="spinner"></span> Speichern…`;
 
@@ -181,7 +254,14 @@ async function saveMemory() {
     }
 
     if (editingTripId) {
-      const update = { title, location, start_date: startDate || null, end_date: endDate || null };
+      const update = {
+        title,
+        location,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        lat: coords.lat,
+        lng: coords.lng
+      };
       if (coverUrl) update.cover_url = coverUrl;
 
       const { error } = await supabaseClient
@@ -205,6 +285,8 @@ async function saveMemory() {
           location,
           start_date: startDate || null,
           end_date: endDate || null,
+          lat: coords.lat,
+          lng: coords.lng,
           cover_url: coverUrl || ""
         });
 
@@ -598,6 +680,7 @@ document.addEventListener("keydown", event => {
   }
 });
 
+initTripsMap();
 loadMemories();
 
 supabaseClient

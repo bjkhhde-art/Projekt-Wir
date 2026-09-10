@@ -10,6 +10,7 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="erinnerungen.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
   <script src="pin-lock.js"></script>
 </head>
 <body>
@@ -19,6 +20,8 @@
     <p class="page-subtitle">Eure gemeinsamen Trips – zum Anfassen nah</p>
 
     <section id="memoryOverview">
+      <div id="tripsMap" class="trips-map card"></div>
+
       <div id="memoryGrid" class="memory-grid"></div>
     </section>
 
@@ -77,6 +80,10 @@
       <label>Enddatum</label>
       <input id="memoryEndInput" type="date">
 
+      <label>GPS-Koordinaten (optional, für die Karte)</label>
+      <input id="memoryCoordsInput" type="text" placeholder="z. B. 53.5511, 9.9937">
+      <p class="field-hint">Bei Google Maps auf den Ort lang drücken – die Koordinaten werden oben angezeigt und lassen sich kopieren.</p>
+
       <label>Coverbild</label>
       <div id="coverPreviewWrap" class="cover-preview hidden">
         <img id="coverPreviewImg" src="" alt="Aktuelles Cover">
@@ -107,6 +114,7 @@
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="shared.js"></script>
   <script src="erinnerungen.js"></script>
 </body>
