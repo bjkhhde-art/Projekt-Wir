@@ -240,7 +240,7 @@ async function triggerCuddle() {
   }
 
   sendAppNotification(supabaseClient, {
-    title: "Mochi wurde geknuddelt 🧸",
+    title: "Mochi wurde geknuddelt 🎂",
     body: `${currentPerson} hat Mochi gerade richtig doll gedrückt.`,
     excludePerson: normalizePerson(currentPerson),
     url: "mochi.html"
