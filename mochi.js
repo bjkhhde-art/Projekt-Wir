@@ -11,6 +11,7 @@ const petHearts = document.getElementById("petHearts");
 const tearLeft = document.getElementById("petTearLeft");
 const tearRight = document.getElementById("petTearRight");
 const petMouthPath = document.getElementById("petMouthPath");
+const petSmoke = document.getElementById("petSmoke");
 
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
@@ -45,6 +46,9 @@ const STROKE_MIN_DISTANCE = 50;
 const STROKE_TICK_DISTANCE = 24;
 const PET_COOLDOWN_MS = 3000;
 const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
+const PET_HAPPINESS_BOOST = 6;
+const CUDDLE_HAPPINESS_BOOST = 28;
+const DEFAULT_HAPPINESS = 50;
 
 let petState = null;
 let batteryAvg = 50;
@@ -82,14 +86,15 @@ if (!currentPerson) {
 
 /* ---------- mood + rendering ---------- */
 
-function computeHappiness() {
-  const lastPetted = petState && petState.last_petted_at ? new Date(petState.last_petted_at).getTime() : 0;
-  const lastCuddled = petState && petState.last_cuddled_at ? new Date(petState.last_cuddled_at).getTime() : 0;
-  const lastInteraction = Math.max(lastPetted, lastCuddled);
-  const hoursSince = lastInteraction ? (Date.now() - lastInteraction) / 3600000 : 999;
-  const interactionScore = clamp(100 - (hoursSince / 48) * 100, 0, 100);
+function decayedHappiness() {
+  const stored = petState && typeof petState.happiness === "number" ? petState.happiness : DEFAULT_HAPPINESS;
+  const lastUpdate = petState && petState.updated_at ? new Date(petState.updated_at).getTime() : Date.now();
+  const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / 3600000);
 
-  return clamp(Math.round(0.45 * batteryAvg + 0.55 * interactionScore), 0, 100);
+  // Low Kuschelbatterie -> faster decay (up to 3 pts/h); a full battery slows decay to ~0.5 pts/h.
+  const decayPerHour = clamp(3 - (batteryAvg / 100) * 2.5, 0.5, 3);
+
+  return clamp(Math.round(stored - hoursElapsed * decayPerHour), 0, 100);
 }
 
 function moodTier(happiness) {
@@ -101,7 +106,7 @@ function moodTier(happiness) {
 }
 
 function render() {
-  const happiness = computeHappiness();
+  const happiness = decayedHappiness();
   const mood = moodTier(happiness);
 
   petCreature.className = "pet-creature mood-" + mood;
@@ -125,6 +130,7 @@ function render() {
 
   tearLeft.classList.toggle("hidden", mood !== "verysad");
   tearRight.classList.toggle("hidden", mood !== "verysad");
+  petSmoke.classList.toggle("hidden", mood !== "verysad");
 }
 
 /* ---------- data loading ---------- */
@@ -185,13 +191,14 @@ async function triggerPet() {
   spawnHeart(false);
   vibrate([10, 20, 10]);
 
+  const newHappiness = clamp(decayedHappiness() + PET_HAPPINESS_BOOST, 0, 100);
   const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), last_petted_at: nowIso, last_interacted_by: currentPerson };
+  petState = { ...(petState || {}), happiness: newHappiness, last_petted_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
   render();
 
   const { error } = await supabaseClient
     .from("pet_state")
-    .update({ last_petted_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
+    .update({ happiness: newHappiness, last_petted_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
     .eq("id", "shared");
 
   if (error) console.error("Fehler beim Streicheln:", error);
@@ -217,13 +224,14 @@ async function triggerCuddle() {
 
   showToast(`${currentPerson} hat Mochi geknuddelt 🤗`, "success");
 
+  const newHappiness = clamp(decayedHappiness() + CUDDLE_HAPPINESS_BOOST, 0, 100);
   const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), last_cuddled_at: nowIso, last_interacted_by: currentPerson };
+  petState = { ...(petState || {}), happiness: newHappiness, last_cuddled_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
   render();
 
   const { error } = await supabaseClient
     .from("pet_state")
-    .update({ last_cuddled_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
+    .update({ happiness: newHappiness, last_cuddled_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
     .eq("id", "shared");
 
   if (error) {

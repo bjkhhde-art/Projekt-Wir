@@ -14,7 +14,7 @@
   font-size: 18px;
 }
 
-/* ---------- creature (Pou-style blob) ---------- */
+/* ---------- creature (carrot cake plush) ---------- */
 
 .pet-creature {
   position: relative;
@@ -46,28 +46,82 @@
 }
 
 .pet-body-path {
-  stroke: #7a5233;
+  stroke: #5c3820;
   stroke-width: 4;
-  transition: stroke 0.6s ease;
 }
 
-#petBodyStopLight { stop-color: #ecc79e; transition: stop-color 0.6s ease; }
-#petBodyStopDark { stop-color: #ba8b5e; transition: stop-color 0.6s ease; }
+#petBodyStopLight { stop-color: #a9693f; }
+#petBodyStopDark { stop-color: #7a4a28; }
 
-.mood-happy #petBodyStopLight,
-.mood-euphoric #petBodyStopLight { stop-color: #f8d3a3; }
-.mood-happy #petBodyStopDark,
-.mood-euphoric #petBodyStopDark { stop-color: #d49b5f; }
-.mood-happy .pet-body-path,
-.mood-euphoric .pet-body-path { stroke: #8a5a35; }
+.cake-foot {
+  fill: #5c3820;
+}
 
-.mood-sad #petBodyStopLight { stop-color: #cdbcac; }
-.mood-sad #petBodyStopDark { stop-color: #9f8d7b; }
-.mood-sad .pet-body-path { stroke: #6b5c4f; }
+.cake-frosting-band,
+.cake-frosting-top {
+  fill: #fff8ef;
+  stroke: #e8ddc8;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
 
-.mood-verysad #petBodyStopLight { stop-color: #bcb1a7; }
-.mood-verysad #petBodyStopDark { stop-color: #8d8074; }
-.mood-verysad .pet-body-path { stroke: #5c5049; }
+.cake-carrot {
+  fill: #f0883e;
+  stroke: #c96a28;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.cake-leaf {
+  fill: #7fae55;
+}
+
+.candle-body {
+  fill: #fff3df;
+  stroke: #e8ddc8;
+  stroke-width: 1.5;
+}
+
+.candle-stripe {
+  stroke: #f5934a;
+  stroke-width: 4;
+}
+
+.candle-flame {
+  fill: #ffb648;
+  transform-origin: 100px 12px;
+  transform-box: fill-box;
+  animation: flame-flicker 1.6s ease-in-out infinite;
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.08, 0.94) rotate(-2deg); }
+}
+
+.mood-happy .candle-flame,
+.mood-euphoric .candle-flame {
+  fill: #ffa63d;
+  animation-duration: 0.9s;
+}
+
+.mood-sad .candle-flame {
+  transform: scale(0.6, 0.7);
+  opacity: 0.6;
+  animation: none;
+}
+
+.mood-verysad .candle-flame {
+  display: none;
+}
+
+.candle-smoke {
+  fill: none;
+  stroke: #b9b0a6;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
 
 .pet-creature.hugging .pet-svg {
   animation: pet-squish 0.5s ease-in-out infinite;
@@ -78,23 +132,8 @@
   50% { transform: scale(1.08, 0.92); }
 }
 
-.pet-eye-white {
-  fill: #fdf8ef;
-}
-
-.pet-eyelid {
-  fill: #ba8b5e;
-  transition: fill 0.6s ease, cy 0.4s ease, ry 0.4s ease;
-}
-
-.mood-happy .pet-eyelid,
-.mood-euphoric .pet-eyelid { fill: #d49b5f; }
-.mood-sad .pet-eyelid { fill: #9f8d7b; cy: 38; ry: 20; }
-.mood-verysad .pet-eyelid { fill: #8d8074; cy: 40; ry: 22; }
-
 .pet-pupil {
   fill: #2b1710;
-  transition: cy 0.4s ease;
   animation: pet-blink 4.5s ease-in-out infinite;
   transform-origin: center;
   transform-box: fill-box;
