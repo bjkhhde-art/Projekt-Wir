@@ -8,8 +8,9 @@ const moodLabel = document.getElementById("moodLabel");
 const petStatusText = document.getElementById("petStatusText");
 const petHappinessFill = document.getElementById("petHappinessFill");
 const petHearts = document.getElementById("petHearts");
-const tearLeft = document.querySelector(".pet-tear-left");
-const tearRight = document.querySelector(".pet-tear-right");
+const tearLeft = document.getElementById("petTearLeft");
+const tearRight = document.getElementById("petTearRight");
+const petMouthPath = document.getElementById("petMouthPath");
 
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
@@ -28,6 +29,14 @@ const MOOD_STATUS = {
   neutral: "Mochi geht es okay, ein bisschen Zuwendung täte gut.",
   sad: "Mochi vermisst eure Nähe – streichel ihn mal.",
   verysad: "Mochi ist ganz traurig. Zeit für ganz viel Kuscheln!"
+};
+
+const MOOD_MOUTH_PATHS = {
+  euphoric: "M76,136 Q100,160 124,136",
+  happy: "M80,138 Q100,154 120,138",
+  neutral: "M85,142 L115,142",
+  sad: "M82,146 Q100,134 118,146",
+  verysad: "M80,148 Q100,132 120,148"
 };
 
 const LONG_PRESS_MS = 850;
@@ -97,6 +106,7 @@ function render() {
 
   petCreature.className = "pet-creature mood-" + mood;
   moodLabel.textContent = MOOD_LABELS[mood];
+  petMouthPath.setAttribute("d", MOOD_MOUTH_PATHS[mood]);
 
   let statusText = MOOD_STATUS[mood];
   if (petState && (petState.last_petted_at || petState.last_cuddled_at) && petState.last_interacted_by) {

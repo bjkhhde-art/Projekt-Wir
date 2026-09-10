@@ -14,7 +14,7 @@
   font-size: 18px;
 }
 
-/* ---------- creature ---------- */
+/* ---------- creature (Pou-style blob) ---------- */
 
 .pet-creature {
   position: relative;
@@ -38,21 +38,38 @@
   animation-play-state: paused;
 }
 
-.pet-body {
-  position: absolute;
-  inset: 0;
-  border-radius: 46% 54% 52% 48% / 54% 48% 52% 46%;
-  background: var(--gradient-brand);
-  box-shadow: var(--shadow-lift);
-  transition: background 0.6s ease, border-radius 0.6s ease;
+.pet-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 10px 18px rgba(90, 50, 20, 0.22));
 }
 
-.pet-creature.mood-sad .pet-body,
-.pet-creature.mood-verysad .pet-body {
-  background: linear-gradient(135deg, #b8a6c9 0%, #8b7ba3 100%);
+.pet-body-path {
+  stroke: #7a5233;
+  stroke-width: 4;
+  transition: stroke 0.6s ease;
 }
 
-.pet-creature.hugging .pet-body {
+#petBodyStopLight { stop-color: #ecc79e; transition: stop-color 0.6s ease; }
+#petBodyStopDark { stop-color: #ba8b5e; transition: stop-color 0.6s ease; }
+
+.mood-happy #petBodyStopLight,
+.mood-euphoric #petBodyStopLight { stop-color: #f8d3a3; }
+.mood-happy #petBodyStopDark,
+.mood-euphoric #petBodyStopDark { stop-color: #d49b5f; }
+.mood-happy .pet-body-path,
+.mood-euphoric .pet-body-path { stroke: #8a5a35; }
+
+.mood-sad #petBodyStopLight { stop-color: #cdbcac; }
+.mood-sad #petBodyStopDark { stop-color: #9f8d7b; }
+.mood-sad .pet-body-path { stroke: #6b5c4f; }
+
+.mood-verysad #petBodyStopLight { stop-color: #bcb1a7; }
+.mood-verysad #petBodyStopDark { stop-color: #8d8074; }
+.mood-verysad .pet-body-path { stroke: #5c5049; }
+
+.pet-creature.hugging .pet-svg {
   animation: pet-squish 0.5s ease-in-out infinite;
 }
 
@@ -61,25 +78,52 @@
   50% { transform: scale(1.08, 0.92); }
 }
 
-.pet-cheek {
-  position: absolute;
-  top: 56%;
-  width: 15%;
-  height: 9%;
-  border-radius: 50%;
-  background: rgba(255, 92, 138, 0.55);
-  opacity: 0;
-  filter: blur(1px);
-  transition: opacity 0.3s ease;
-  z-index: 2;
+.pet-eye-white {
+  fill: #fdf8ef;
 }
 
-.pet-cheek-left { left: 12%; }
-.pet-cheek-right { right: 12%; }
+.pet-eyelid {
+  fill: #ba8b5e;
+  transition: fill 0.6s ease, cy 0.4s ease, ry 0.4s ease;
+}
+
+.mood-happy .pet-eyelid,
+.mood-euphoric .pet-eyelid { fill: #d49b5f; }
+.mood-sad .pet-eyelid { fill: #9f8d7b; cy: 38; ry: 20; }
+.mood-verysad .pet-eyelid { fill: #8d8074; cy: 40; ry: 22; }
+
+.pet-pupil {
+  fill: #2b1710;
+  transition: cy 0.4s ease;
+  animation: pet-blink 4.5s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+@keyframes pet-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.2); }
+}
+
+.mood-sad .pet-pupil,
+.mood-verysad .pet-pupil {
+  animation: none;
+}
+
+.pet-highlight {
+  fill: #ffffff;
+  opacity: 0.9;
+}
+
+.pet-cheek {
+  fill: rgba(255, 130, 110, 0.55);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
 
 .mood-happy .pet-cheek,
 .mood-euphoric .pet-cheek {
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .pet-creature.stroking .pet-cheek {
@@ -93,112 +137,28 @@
   100% { transform: scale(1); }
 }
 
-.pet-eyes {
-  position: absolute;
-  top: 38%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 22%;
-  z-index: 2;
+.pet-mouth-path {
+  fill: none;
+  stroke: #43281a;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: d 0.3s ease;
 }
 
-.pet-eye {
-  width: clamp(12px, 3.4vw, 16px);
-  height: clamp(12px, 3.4vw, 16px);
-  border-radius: 50%;
-  background: var(--text);
-  transition: height 0.3s ease, border-radius 0.3s ease, background 0.4s ease;
-  animation: pet-blink 4.5s ease-in-out infinite;
+.mood-happy .pet-mouth-path,
+.mood-euphoric .pet-mouth-path {
+  stroke-width: 5;
 }
 
-@keyframes pet-blink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  95% { transform: scaleY(0.15); }
-}
-
-.mood-sad .pet-eye,
-.mood-verysad .pet-eye {
-  height: clamp(6px, 2vw, 8px);
-  border-radius: 50% 50% 40% 40%;
-  animation: none;
-}
-
-.mood-euphoric .pet-eye {
-  border-radius: 50% 50% 60% 60% / 60% 60% 80% 80%;
-}
-
-.pet-mouth {
-  position: absolute;
-  bottom: 28%;
-  left: 50%;
-  width: 22%;
-  height: 10%;
-  transform: translateX(-50%);
-  background: var(--text);
-  border-radius: 4px;
-  border: none;
-  transition: all 0.4s ease;
-}
-
-.mood-happy .pet-mouth,
-.mood-euphoric .pet-mouth {
-  width: 30%;
-  height: 16%;
-  background: transparent;
-  border: 4px solid transparent;
-  border-top: none;
-  border-bottom-color: var(--text);
-  border-left-color: var(--text);
-  border-right-color: var(--text);
-  border-radius: 0 0 40px 40px;
-}
-
-.mood-sad .pet-mouth {
-  width: 24%;
-  height: 12%;
-  background: transparent;
-  border: 3px solid transparent;
-  border-bottom: none;
-  border-top-color: var(--text);
-  border-left-color: var(--text);
-  border-right-color: var(--text);
-  border-radius: 40px 40px 0 0;
-  bottom: 24%;
-}
-
-.mood-verysad .pet-mouth {
-  width: 20%;
-  height: 14%;
-  background: transparent;
-  border: 3px solid transparent;
-  border-bottom: none;
-  border-top-color: var(--text);
-  border-left-color: var(--text);
-  border-right-color: var(--text);
-  border-radius: 40px 40px 0 0;
-  bottom: 22%;
-}
-
-.pet-tear {
-  position: absolute;
-  top: 48%;
-  width: clamp(5px, 1.4vw, 7px);
-  height: clamp(8px, 2.2vw, 11px);
-  background: #7dd3fc;
-  border-radius: 0 50% 50% 50%;
-  transform: rotate(45deg);
-  z-index: 2;
+.pet-tear-path {
+  fill: #7dd3fc;
   animation: tear-drop 1.8s ease-in infinite;
 }
 
-.pet-tear-left { left: 26%; }
-.pet-tear-right { right: 26%; }
-
 @keyframes tear-drop {
-  0% { opacity: 0; transform: rotate(45deg) translateY(0); }
+  0% { opacity: 0; transform: translateY(0); }
   20% { opacity: 1; }
-  100% { opacity: 0; transform: rotate(45deg) translateY(14px); }
+  100% { opacity: 0; transform: translateY(14px); }
 }
 
 .pet-hearts {

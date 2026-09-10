@@ -22,17 +22,41 @@
       <p id="moodLabel" class="mood-label"></p>
 
       <div id="petCreature" class="pet-creature mood-neutral">
-        <div class="pet-cheek pet-cheek-left"></div>
-        <div class="pet-cheek pet-cheek-right"></div>
-        <div class="pet-body">
-          <div class="pet-eyes">
-            <div class="pet-eye"></div>
-            <div class="pet-eye"></div>
-          </div>
-          <div class="pet-mouth"></div>
-          <div class="pet-tear pet-tear-left hidden"></div>
-          <div class="pet-tear pet-tear-right hidden"></div>
-        </div>
+        <svg class="pet-svg" viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="petBodyGradient" x1="0%" y1="0%" x2="60%" y2="100%">
+              <stop id="petBodyStopLight" offset="0%"></stop>
+              <stop id="petBodyStopDark" offset="100%"></stop>
+            </linearGradient>
+            <clipPath id="petEyeClipLeft"><ellipse cx="68" cy="64" rx="29" ry="37"/></clipPath>
+            <clipPath id="petEyeClipRight"><ellipse cx="132" cy="64" rx="29" ry="37"/></clipPath>
+          </defs>
+
+          <path id="petBodyPath" class="pet-body-path" fill="url(#petBodyGradient)"
+            d="M100,10 C70,10 55,30 48,55 C30,60 15,90 18,120 C21,155 55,182 100,182 C145,182 179,155 182,120 C185,90 170,60 152,55 C145,30 130,10 100,10 Z"/>
+
+          <ellipse id="petCheekLeft" class="pet-cheek" cx="40" cy="118" rx="13" ry="8"/>
+          <ellipse id="petCheekRight" class="pet-cheek" cx="160" cy="118" rx="13" ry="8"/>
+
+          <g clip-path="url(#petEyeClipLeft)">
+            <ellipse cx="68" cy="64" rx="29" ry="37" class="pet-eye-white"/>
+            <circle id="petPupilLeft" class="pet-pupil" cx="72" cy="76" r="17"/>
+            <circle class="pet-highlight" cx="65" cy="66" r="5.5"/>
+            <ellipse id="petEyelidLeft" class="pet-eyelid" cx="68" cy="33" rx="30" ry="16"/>
+          </g>
+
+          <g clip-path="url(#petEyeClipRight)">
+            <ellipse cx="132" cy="64" rx="29" ry="37" class="pet-eye-white"/>
+            <circle id="petPupilRight" class="pet-pupil" cx="128" cy="76" r="17"/>
+            <circle class="pet-highlight" cx="121" cy="66" r="5.5"/>
+            <ellipse id="petEyelidRight" class="pet-eyelid" cx="132" cy="33" rx="30" ry="16"/>
+          </g>
+
+          <path id="petMouthPath" class="pet-mouth-path" d="M85,142 L115,142"/>
+
+          <path id="petTearLeft" class="pet-tear-path hidden" d="M53,96 C60,106 60,118 53,122 C46,118 46,106 53,96 Z"/>
+          <path id="petTearRight" class="pet-tear-path hidden" d="M147,96 C154,106 154,118 147,122 C140,118 140,106 147,96 Z"/>
+        </svg>
         <div id="petHearts" class="pet-hearts"></div>
       </div>
 
