@@ -648,3 +648,165 @@
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(-18deg); }
 }
+
+/* ---------- sleep: bed + snoring ---------- */
+
+.bed-headboard {
+  fill: #7c5a8a;
+  stroke: #5c3f68;
+  stroke-width: 2;
+}
+
+.bed-pillow {
+  fill: #fff8ef;
+  stroke: #e8ddc8;
+  stroke-width: 2;
+}
+
+#bedBlanket {
+  fill: #b98ecf;
+  stroke: #8a5fa0;
+  stroke-width: 2;
+}
+
+#bedBlanketFold {
+  fill: none;
+  stroke: #8a5fa0;
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+
+.snore-bubble-body {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: #c9bfd6;
+  stroke-width: 2;
+}
+
+.snore-dot {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: #c9bfd6;
+  stroke-width: 1.5;
+}
+
+.snore-text {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  fill: #6b5c7a;
+}
+
+.pet-creature.sleeping #snoreBubble {
+  animation: snore-float 2.6s ease-in-out infinite;
+}
+
+@keyframes snore-float {
+  0% { opacity: 0; transform: translateY(6px) scale(0.7); }
+  20% { opacity: 1; transform: translateY(0) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px) scale(1.08); }
+}
+
+/* ---------- shower: lathering ---------- */
+
+.pet-foam-overlay {
+  fill: #f4f8ff;
+  stroke: rgba(120, 150, 190, 0.5);
+  stroke-width: 1.5;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.shampoo-bottle-body {
+  fill: #ffe08a;
+  stroke: #d8a838;
+  stroke-width: 1.5;
+}
+
+.shampoo-bottle-cap {
+  fill: #f2c14e;
+}
+
+.shampoo-bottle-label {
+  fill: #ffffff;
+  opacity: 0.7;
+}
+
+.shampoo-bottle.hidden {
+  display: none;
+}
+
+.pet-creature.showering .shampoo-bottle {
+  animation: shampoo-wiggle 0.6s ease-in-out infinite;
+}
+
+@keyframes shampoo-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-8deg); }
+}
+
+/* ---------- dance: disco party ---------- */
+
+#discoBallGroup {
+  opacity: 0;
+  transform: translateY(0);
+  transform-box: view-box;
+  transform-origin: 100px 14px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+
+.pet-creature.party #discoBallGroup {
+  opacity: 1;
+}
+
+.disco-string {
+  stroke: #8a8a8a;
+  stroke-width: 1.5;
+}
+
+.disco-ball {
+  fill: #cdd6e0;
+  stroke: #9aa5b3;
+  stroke-width: 1.5;
+}
+
+.pet-creature.party .disco-ball,
+.pet-creature.party .disco-facet-line {
+  animation: disco-spin 1.4s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.disco-facet-line {
+  stroke: #9aa5b3;
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+@keyframes disco-spin {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.disco-sparkle {
+  fill: #fff6c9;
+  opacity: 0;
+}
+
+.pet-creature.party .disco-sparkle {
+  animation: disco-sparkle-twinkle 0.5s ease-in-out infinite;
+}
+
+@keyframes disco-sparkle-twinkle {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.pet-creature.party .pet-svg {
+  animation: pet-dance 0.5s ease-in-out infinite, disco-hue-wash 2.4s linear infinite;
+}
+
+@keyframes disco-hue-wash {
+  0% { filter: drop-shadow(0 10px 18px rgba(90, 50, 20, 0.22)) hue-rotate(0deg); }
+  100% { filter: drop-shadow(0 10px 18px rgba(90, 50, 20, 0.22)) hue-rotate(360deg); }
+}

@@ -14,6 +14,11 @@ const petMouthPath = document.getElementById("petMouthPath");
 const petSmoke = document.getElementById("petSmoke");
 const eyeClosedLeft = document.getElementById("petEyeClosedLeft");
 const eyeClosedRight = document.getElementById("petEyeClosedRight");
+const bedPieces = document.querySelectorAll(".bed-piece");
+const petFoamOverlay = document.getElementById("petFoamOverlay");
+const shampooBottle = document.getElementById("shampooBottle");
+const petHint = document.getElementById("petHint");
+const DEFAULT_PET_HINT = "Wir streicheln Mochi mit einer Wischbewegung oder halten gedrückt zum Kuscheln 🤗";
 
 const feedBtn = document.getElementById("feedBtn");
 const showerBtn = document.getElementById("showerBtn");
@@ -84,6 +89,9 @@ const PET_HAPPINESS_BOOST = 6;
 const CUDDLE_HAPPINESS_BOOST = 28;
 const ACTIVITY_HAPPINESS_BOOST = 10;
 const ACTIVITY_COOLDOWN_MS = 60 * 1000;
+const SHOWER_SCRUB_NEEDED = 180;
+const SHOWER_TICK_DISTANCE = 18;
+const DISCO_PARTY_DURATION_MS = 3200;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const DEFAULT_HAPPINESS = 50;
 
@@ -115,6 +123,9 @@ let gestureState = null;
 let lastPetTrigger = 0;
 let lastCuddleTrigger = 0;
 let lastActivityTrigger = 0;
+let showerLathering = false;
+let showerScrubProgress = 0;
+let showerDrag = null;
 let coffeeStep = 0;
 let lockPhase = "dock";
 
@@ -200,6 +211,7 @@ function render() {
   petSmoke.classList.toggle("hidden", mood !== "verysad");
   eyeClosedLeft.classList.toggle("hidden", !asleep);
   eyeClosedRight.classList.toggle("hidden", !asleep);
+  bedPieces.forEach(el => el.classList.toggle("hidden", !asleep));
 
   sleepIcon.textContent = asleep ? "☀️" : "😴";
   sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
@@ -357,17 +369,19 @@ async function triggerCuddle() {
 }
 
 async function performActivity(kind, extraLabel, particleEmojiOverride) {
+  if (showerLathering) return false;
+
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
-    return;
+    return false;
   }
 
   const now = Date.now();
   if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
     showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
-    return;
+    return false;
   }
-  if (!requirePerson()) return;
+  if (!requirePerson()) return false;
 
   const activity = ACTIVITIES[kind];
   lastActivityTrigger = now;
@@ -395,9 +409,13 @@ async function performActivity(kind, extraLabel, particleEmojiOverride) {
     .eq("id", "shared");
 
   if (error) console.error(`Fehler bei Aktivität (${kind}):`, error);
+
+  return true;
 }
 
 async function toggleSleep() {
+  if (showerLathering) return;
+
   if (isAsleep()) {
     wakeMochi();
     return;
@@ -420,9 +438,60 @@ async function toggleSleep() {
   if (error) console.error("Fehler beim Einschlafen:", error);
 }
 
+function startShowerLathering() {
+  showerLathering = true;
+  showerScrubProgress = 0;
+  petFoamOverlay.setAttribute("opacity", "0");
+  petCreature.classList.add("showering");
+  shampooBottle.classList.remove("hidden");
+  [feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn].forEach(btn => btn.classList.add("hidden"));
+  showerBtn.classList.add("hidden");
+  petHint.textContent = "Wir schäumen Mochi mit einer Wischbewegung ein (0%)";
+  showToast("Wir schäumen Mochi mit Shampoo ein 🧴", "success");
+}
+
+async function finishShower() {
+  showerLathering = false;
+  showerDrag = null;
+  lastActivityTrigger = Date.now();
+  shampooBottle.classList.add("hidden");
+  petHint.textContent = DEFAULT_PET_HINT;
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn].forEach(btn => btn.classList.remove("hidden"));
+
+  for (let i = 0; i < 6; i++) {
+    setTimeout(() => spawnParticle("💧", { falling: true }), i * 100);
+  }
+  petFoamOverlay.setAttribute("opacity", "0");
+  vibrate([10, 10, 10, 10]);
+  setTimeout(() => petCreature.classList.remove("showering"), 1300);
+
+  showToast("Mochi ist frisch geduscht 🚿✨", "success");
+
+  const newHappiness = clamp(decayedHappiness() + ACTIVITY_HAPPINESS_BOOST, 0, 100);
+  const nowIso = new Date().toISOString();
+  petState = { ...(petState || {}), happiness: newHappiness, last_activity: "shower", last_interacted_by: currentPerson, updated_at: nowIso };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update({ happiness: newHappiness, last_activity: "shower", last_interacted_by: currentPerson, updated_at: nowIso })
+    .eq("id", "shared");
+
+  if (error) console.error("Fehler beim Duschen:", error);
+}
+
+function startDiscoParty() {
+  petCreature.classList.add("party");
+  for (let i = 0; i < 7; i++) {
+    setTimeout(() => spawnParticle(["🎵", "🎶", "✨", "🪩"][Math.floor(Math.random() * 4)]), i * 260);
+  }
+  setTimeout(() => petCreature.classList.remove("party"), DISCO_PARTY_DURATION_MS);
+}
+
 /* ---------- activity buttons ---------- */
 
 feedBtn.addEventListener("click", () => {
+  if (showerLathering) return;
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return;
@@ -439,9 +508,28 @@ foodButtons.forEach(button => {
   });
 });
 
-showerBtn.addEventListener("click", () => performActivity("shower"));
+showerBtn.addEventListener("click", () => {
+  if (showerLathering) return;
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+  const now = Date.now();
+  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
+    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
+    return;
+  }
+  if (!requirePerson()) return;
+  startShowerLathering();
+});
+
 sportBtn.addEventListener("click", () => performActivity("sport"));
-danceBtn.addEventListener("click", () => performActivity("dance"));
+
+danceBtn.addEventListener("click", async () => {
+  const started = await performActivity("dance");
+  if (started) startDiscoParty();
+});
+
 sleepBtn.addEventListener("click", toggleSleep);
 
 /* ---------- coffee mini-game ---------- */
@@ -705,6 +793,7 @@ attachRotateGesture(
 );
 
 coffeeBtn.addEventListener("click", () => {
+  if (showerLathering) return;
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return;
@@ -719,6 +808,11 @@ leaveCoffeeScene.addEventListener("click", exitCoffeeScene);
 
 petCreature.addEventListener("pointerdown", event => {
   petCreature.setPointerCapture(event.pointerId);
+
+  if (showerLathering) {
+    showerDrag = { startX: event.clientX, startY: event.clientY, tickDistance: 0 };
+    return;
+  }
 
   gestureState = {
     startX: event.clientX,
@@ -736,6 +830,28 @@ petCreature.addEventListener("pointerdown", event => {
 });
 
 petCreature.addEventListener("pointermove", event => {
+  if (showerLathering && showerDrag) {
+    const dist = Math.hypot(event.clientX - showerDrag.startX, event.clientY - showerDrag.startY);
+    showerDrag.tickDistance += dist;
+    showerDrag.startX = event.clientX;
+    showerDrag.startY = event.clientY;
+
+    if (showerDrag.tickDistance >= SHOWER_TICK_DISTANCE) {
+      showerDrag.tickDistance = 0;
+      showerScrubProgress = Math.min(showerScrubProgress + SHOWER_TICK_DISTANCE, SHOWER_SCRUB_NEEDED);
+      petFoamOverlay.setAttribute("opacity", String(Math.min(0.85, (showerScrubProgress / SHOWER_SCRUB_NEEDED) * 0.85)));
+      spawnParticle("🫧", { size: 14 });
+      vibrate(6);
+
+      if (showerScrubProgress >= SHOWER_SCRUB_NEEDED) {
+        finishShower();
+      } else {
+        petHint.textContent = `Wir schäumen Mochi mit einer Wischbewegung ein (${Math.round((showerScrubProgress / SHOWER_SCRUB_NEEDED) * 100)}%)`;
+      }
+    }
+    return;
+  }
+
   if (!gestureState) return;
 
   const dx = event.clientX - gestureState.startX;
@@ -763,6 +879,11 @@ petCreature.addEventListener("pointermove", event => {
 });
 
 function endGesture() {
+  if (showerLathering) {
+    showerDrag = null;
+    return;
+  }
+
   if (!gestureState) return;
 
   clearTimeout(gestureState.longPressTimer);
