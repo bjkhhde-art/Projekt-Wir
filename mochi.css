@@ -402,3 +402,249 @@
 .food-btn .activity-icon {
   font-size: 26px;
 }
+
+/* ---------- coffee scene ---------- */
+
+#petMainView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+#petMainView.leaving {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+.coffee-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.coffee-scene.hidden {
+  display: none;
+}
+
+.coffee-scene.entering {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.coffee-step-label {
+  margin: 0 0 14px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.coffee-svg {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin-bottom: 14px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.coffee-shadow {
+  fill: rgba(90, 50, 20, 0.08);
+}
+
+.coffee-jar-body {
+  fill: rgba(255, 255, 255, 0.5);
+  stroke: #b98a5e;
+  stroke-width: 2;
+}
+
+.coffee-jar-lid {
+  fill: #7a4a28;
+}
+
+.coffee-bean {
+  fill: #5c3820;
+}
+
+.grinder-hopper {
+  fill: rgba(255, 255, 255, 0.4);
+  stroke: #8a5a35;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.grinder-body {
+  fill: #d9c3a8;
+  stroke: #8a5a35;
+  stroke-width: 2;
+}
+
+.grinder-crank-base {
+  fill: #8a5a35;
+}
+
+.grinder-crank-arm,
+.grinder-crank-knob {
+  fill: #5c3820;
+}
+
+#grinderCrankRotor {
+  transform-box: view-box;
+  transform-origin: 132px 140px;
+}
+
+.grinder-spout {
+  fill: #5c3820;
+}
+
+.ground-pile {
+  fill: #6b4226;
+}
+
+.portafilter-basket,
+.portafilter-basket-inner,
+.portafilter-handle {
+  fill: #9aa0a6;
+  stroke: #6b7076;
+  stroke-width: 1.5;
+}
+
+.tamper-handle {
+  fill: #7a4a28;
+}
+
+.tamper-head {
+  fill: #5c3820;
+}
+
+.machine-body {
+  fill: #e05d6f;
+  stroke: #b03e4f;
+  stroke-width: 2;
+}
+
+#machineHead {
+  fill: #b03e4f;
+}
+
+.coffee-cup-base,
+.coffee-cup {
+  fill: #ffffff;
+  stroke: #d8d0c8;
+  stroke-width: 1.5;
+}
+
+.coffee-liquid {
+  fill: #6b4226;
+  transition: height 1.5s ease, y 1.5s ease;
+}
+
+.coffee-steam {
+  fill: none;
+  stroke: rgba(180, 170, 160, 0.7);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  animation: coffee-steam-rise 1.8s ease-in-out infinite;
+}
+
+@keyframes coffee-steam-rise {
+  0% { opacity: 0; transform: translateY(4px); }
+  40% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+
+.mochi-coffee-icon {
+  transform: translate(163px, 42px);
+  transform-box: view-box;
+  transform-origin: 163px 56px;
+  animation: mochi-mini-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes mochi-mini-bob {
+  0%, 100% { transform: translate(163px, 42px); }
+  50% { transform: translate(163px, 38px); }
+}
+
+.mochi-coffee-icon.cheering {
+  animation: mochi-mini-cheer 0.5s ease-in-out 3;
+}
+
+@keyframes mochi-mini-cheer {
+  0%, 100% { transform: translate(163px, 42px) rotate(0deg); }
+  50% { transform: translate(163px, 30px) rotate(-10deg); }
+}
+
+.mochi-mini-body {
+  fill: #a9693f;
+  stroke: #5c3820;
+  stroke-width: 2;
+}
+
+.mochi-mini-eye {
+  fill: #2b1710;
+}
+
+.mochi-mini-mouth {
+  fill: none;
+  stroke: #43281a;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.coffee-hotspot {
+  cursor: pointer;
+}
+
+.coffee-hit-area {
+  fill: transparent;
+}
+
+.coffee-hotspot.active-step {
+  animation: coffee-hotspot-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes coffee-hotspot-glow {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(255, 92, 138, 0)); }
+  50% { filter: drop-shadow(0 0 8px rgba(255, 92, 138, 0.9)); }
+}
+
+.coffee-hotspot.step-done {
+  opacity: 0.5;
+}
+
+#tamperGroup {
+  transform-box: view-box;
+  transform-origin: 224px 145px;
+}
+
+#tamperGroup.tamping {
+  animation: coffee-tamp-press 0.3s ease-out;
+}
+
+@keyframes coffee-tamp-press {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+  100% { transform: translateY(0); }
+}
+
+#portafilterGroup {
+  transform-box: view-box;
+  transform-origin: 185px 172px;
+  transition: transform 0.4s ease;
+}
+
+#beanJarGroup.pouring,
+#groundPileAtGrinder.pouring {
+  animation: coffee-pour-tilt 0.4s ease-in-out;
+}
+
+@keyframes coffee-pour-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-18deg); }
+}

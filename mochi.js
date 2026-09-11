@@ -19,9 +19,29 @@ const feedBtn = document.getElementById("feedBtn");
 const showerBtn = document.getElementById("showerBtn");
 const sportBtn = document.getElementById("sportBtn");
 const danceBtn = document.getElementById("danceBtn");
+const coffeeBtn = document.getElementById("coffeeBtn");
 const sleepBtn = document.getElementById("sleepBtn");
 const sleepIcon = document.getElementById("sleepIcon");
 const sleepLabel = document.getElementById("sleepLabel");
+
+const petMainView = document.getElementById("petMainView");
+const coffeeScene = document.getElementById("coffeeScene");
+const leaveCoffeeScene = document.getElementById("leaveCoffeeScene");
+const coffeeStepLabel = document.getElementById("coffeeStepLabel");
+const coffeeHint = document.getElementById("coffeeHint");
+const coffeeSvg = document.querySelector(".coffee-svg");
+const mochiCoffeeIcon = document.getElementById("mochiCoffeeIcon");
+
+const beanJarGroup = document.getElementById("beanJarGroup");
+const hopperBeans = document.getElementById("hopperBeans");
+const grinderCrankGroup = document.getElementById("grinderCrankGroup");
+const grinderCrankRotor = document.getElementById("grinderCrankRotor");
+const groundPileAtGrinder = document.getElementById("groundPileAtGrinder");
+const groundPileAtPortafilter = document.getElementById("groundPileAtPortafilter");
+const portafilterGroup = document.getElementById("portafilterGroup");
+const tamperGroup = document.getElementById("tamperGroup");
+const coffeeLiquid = document.getElementById("coffeeLiquid");
+const steamGroup = document.getElementById("steamGroup");
 
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
@@ -67,6 +87,20 @@ const ACTIVITY_COOLDOWN_MS = 60 * 1000;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const DEFAULT_HAPPINESS = 50;
 
+const COFFEE_STEPS = [
+  { label: "Schritt 1 von 5: Bohnen einfüllen", hint: "Wir wischen die Bohnen von der Dose in die Mühle" },
+  { label: "Schritt 2 von 5: Mahlen", hint: "Wir drehen die Kurbel im Kreis" },
+  { label: "Schritt 3 von 5: In den Siebträger geben", hint: "Wir wischen das Kaffeemehl in den Siebträger" },
+  { label: "Schritt 4 von 5: Tampen", hint: "Wir drücken den Tamper 3x fest nach unten" },
+  { label: "Schritt 5 von 5: Einspannen", hint: "Wir ziehen den Siebträger zur Maschine" }
+];
+
+const GRIND_DEGREES_NEEDED = 900;
+const TWIST_DEGREES_NEEDED = 140;
+const TAMP_REQUIRED = 3;
+const DOCK_DISTANCE = 55;
+const COFFEE_HAPPINESS_BOOST = 20;
+
 const ACTIVITIES = {
   feed: { label: "Mochi hat genascht", particleEmoji: "🥕", particleCount: 1, falling: false, animationClass: "feeding", vibratePattern: [10, 20, 10] },
   shower: { label: "Mochi ist frisch geduscht", particleEmoji: "💧", particleCount: 5, falling: true, animationClass: "showering", vibratePattern: [10, 10, 10, 10] },
@@ -81,6 +115,8 @@ let gestureState = null;
 let lastPetTrigger = 0;
 let lastCuddleTrigger = 0;
 let lastActivityTrigger = 0;
+let coffeeStep = 0;
+let lockPhase = "dock";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -167,7 +203,7 @@ function render() {
 
   sleepIcon.textContent = asleep ? "☀️" : "😴";
   sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
-  [feedBtn, showerBtn, sportBtn, danceBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
 }
 
 /* ---------- data loading ---------- */
@@ -407,6 +443,277 @@ showerBtn.addEventListener("click", () => performActivity("shower"));
 sportBtn.addEventListener("click", () => performActivity("sport"));
 danceBtn.addEventListener("click", () => performActivity("dance"));
 sleepBtn.addEventListener("click", toggleSleep);
+
+/* ---------- coffee mini-game ---------- */
+
+function svgToScreen(svgX, svgY) {
+  const rect = coffeeSvg.getBoundingClientRect();
+  return {
+    x: rect.left + (svgX / 320) * rect.width,
+    y: rect.top + (svgY / 200) * rect.height
+  };
+}
+
+function attachDragGesture(el, minDistance, isActive, onComplete) {
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let maxDist = 0;
+
+  el.addEventListener("pointerdown", event => {
+    if (!isActive()) return;
+    el.setPointerCapture(event.pointerId);
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    maxDist = 0;
+  });
+
+  el.addEventListener("pointermove", event => {
+    if (!dragging || !isActive()) return;
+    maxDist = Math.max(maxDist, Math.hypot(event.clientX - startX, event.clientY - startY));
+  });
+
+  function end() {
+    if (dragging && isActive() && maxDist >= minDistance) onComplete();
+    dragging = false;
+  }
+
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", () => { dragging = false; });
+}
+
+function attachRotateGesture(el, pivotSvgX, pivotSvgY, degreesNeeded, isActive, onProgress, onComplete) {
+  let dragging = false;
+  let lastAngle = 0;
+  let accumulated = 0;
+
+  el.addEventListener("pointerdown", event => {
+    if (!isActive()) return;
+    el.setPointerCapture(event.pointerId);
+    dragging = true;
+    accumulated = 0;
+    const pivot = svgToScreen(pivotSvgX, pivotSvgY);
+    lastAngle = Math.atan2(event.clientY - pivot.y, event.clientX - pivot.x);
+  });
+
+  el.addEventListener("pointermove", event => {
+    if (!dragging || !isActive()) return;
+    const pivot = svgToScreen(pivotSvgX, pivotSvgY);
+    const angle = Math.atan2(event.clientY - pivot.y, event.clientX - pivot.x);
+    let delta = angle - lastAngle;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    accumulated += Math.abs(delta) * (180 / Math.PI);
+    lastAngle = angle;
+
+    onProgress(Math.min(accumulated, degreesNeeded), degreesNeeded);
+
+    if (accumulated >= degreesNeeded) {
+      dragging = false;
+      onComplete();
+    }
+  });
+
+  function end() { dragging = false; }
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
+
+function attachPressGesture(el, minDownDistance, requiredTaps, isActive, onTap, onComplete) {
+  let dragging = false;
+  let startY = 0;
+  let taps = 0;
+
+  el.addEventListener("pointerdown", event => {
+    if (!isActive()) return;
+    el.setPointerCapture(event.pointerId);
+    dragging = true;
+    startY = event.clientY;
+  });
+
+  function end(event) {
+    if (dragging && isActive()) {
+      const dy = event.clientY - startY;
+      if (dy >= minDownDistance) {
+        taps++;
+        onTap(taps, requiredTaps);
+        if (taps >= requiredTaps) {
+          taps = 0;
+          onComplete();
+        }
+      }
+    }
+    dragging = false;
+  }
+
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", () => { dragging = false; });
+}
+
+function updateCoffeeUI() {
+  const info = COFFEE_STEPS[Math.min(coffeeStep, COFFEE_STEPS.length - 1)];
+  coffeeStepLabel.textContent = info.label;
+  coffeeHint.textContent = coffeeStep === 4 && lockPhase === "twist"
+    ? "Jetzt drehen, um den Siebträger zu verriegeln"
+    : info.hint;
+
+  document.querySelectorAll(".coffee-hotspot").forEach(el => {
+    const step = Number(el.dataset.step);
+    el.classList.toggle("active-step", step === coffeeStep);
+    el.classList.toggle("step-done", step < coffeeStep);
+  });
+}
+
+function resetCoffeeGame() {
+  coffeeStep = 0;
+  lockPhase = "dock";
+  hopperBeans.classList.add("hidden");
+  groundPileAtGrinder.classList.add("hidden");
+  groundPileAtPortafilter.classList.add("hidden");
+  steamGroup.classList.add("hidden");
+  coffeeLiquid.setAttribute("height", "0");
+  coffeeLiquid.setAttribute("y", "178");
+  portafilterGroup.style.transform = "";
+  grinderCrankRotor.style.transform = "";
+  mochiCoffeeIcon.classList.remove("cheering");
+  updateCoffeeUI();
+}
+
+function enterCoffeeScene() {
+  resetCoffeeGame();
+  petMainView.classList.add("leaving");
+
+  setTimeout(() => {
+    petMainView.classList.add("hidden");
+    petMainView.classList.remove("leaving");
+    coffeeScene.classList.remove("hidden");
+    coffeeScene.classList.add("entering");
+    void coffeeScene.offsetWidth;
+    coffeeScene.classList.remove("entering");
+  }, 350);
+}
+
+function exitCoffeeScene() {
+  coffeeScene.classList.add("entering");
+
+  setTimeout(() => {
+    coffeeScene.classList.add("hidden");
+    coffeeScene.classList.remove("entering");
+    petMainView.classList.add("leaving");
+    petMainView.classList.remove("hidden");
+    void petMainView.offsetWidth;
+    petMainView.classList.remove("leaving");
+  }, 350);
+}
+
+async function completeCoffee() {
+  vibrate([15, 30, 15, 30, 40]);
+  steamGroup.classList.remove("hidden");
+  coffeeLiquid.setAttribute("y", "160");
+  coffeeLiquid.setAttribute("height", "18");
+  mochiCoffeeIcon.classList.add("cheering");
+
+  showToast("Kaffee ist fertig ☕ Wohl bekomm's!", "success");
+
+  const newHappiness = clamp(decayedHappiness() + COFFEE_HAPPINESS_BOOST, 0, 100);
+  const nowIso = new Date().toISOString();
+  petState = { ...(petState || {}), happiness: newHappiness, last_activity: "coffee", last_interacted_by: currentPerson, updated_at: nowIso };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update({ happiness: newHappiness, last_activity: "coffee", last_interacted_by: currentPerson, updated_at: nowIso })
+    .eq("id", "shared");
+
+  if (error) console.error("Fehler beim Kaffeekochen:", error);
+
+  setTimeout(() => exitCoffeeScene(), 2400);
+}
+
+attachDragGesture(beanJarGroup, 45, () => coffeeStep === 0, () => {
+  beanJarGroup.classList.add("pouring");
+  setTimeout(() => beanJarGroup.classList.remove("pouring"), 400);
+  hopperBeans.classList.remove("hidden");
+  vibrate([10, 15, 10]);
+  coffeeStep = 1;
+  updateCoffeeUI();
+});
+
+attachRotateGesture(
+  grinderCrankGroup, 132, 140, GRIND_DEGREES_NEEDED,
+  () => coffeeStep === 1,
+  accumulated => {
+    grinderCrankRotor.style.transform = `rotate(${accumulated}deg)`;
+    coffeeHint.textContent = `Wir drehen die Kurbel (${Math.round((accumulated / GRIND_DEGREES_NEEDED) * 100)}%)`;
+  },
+  () => {
+    hopperBeans.classList.add("hidden");
+    groundPileAtGrinder.classList.remove("hidden");
+    vibrate([10, 10, 10, 10, 10]);
+    coffeeStep = 2;
+    updateCoffeeUI();
+  }
+);
+
+attachDragGesture(groundPileAtGrinder, 45, () => coffeeStep === 2, () => {
+  groundPileAtGrinder.classList.add("pouring");
+  setTimeout(() => groundPileAtGrinder.classList.remove("pouring"), 400);
+  groundPileAtGrinder.classList.add("hidden");
+  groundPileAtPortafilter.classList.remove("hidden");
+  vibrate([10, 15, 10]);
+  coffeeStep = 3;
+  updateCoffeeUI();
+});
+
+attachPressGesture(
+  tamperGroup, 12, TAMP_REQUIRED,
+  () => coffeeStep === 3,
+  (taps, required) => {
+    tamperGroup.classList.remove("tamping");
+    void tamperGroup.offsetWidth;
+    tamperGroup.classList.add("tamping");
+    vibrate([20]);
+    coffeeHint.textContent = `Wir drücken fest an (${taps}/${required})`;
+  },
+  () => {
+    coffeeStep = 4;
+    lockPhase = "dock";
+    updateCoffeeUI();
+  }
+);
+
+attachDragGesture(portafilterGroup, DOCK_DISTANCE, () => coffeeStep === 4 && lockPhase === "dock", () => {
+  portafilterGroup.style.transform = "translateX(60px)";
+  lockPhase = "twist";
+  vibrate([10, 20]);
+  updateCoffeeUI();
+});
+
+attachRotateGesture(
+  portafilterGroup, 245, 172, TWIST_DEGREES_NEEDED,
+  () => coffeeStep === 4 && lockPhase === "twist",
+  accumulated => {
+    const visualAngle = Math.min(accumulated / TWIST_DEGREES_NEEDED, 1) * 35;
+    portafilterGroup.style.transform = `translateX(60px) rotate(${visualAngle}deg)`;
+    coffeeHint.textContent = `Jetzt drehen, um den Siebträger zu verriegeln (${Math.round((accumulated / TWIST_DEGREES_NEEDED) * 100)}%)`;
+  },
+  () => {
+    portafilterGroup.style.transform = "translateX(60px) rotate(35deg)";
+    completeCoffee();
+  }
+);
+
+coffeeBtn.addEventListener("click", () => {
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+  if (!requirePerson()) return;
+  enterCoffeeScene();
+});
+
+leaveCoffeeScene.addEventListener("click", exitCoffeeScene);
 
 /* ---------- pointer gestures ---------- */
 
