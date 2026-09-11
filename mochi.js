@@ -12,23 +12,37 @@ const tearLeft = document.getElementById("petTearLeft");
 const tearRight = document.getElementById("petTearRight");
 const petMouthPath = document.getElementById("petMouthPath");
 const petSmoke = document.getElementById("petSmoke");
+const eyeClosedLeft = document.getElementById("petEyeClosedLeft");
+const eyeClosedRight = document.getElementById("petEyeClosedRight");
+
+const feedBtn = document.getElementById("feedBtn");
+const showerBtn = document.getElementById("showerBtn");
+const sportBtn = document.getElementById("sportBtn");
+const danceBtn = document.getElementById("danceBtn");
+const sleepBtn = document.getElementById("sleepBtn");
+const sleepIcon = document.getElementById("sleepIcon");
+const sleepLabel = document.getElementById("sleepLabel");
 
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
+
+const foodModal = document.getElementById("foodModal");
+const foodButtons = document.querySelectorAll(".food-btn");
+const closeFoodModal = document.getElementById("closeFoodModal");
 
 const MOOD_LABELS = {
   euphoric: "Überglücklich 🥰",
   happy: "Glücklich 😊",
   neutral: "Ganz okay 😐",
   sad: "Ein bisschen traurig 😢",
-  verysad: "Vermisst dich sehr 💔"
+  verysad: "Vermisst uns sehr 💔"
 };
 
 const MOOD_STATUS = {
   euphoric: "Mochi kuschelt sich glücklich ein.",
-  happy: "Mochi freut sich, dass ihr euch kümmert.",
+  happy: "Mochi freut sich, dass wir uns kümmern.",
   neutral: "Mochi geht es okay, ein bisschen Zuwendung täte gut.",
-  sad: "Mochi vermisst eure Nähe – streichel ihn mal.",
+  sad: "Mochi vermisst unsere Nähe, wir sollten ihn mal streicheln.",
   verysad: "Mochi ist ganz traurig. Zeit für ganz viel Kuscheln!"
 };
 
@@ -48,7 +62,17 @@ const PET_COOLDOWN_MS = 3000;
 const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
 const PET_HAPPINESS_BOOST = 6;
 const CUDDLE_HAPPINESS_BOOST = 28;
+const ACTIVITY_HAPPINESS_BOOST = 10;
+const ACTIVITY_COOLDOWN_MS = 60 * 1000;
+const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const DEFAULT_HAPPINESS = 50;
+
+const ACTIVITIES = {
+  feed: { label: "Mochi hat genascht", particleEmoji: "🥕", particleCount: 1, falling: false, animationClass: "feeding", vibratePattern: [10, 20, 10] },
+  shower: { label: "Mochi ist frisch geduscht", particleEmoji: "💧", particleCount: 5, falling: true, animationClass: "showering", vibratePattern: [10, 10, 10, 10] },
+  sport: { label: "Mochi hat Sport gemacht", particleEmoji: "💦", particleCount: 4, falling: false, animationClass: "exercising", vibratePattern: [15, 30, 15, 30] },
+  dance: { label: "Mochi hat getanzt", particleEmoji: "🎵", particleCount: 5, falling: false, animationClass: "dancing", vibratePattern: [10, 20, 10, 20, 10] }
+};
 
 let petState = null;
 let batteryAvg = 50;
@@ -56,6 +80,7 @@ let currentPerson = localStorage.getItem("pw_person");
 let gestureState = null;
 let lastPetTrigger = 0;
 let lastCuddleTrigger = 0;
+let lastActivityTrigger = 0;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -97,6 +122,11 @@ function decayedHappiness() {
   return clamp(Math.round(stored - hoursElapsed * decayPerHour), 0, 100);
 }
 
+function isAsleep() {
+  if (!petState || !petState.sleep_started_at) return false;
+  return Date.now() - new Date(petState.sleep_started_at).getTime() < SLEEP_DURATION_MS;
+}
+
 function moodTier(happiness) {
   if (happiness >= 80) return "euphoric";
   if (happiness >= 60) return "happy";
@@ -108,13 +138,14 @@ function moodTier(happiness) {
 function render() {
   const happiness = decayedHappiness();
   const mood = moodTier(happiness);
+  const asleep = isAsleep();
 
-  petCreature.className = "pet-creature mood-" + mood;
+  petCreature.className = "pet-creature mood-" + mood + (asleep ? " sleeping" : "");
   moodLabel.textContent = MOOD_LABELS[mood];
   petMouthPath.setAttribute("d", MOOD_MOUTH_PATHS[mood]);
 
-  let statusText = MOOD_STATUS[mood];
-  if (petState && (petState.last_petted_at || petState.last_cuddled_at) && petState.last_interacted_by) {
+  let statusText = asleep ? "Mochi schläft gerade 😴" : MOOD_STATUS[mood];
+  if (!asleep && petState && (petState.last_petted_at || petState.last_cuddled_at) && petState.last_interacted_by) {
     const lastPetted = petState.last_petted_at ? new Date(petState.last_petted_at).getTime() : 0;
     const lastCuddled = petState.last_cuddled_at ? new Date(petState.last_cuddled_at).getTime() : 0;
     const lastDate = new Date(Math.max(lastPetted, lastCuddled));
@@ -131,6 +162,12 @@ function render() {
   tearLeft.classList.toggle("hidden", mood !== "verysad");
   tearRight.classList.toggle("hidden", mood !== "verysad");
   petSmoke.classList.toggle("hidden", mood !== "verysad");
+  eyeClosedLeft.classList.toggle("hidden", !asleep);
+  eyeClosedRight.classList.toggle("hidden", !asleep);
+
+  sleepIcon.textContent = asleep ? "☀️" : "😴";
+  sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
+  [feedBtn, showerBtn, sportBtn, danceBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
 }
 
 /* ---------- data loading ---------- */
@@ -167,22 +204,53 @@ async function loadBatteryAvg() {
   render();
 }
 
-/* ---------- heart particles ---------- */
+/* ---------- particles ---------- */
+
+function spawnParticle(emoji, { size, falling } = {}) {
+  const particle = document.createElement("span");
+  particle.className = "pet-heart-particle" + (falling ? " falling" : "");
+  particle.textContent = emoji;
+  if (size) particle.style.fontSize = size + "px";
+  particle.style.setProperty("--drift", Math.round((Math.random() - 0.5) * 60) + "px");
+  particle.style.left = 45 + Math.random() * 10 + "%";
+  petHearts.appendChild(particle);
+  setTimeout(() => particle.remove(), 1200);
+}
 
 function spawnHeart(large) {
-  const heart = document.createElement("span");
-  heart.className = "pet-heart-particle";
-  heart.textContent = large ? "💖" : ["💗", "💕", "✨"][Math.floor(Math.random() * 3)];
-  if (large) heart.style.fontSize = "26px";
-  heart.style.setProperty("--drift", Math.round((Math.random() - 0.5) * 60) + "px");
-  heart.style.left = 45 + Math.random() * 10 + "%";
-  petHearts.appendChild(heart);
-  setTimeout(() => heart.remove(), 1200);
+  spawnParticle(large ? "💖" : ["💗", "💕", "✨"][Math.floor(Math.random() * 3)], { size: large ? 26 : undefined });
 }
+
+setInterval(() => {
+  if (isAsleep()) spawnParticle("💤", { size: 20 });
+}, 2500);
 
 /* ---------- interactions ---------- */
 
+async function wakeMochi() {
+  if (!requirePerson()) return;
+
+  vibrate([15, 15]);
+  showToast("Mochi ist aufgewacht 💤➡️😊", "success");
+
+  const nowIso = new Date().toISOString();
+  petState = { ...(petState || {}), sleep_started_at: null, last_interacted_by: currentPerson, updated_at: nowIso };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update({ sleep_started_at: null, last_interacted_by: currentPerson, updated_at: nowIso })
+    .eq("id", "shared");
+
+  if (error) console.error("Fehler beim Aufwecken:", error);
+}
+
 async function triggerPet() {
+  if (isAsleep()) {
+    wakeMochi();
+    return;
+  }
+
   const now = Date.now();
   if (now - lastPetTrigger < PET_COOLDOWN_MS) return;
   if (!requirePerson()) return;
@@ -205,6 +273,11 @@ async function triggerPet() {
 }
 
 async function triggerCuddle() {
+  if (isAsleep()) {
+    wakeMochi();
+    return;
+  }
+
   if (!requirePerson()) return;
 
   petCreature.classList.add("hugging");
@@ -213,7 +286,7 @@ async function triggerCuddle() {
 
   const now = Date.now();
   if (now - lastCuddleTrigger < CUDDLE_COOLDOWN_MS) {
-    showToast("Mochi ist schon ganz warm gekuschelt – gleich nochmal 💭", "success");
+    showToast("Mochi ist schon ganz warm gekuschelt, gleich nochmal 💭", "success");
     return;
   }
   lastCuddleTrigger = now;
@@ -246,6 +319,94 @@ async function triggerCuddle() {
     url: "mochi.html"
   });
 }
+
+async function performActivity(kind, extraLabel, particleEmojiOverride) {
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
+    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
+    return;
+  }
+  if (!requirePerson()) return;
+
+  const activity = ACTIVITIES[kind];
+  lastActivityTrigger = now;
+
+  petCreature.classList.add(activity.animationClass);
+  vibrate(activity.vibratePattern);
+  const particleEmoji = particleEmojiOverride || activity.particleEmoji;
+  for (let i = 0; i < activity.particleCount; i++) {
+    setTimeout(() => spawnParticle(particleEmoji, { falling: activity.falling }), i * 130);
+  }
+  setTimeout(() => petCreature.classList.remove(activity.animationClass), 1400);
+
+  const label = extraLabel ? `${activity.label} (${extraLabel})` : activity.label;
+  showToast(`${label} 🎉`, "success");
+
+  const newHappiness = clamp(decayedHappiness() + ACTIVITY_HAPPINESS_BOOST, 0, 100);
+  const nowIso = new Date().toISOString();
+  const activityLog = extraLabel ? `${kind}:${extraLabel}` : kind;
+  petState = { ...(petState || {}), happiness: newHappiness, last_activity: activityLog, last_interacted_by: currentPerson, updated_at: nowIso };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update({ happiness: newHappiness, last_activity: activityLog, last_interacted_by: currentPerson, updated_at: nowIso })
+    .eq("id", "shared");
+
+  if (error) console.error(`Fehler bei Aktivität (${kind}):`, error);
+}
+
+async function toggleSleep() {
+  if (isAsleep()) {
+    wakeMochi();
+    return;
+  }
+
+  if (!requirePerson()) return;
+
+  vibrate([10, 10, 10]);
+  showToast("Gute Nacht, Mochi schläft jetzt ein 😴", "success");
+
+  const nowIso = new Date().toISOString();
+  petState = { ...(petState || {}), sleep_started_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update({ sleep_started_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
+    .eq("id", "shared");
+
+  if (error) console.error("Fehler beim Einschlafen:", error);
+}
+
+/* ---------- activity buttons ---------- */
+
+feedBtn.addEventListener("click", () => {
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+  foodModal.classList.remove("hidden");
+});
+
+closeFoodModal.addEventListener("click", () => foodModal.classList.add("hidden"));
+
+foodButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    foodModal.classList.add("hidden");
+    performActivity("feed", button.dataset.food, button.dataset.emoji);
+  });
+});
+
+showerBtn.addEventListener("click", () => performActivity("shower"));
+sportBtn.addEventListener("click", () => performActivity("sport"));
+danceBtn.addEventListener("click", () => performActivity("dance"));
+sleepBtn.addEventListener("click", toggleSleep);
 
 /* ---------- pointer gestures ---------- */
 

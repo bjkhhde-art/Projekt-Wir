@@ -16,7 +16,7 @@
 
   <main class="page">
     <h1 class="page-title">Mochi 🎂</h1>
-    <p class="page-subtitle">Euer kleines Kuschelwesen – sein Gemüt hängt an eurer Nähe</p>
+    <p class="page-subtitle">Unser kleines Kuschelwesen, sein Gemüt hängt an unserer Nähe</p>
 
     <div class="pet-stage card">
       <p id="moodLabel" class="mood-label"></p>
@@ -66,6 +66,9 @@
           <circle id="petPupilRight" class="pet-pupil" cx="122" cy="152" r="7"/>
           <circle class="pet-highlight" cx="119.5" cy="149.5" r="2"/>
 
+          <path id="petEyeClosedLeft" class="pet-eye-closed hidden" d="M69,152 Q78,159 87,152"/>
+          <path id="petEyeClosedRight" class="pet-eye-closed hidden" d="M113,152 Q122,159 131,152"/>
+
           <path id="petMouthPath" class="pet-mouth-path" d="M90,178 Q100,183 110,178"/>
 
           <path id="petTearLeft" class="pet-tear-path hidden" d="M78,160 C84,168 84,178 78,182 C72,178 72,168 78,160 Z"/>
@@ -80,7 +83,15 @@
         <div id="petHappinessFill" class="pet-happiness-fill"></div>
       </div>
 
-      <p class="pet-hint">Streichle Mochi mit einer Wischbewegung – oder halte gedrückt zum Kuscheln 🤗</p>
+      <p class="pet-hint">Wir streicheln Mochi mit einer Wischbewegung oder halten gedrückt zum Kuscheln 🤗</p>
+
+      <div class="pet-activities">
+        <button id="feedBtn" class="activity-btn"><span class="activity-icon">🥕</span><span class="activity-label">Füttern</span></button>
+        <button id="showerBtn" class="activity-btn"><span class="activity-icon">🚿</span><span class="activity-label">Duschen</span></button>
+        <button id="sportBtn" class="activity-btn"><span class="activity-icon">🏃</span><span class="activity-label">Sport</span></button>
+        <button id="danceBtn" class="activity-btn"><span class="activity-icon">💃</span><span class="activity-label">Tanzen</span></button>
+        <button id="sleepBtn" class="activity-btn"><span id="sleepIcon" class="activity-icon">😴</span><span id="sleepLabel" class="activity-label">Schlafen</span></button>
+      </div>
     </div>
   </main>
 
@@ -91,6 +102,24 @@
       <div class="push-person-choice">
         <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
         <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="foodModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Was geben wir Mochi? 🌱</h2>
+      <p class="push-modal-text">Nur veganes Essen für Mochi.</p>
+      <div class="food-grid">
+        <button class="food-btn" data-food="Karotte" data-emoji="🥕"><span class="activity-icon">🥕</span><span class="activity-label">Karotte</span></button>
+        <button class="food-btn" data-food="Apfel" data-emoji="🍎"><span class="activity-icon">🍎</span><span class="activity-label">Apfel</span></button>
+        <button class="food-btn" data-food="Brokkoli" data-emoji="🥦"><span class="activity-icon">🥦</span><span class="activity-label">Brokkoli</span></button>
+        <button class="food-btn" data-food="Banane" data-emoji="🍌"><span class="activity-icon">🍌</span><span class="activity-label">Banane</span></button>
+        <button class="food-btn" data-food="Avocado" data-emoji="🥑"><span class="activity-icon">🥑</span><span class="activity-label">Avocado</span></button>
+        <button class="food-btn" data-food="Erdbeere" data-emoji="🍓"><span class="activity-icon">🍓</span><span class="activity-label">Erdbeere</span></button>
+      </div>
+      <div class="modal-buttons">
+        <button id="closeFoodModal" class="btn btn-secondary btn-block">Abbrechen</button>
       </div>
     </div>
   </div>
