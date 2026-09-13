@@ -364,6 +364,7 @@ async function triggerCuddle() {
     title: "Mochi wurde geknuddelt 🎂",
     body: `${currentPerson} hat Mochi gerade richtig doll gedrückt.`,
     excludePerson: normalizePerson(currentPerson),
+    category: "mochi",
     url: "mochi.html"
   });
 }

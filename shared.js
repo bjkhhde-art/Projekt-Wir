@@ -101,10 +101,10 @@ window.subscribeToPush = async function (supabaseClient, person) {
   localStorage.setItem("pw_person", person);
 };
 
-window.sendAppNotification = async function (supabaseClient, { title, body, excludePerson, url }) {
+window.sendAppNotification = async function (supabaseClient, { title, body, excludePerson, onlyPerson, category, url }) {
   try {
     const { error } = await supabaseClient.functions.invoke("notify-new-letter", {
-      body: { title, body, excludePerson, url }
+      body: { title, body, excludePerson, onlyPerson, category, url }
     });
 
     if (error) {

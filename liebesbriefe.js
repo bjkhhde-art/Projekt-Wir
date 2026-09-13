@@ -56,7 +56,7 @@ function renderNotes() {
     notesFeed.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">💌</span>
-        <p>Noch keine Nachrichten.<br>Schreib die erste Liebeserklärung des Tages.</p>
+        <p>Noch keine Nachrichten.<br>Wir schreiben die erste Liebeserklärung des Tages.</p>
       </div>
     `;
     return;
@@ -139,7 +139,7 @@ function closeFlapFully() {
 function openLetter(note) {
   currentNoteId = note.id;
   letterMessageEl.innerHTML = escapeHtml(note.message);
-  letterSignatureEl.textContent = `– ${note.author}`;
+  letterSignatureEl.textContent = `Von ${note.author}`;
 
   envelopeFlap.classList.remove("opened", "settling", "dragging");
   letterPaper.classList.remove("revealed");
@@ -226,6 +226,7 @@ function notifyNewLetter(author) {
     title: "Neuer Liebesbrief 💌",
     body: `${author} hat dir eine Nachricht geschrieben.`,
     excludePerson: person,
+    category: "letters",
     url: "liebesbriefe.html"
   });
 }

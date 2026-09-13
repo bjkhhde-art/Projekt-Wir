@@ -103,7 +103,7 @@ function renderBoard() {
 
 function openAddModalHandler() {
   editingItemId = null;
-  questModalTitle.textContent = "Neues Bingo-Feld";
+  questModalTitle.textContent = "Neues Bingofeld";
   addBtn.textContent = "Hinzufügen";
 
   input.value = "";
@@ -197,6 +197,7 @@ async function saveItem() {
       title: "Neue Couple Quest 🎯",
       body: `${authorInput.value} hat "${title}" hinzugefügt.`,
       excludePerson: person,
+      category: "quest",
       url: "couple-quest.html"
     });
   }

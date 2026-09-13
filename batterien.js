@@ -35,7 +35,7 @@ function emojiForLevel(level) {
 }
 
 function statusForLevel(level) {
-  if (level <= 15) return "Akku leer – Zeit zum Kuscheln!";
+  if (level <= 15) return "Akku leer, Zeit zum Kuscheln!";
   if (level <= 35) return "Braucht bald Kuscheleinheiten";
   if (level <= 55) return "Bereit zum Kuscheln";
   if (level <= 75) return "Fühlt sich schon kuschelig";
@@ -104,7 +104,7 @@ async function saveLevel(person, level) {
 
   if (error) {
     console.error("Fehler beim Speichern:", error);
-    showToast("Akku-Stand konnte nicht gespeichert werden.", "error");
+    showToast("Akkustand konnte nicht gespeichert werden.", "error");
     return;
   }
 
@@ -112,6 +112,7 @@ async function saveLevel(person, level) {
     title: "Kuschelbatterie aktualisiert 🔋",
     body: `${person} hat den Akku auf ${level}% gesetzt.`,
     excludePerson: normalizePerson(person),
+    category: "battery",
     url: "batterien.html"
   });
 }
