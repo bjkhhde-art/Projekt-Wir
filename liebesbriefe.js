@@ -19,6 +19,8 @@ const envelopeFlap = document.getElementById("envelopeFlap");
 const letterPaper = document.getElementById("letterPaper");
 const letterMessageEl = document.getElementById("letterMessage");
 const letterSignatureEl = document.getElementById("letterSignature");
+const letterDateEl = document.getElementById("letterDate");
+const envelopeBig = document.getElementById("envelopeBig");
 
 const OPENED_STORAGE_KEY = "love_notes_opened";
 const DRAG_RANGE = 150;
@@ -76,6 +78,8 @@ function renderNotes() {
       <div class="envelope-mini">
         ${isNew ? `<span class="envelope-new-badge chip">Neu</span>` : ""}
         <div class="envelope-mini-body"></div>
+        <div class="envelope-mini-stamp"><span class="stamp-icon">💗</span></div>
+        <span class="postmark"></span>
         <div class="envelope-mini-flap"></div>
         <span class="envelope-mini-seal">💗</span>
       </div>
@@ -140,6 +144,10 @@ function openLetter(note) {
   currentNoteId = note.id;
   letterMessageEl.innerHTML = escapeHtml(note.message);
   letterSignatureEl.textContent = `Von ${note.author}`;
+  letterDateEl.textContent = formatDate(note.created_at);
+
+  envelopeBig.classList.remove("author-isi", "author-benji");
+  envelopeBig.classList.add(note.author === "Isi" ? "author-isi" : "author-benji");
 
   envelopeFlap.classList.remove("opened", "settling", "dragging");
   letterPaper.classList.remove("revealed");

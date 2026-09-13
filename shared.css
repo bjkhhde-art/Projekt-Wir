@@ -99,7 +99,11 @@ body {
 }
 
 /* Opt-in: for pages whose content can be shorter than the viewport, so it
-   doesn't sit pinned to the top with dead space above the nav bar. */
+   doesn't sit pinned to the top with dead space above the nav bar.
+   Gotcha: a direct child using `display:grid` + `margin:0 auto` to center
+   itself under a max-width will collapse to content size here, because
+   auto margins stop a flex item from stretching. Give such a child an
+   explicit `width: 100%` alongside its max-width. */
 .page-fill {
   min-height: calc(100dvh - var(--nav-height) - 20px);
   display: flex;
