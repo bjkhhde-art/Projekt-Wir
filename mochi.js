@@ -6,7 +6,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const petCreature = document.getElementById("petCreature");
 const moodLabel = document.getElementById("moodLabel");
 const petStatusText = document.getElementById("petStatusText");
-const petHappinessFill = document.getElementById("petHappinessFill");
 const petHearts = document.getElementById("petHearts");
 const tearLeft = document.getElementById("petTearLeft");
 const tearRight = document.getElementById("petTearRight");
@@ -20,6 +19,15 @@ const shampooBottle = document.getElementById("shampooBottle");
 const petHint = document.getElementById("petHint");
 const DEFAULT_PET_HINT = "Wir streicheln Mochi mit einer Wischbewegung oder halten gedrückt zum Kuscheln 🤗";
 
+const growthBadge = document.getElementById("growthBadge");
+const coinCount = document.getElementById("coinCount");
+const openShopBtn = document.getElementById("openShopBtn");
+
+const statHungerFill = document.getElementById("statHungerFill");
+const statEnergyFill = document.getElementById("statEnergyFill");
+const statCleanFill = document.getElementById("statCleanFill");
+const statBondFill = document.getElementById("statBondFill");
+
 const feedBtn = document.getElementById("feedBtn");
 const showerBtn = document.getElementById("showerBtn");
 const sportBtn = document.getElementById("sportBtn");
@@ -28,6 +36,7 @@ const coffeeBtn = document.getElementById("coffeeBtn");
 const sleepBtn = document.getElementById("sleepBtn");
 const sleepIcon = document.getElementById("sleepIcon");
 const sleepLabel = document.getElementById("sleepLabel");
+const openRoomBtn = document.getElementById("openRoomBtn");
 
 const petMainView = document.getElementById("petMainView");
 const coffeeScene = document.getElementById("coffeeScene");
@@ -47,6 +56,17 @@ const portafilterGroup = document.getElementById("portafilterGroup");
 const tamperGroup = document.getElementById("tamperGroup");
 const coffeeLiquid = document.getElementById("coffeeLiquid");
 const steamGroup = document.getElementById("steamGroup");
+
+const roomScene = document.getElementById("roomScene");
+const leaveRoomScene = document.getElementById("leaveRoomScene");
+const openShopFromRoom = document.getElementById("openShopFromRoom");
+
+const shopModal = document.getElementById("shopModal");
+const closeShopModal = document.getElementById("closeShopModal");
+const shopCoinCount = document.getElementById("shopCoinCount");
+const shopTabs = document.querySelectorAll(".shop-tab");
+const shopItemsRoom = document.getElementById("shopItemsRoom");
+const shopItemsOutfit = document.getElementById("shopItemsOutfit");
 
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
@@ -85,15 +105,12 @@ const STROKE_MIN_DISTANCE = 50;
 const STROKE_TICK_DISTANCE = 24;
 const PET_COOLDOWN_MS = 3000;
 const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
-const PET_HAPPINESS_BOOST = 6;
-const CUDDLE_HAPPINESS_BOOST = 28;
-const ACTIVITY_HAPPINESS_BOOST = 10;
 const ACTIVITY_COOLDOWN_MS = 60 * 1000;
 const SHOWER_SCRUB_NEEDED = 180;
 const SHOWER_TICK_DISTANCE = 18;
 const DISCO_PARTY_DURATION_MS = 3200;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
-const DEFAULT_HAPPINESS = 50;
+const DEFAULT_STAT = 70;
 
 const COFFEE_STEPS = [
   { label: "Schritt 1 von 5: Bohnen einfüllen", hint: "Wir wischen die Bohnen von der Dose in die Mühle" },
@@ -107,14 +124,50 @@ const GRIND_DEGREES_NEEDED = 900;
 const TWIST_DEGREES_NEEDED = 140;
 const TAMP_REQUIRED = 3;
 const DOCK_DISTANCE = 55;
-const COFFEE_HAPPINESS_BOOST = 20;
 
 const ACTIVITIES = {
   feed: { label: "Mochi hat genascht", particleEmoji: "🥕", particleCount: 1, falling: false, animationClass: "feeding", vibratePattern: [10, 20, 10] },
-  shower: { label: "Mochi ist frisch geduscht", particleEmoji: "💧", particleCount: 5, falling: true, animationClass: "showering", vibratePattern: [10, 10, 10, 10] },
   sport: { label: "Mochi hat Sport gemacht", particleEmoji: "💦", particleCount: 4, falling: false, animationClass: "exercising", vibratePattern: [15, 30, 15, 30] },
   dance: { label: "Mochi hat getanzt", particleEmoji: "🎵", particleCount: 5, falling: false, animationClass: "dancing", vibratePattern: [10, 20, 10, 20, 10] }
 };
+
+/* ---------- stats, growth & shop model ---------- */
+
+const DECAY_BASE = { hunger: 4, energy: 2.5, cleanliness: 2, bond: 3 };
+const GROWTH_THRESHOLDS = { baby: 0, kid: 20, adult: 60 };
+const GROWTH_LABELS = { baby: "🐣 Baby", kid: "🎂 Kind", adult: "✨ Erwachsen" };
+
+const SHOP_ITEMS = {
+  room: [
+    { id: "sky", slot: "wall", name: "Sternenhimmel", icon: "🌌", price: 20 },
+    { id: "clouds", slot: "wall", name: "Wolken", icon: "☁️", price: 20 },
+    { id: "hearts", slot: "wall", name: "Herzen-Tapete", icon: "💕", price: 30 },
+    { id: "wood", slot: "floor", name: "Holzboden", icon: "🪵", price: 15 },
+    { id: "rug_pink", slot: "floor", name: "Rosa Teppich", icon: "🩷", price: 20 },
+    { id: "rug_stars", slot: "floor", name: "Sternenteppich", icon: "⭐", price: 30 },
+    { id: "plant", slot: "deco", name: "Pflanze", icon: "🪴", price: 15 },
+    { id: "lamp", slot: "deco", name: "Lampe", icon: "💡", price: 20 }
+  ],
+  outfit: [
+    { id: "party", slot: "hat", name: "Partyhut", icon: "🎉", price: 15 },
+    { id: "crown", slot: "hat", name: "Krone", icon: "👑", price: 35 },
+    { id: "beanie", slot: "hat", name: "Wintermütze", icon: "🧶", price: 20 },
+    { id: "scarf", slot: "accessory", name: "Schal", icon: "🧣", price: 15 },
+    { id: "sunglasses", slot: "accessory", name: "Sonnenbrille", icon: "🕶️", price: 20 }
+  ]
+};
+
+const SLOT_TO_FIELD = { wall: "room_wall", floor: "room_floor", deco: "room_deco", hat: "equipped_hat", accessory: "equipped_accessory" };
+const SLOT_ELEMENT_PREFIX = { wall: "wall", floor: "floor", deco: "deco", hat: "hat", accessory: "accessory" };
+
+function itemElementId(slot, id) {
+  const camel = id.split("_").map(part => part.charAt(0).toUpperCase() + part.slice(1)).join("");
+  return SLOT_ELEMENT_PREFIX[slot] + camel;
+}
+
+function findShopItem(id) {
+  return [...SHOP_ITEMS.room, ...SHOP_ITEMS.outfit].find(item => item.id === id);
+}
 
 let petState = null;
 let batteryAvg = 50;
@@ -156,17 +209,27 @@ if (!currentPerson) {
   personModal.classList.remove("hidden");
 }
 
-/* ---------- mood + rendering ---------- */
+/* ---------- stats decay + growth ---------- */
 
-function decayedHappiness() {
-  const stored = petState && typeof petState.happiness === "number" ? petState.happiness : DEFAULT_HAPPINESS;
+function decayRate(base) {
+  return clamp(base - (batteryAvg / 100) * (base - base * 0.17), base * 0.17, base);
+}
+
+function decayedStats() {
   const lastUpdate = petState && petState.updated_at ? new Date(petState.updated_at).getTime() : Date.now();
   const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / 3600000);
+  const result = {};
 
-  // Low Kuschelbatterie -> faster decay (up to 3 pts/h); a full battery slows decay to ~0.5 pts/h.
-  const decayPerHour = clamp(3 - (batteryAvg / 100) * 2.5, 0.5, 3);
+  for (const key of Object.keys(DECAY_BASE)) {
+    const stored = petState && typeof petState[key] === "number" ? petState[key] : DEFAULT_STAT;
+    result[key] = clamp(Math.round(stored - hoursElapsed * decayRate(DECAY_BASE[key])), 0, 100);
+  }
 
-  return clamp(Math.round(stored - hoursElapsed * decayPerHour), 0, 100);
+  return result;
+}
+
+function overallMood(stats) {
+  return Math.round((stats.hunger + stats.energy + stats.cleanliness + stats.bond) / 4);
 }
 
 function isAsleep() {
@@ -182,12 +245,88 @@ function moodTier(happiness) {
   return "verysad";
 }
 
-function render() {
-  const happiness = decayedHappiness();
-  const mood = moodTier(happiness);
-  const asleep = isAsleep();
+function growthStage(careScore) {
+  if (careScore >= GROWTH_THRESHOLDS.adult) return "adult";
+  if (careScore >= GROWTH_THRESHOLDS.kid) return "kid";
+  return "baby";
+}
 
-  petCreature.className = "pet-creature mood-" + mood + (asleep ? " sleeping" : "");
+/* ---------- applying care actions (stats + coins + growth) ---------- */
+
+async function applyCare(statDeltas, coinReward, careReward, extraFields) {
+  const stats = decayedStats();
+
+  for (const key in statDeltas) {
+    stats[key] = clamp(stats[key] + statDeltas[key], 0, 100);
+  }
+
+  const nowIso = new Date().toISOString();
+  const resolvedExtra = typeof extraFields === "function" ? extraFields(nowIso) : (extraFields || {});
+
+  const payload = {
+    ...stats,
+    coins: (petState && petState.coins || 0) + coinReward,
+    care_score: (petState && petState.care_score || 0) + careReward,
+    last_interacted_by: currentPerson,
+    updated_at: nowIso,
+    ...resolvedExtra
+  };
+
+  petState = { ...(petState || {}), ...payload };
+  render();
+
+  const { error } = await supabaseClient
+    .from("pet_state")
+    .update(payload)
+    .eq("id", "shared");
+
+  if (error) console.error("Fehler beim Speichern:", error);
+  return !error;
+}
+
+/* ---------- rendering ---------- */
+
+function renderEquippedLook() {
+  document.querySelectorAll(".hat-piece").forEach(el => el.classList.add("hidden"));
+  if (petState && petState.equipped_hat) {
+    const el = document.getElementById(itemElementId("hat", petState.equipped_hat));
+    if (el) el.classList.remove("hidden");
+  }
+
+  document.querySelectorAll(".accessory-piece").forEach(el => el.classList.add("hidden"));
+  if (petState && petState.equipped_accessory) {
+    const el = document.getElementById(itemElementId("accessory", petState.equipped_accessory));
+    if (el) el.classList.remove("hidden");
+  }
+}
+
+function renderRoomLook() {
+  document.querySelectorAll(".room-wall").forEach(el => el.classList.add("hidden"));
+  if (petState && petState.room_wall) {
+    const el = document.getElementById(itemElementId("wall", petState.room_wall));
+    if (el) el.classList.remove("hidden");
+  }
+
+  document.querySelectorAll(".room-floor").forEach(el => el.classList.add("hidden"));
+  if (petState && petState.room_floor) {
+    const el = document.getElementById(itemElementId("floor", petState.room_floor));
+    if (el) el.classList.remove("hidden");
+  }
+
+  document.querySelectorAll(".room-deco").forEach(el => el.classList.add("hidden"));
+  if (petState && petState.room_deco) {
+    const el = document.getElementById(itemElementId("deco", petState.room_deco));
+    if (el) el.classList.remove("hidden");
+  }
+}
+
+function render() {
+  const stats = decayedStats();
+  const mood = moodTier(overallMood(stats));
+  const asleep = isAsleep();
+  const stage = growthStage((petState && petState.care_score) || 0);
+
+  petCreature.className = "pet-creature mood-" + mood + " growth-" + stage + (asleep ? " sleeping" : "");
   moodLabel.textContent = MOOD_LABELS[mood];
   petMouthPath.setAttribute("d", MOOD_MOUTH_PATHS[mood]);
 
@@ -200,11 +339,16 @@ function render() {
   }
   petStatusText.textContent = statusText;
 
-  petHappinessFill.style.width = happiness + "%";
-  petHappinessFill.style.background =
-    happiness >= 60 ? "var(--gradient-brand)" :
-    happiness >= 40 ? "var(--gradient-warm)" :
-    "linear-gradient(135deg, #f87171, var(--danger))";
+  statHungerFill.style.width = stats.hunger + "%";
+  statEnergyFill.style.width = stats.energy + "%";
+  statCleanFill.style.width = stats.cleanliness + "%";
+  statBondFill.style.width = stats.bond + "%";
+
+  growthBadge.textContent = GROWTH_LABELS[stage];
+  coinCount.textContent = (petState && petState.coins) || 0;
+
+  renderEquippedLook();
+  renderRoomLook();
 
   tearLeft.classList.toggle("hidden", mood !== "verysad");
   tearRight.classList.toggle("hidden", mood !== "verysad");
@@ -215,7 +359,7 @@ function render() {
 
   sleepIcon.textContent = asleep ? "☀️" : "😴";
   sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, openRoomBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
 }
 
 /* ---------- data loading ---------- */
@@ -279,18 +423,15 @@ async function wakeMochi() {
   if (!requirePerson()) return;
 
   vibrate([15, 15]);
+
+  const sleepStart = petState && petState.sleep_started_at ? new Date(petState.sleep_started_at).getTime() : null;
+  const sleptRatio = sleepStart ? clamp((Date.now() - sleepStart) / SLEEP_DURATION_MS, 0, 1) : 0;
+  const energyBoost = Math.round(sleptRatio * 50);
+  const coinReward = sleptRatio >= 0.8 ? 6 : 0;
+
   showToast("Mochi ist aufgewacht 💤➡️😊", "success");
 
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), sleep_started_at: null, last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ sleep_started_at: null, last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error("Fehler beim Aufwecken:", error);
+  await applyCare({ energy: energyBoost }, coinReward, 3, { sleep_started_at: null });
 }
 
 async function triggerPet() {
@@ -307,17 +448,7 @@ async function triggerPet() {
   spawnHeart(false);
   vibrate([10, 20, 10]);
 
-  const newHappiness = clamp(decayedHappiness() + PET_HAPPINESS_BOOST, 0, 100);
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), happiness: newHappiness, last_petted_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ happiness: newHappiness, last_petted_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error("Fehler beim Streicheln:", error);
+  await applyCare({ bond: 6 }, 1, 1, nowIso => ({ last_petted_at: nowIso }));
 }
 
 async function triggerCuddle() {
@@ -345,20 +476,8 @@ async function triggerCuddle() {
 
   showToast(`${currentPerson} hat Mochi geknuddelt 🤗`, "success");
 
-  const newHappiness = clamp(decayedHappiness() + CUDDLE_HAPPINESS_BOOST, 0, 100);
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), happiness: newHappiness, last_cuddled_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ happiness: newHappiness, last_cuddled_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) {
-    console.error("Fehler beim Kuscheln:", error);
-    return;
-  }
+  const success = await applyCare({ bond: 28 }, 3, 2, nowIso => ({ last_cuddled_at: nowIso }));
+  if (!success) return;
 
   sendAppNotification(supabaseClient, {
     title: "Mochi wurde geknuddelt 🎂",
@@ -398,18 +517,14 @@ async function performActivity(kind, extraLabel, particleEmojiOverride) {
   const label = extraLabel ? `${activity.label} (${extraLabel})` : activity.label;
   showToast(`${label} 🎉`, "success");
 
-  const newHappiness = clamp(decayedHappiness() + ACTIVITY_HAPPINESS_BOOST, 0, 100);
-  const nowIso = new Date().toISOString();
   const activityLog = extraLabel ? `${kind}:${extraLabel}` : kind;
-  petState = { ...(petState || {}), happiness: newHappiness, last_activity: activityLog, last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
+  const extra = nowIso => ({ last_activity: activityLog });
 
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ happiness: newHappiness, last_activity: activityLog, last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error(`Fehler bei Aktivität (${kind}):`, error);
+  if (kind === "feed") {
+    await applyCare({ hunger: 45, bond: 5 }, 3, 2, extra);
+  } else {
+    await applyCare({ bond: 12 }, 5, 2, extra);
+  }
 
   return true;
 }
@@ -445,7 +560,7 @@ function startShowerLathering() {
   petFoamOverlay.setAttribute("opacity", "0");
   petCreature.classList.add("showering");
   shampooBottle.classList.remove("hidden");
-  [feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn].forEach(btn => btn.classList.add("hidden"));
+  [feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
   showerBtn.classList.add("hidden");
   petHint.textContent = "Wir schäumen Mochi mit einer Wischbewegung ein (0%)";
   showToast("Wir schäumen Mochi mit Shampoo ein 🧴", "success");
@@ -457,7 +572,7 @@ async function finishShower() {
   lastActivityTrigger = Date.now();
   shampooBottle.classList.add("hidden");
   petHint.textContent = DEFAULT_PET_HINT;
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn].forEach(btn => btn.classList.remove("hidden"));
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
 
   for (let i = 0; i < 6; i++) {
     setTimeout(() => spawnParticle("💧", { falling: true }), i * 100);
@@ -468,17 +583,7 @@ async function finishShower() {
 
   showToast("Mochi ist frisch geduscht 🚿✨", "success");
 
-  const newHappiness = clamp(decayedHappiness() + ACTIVITY_HAPPINESS_BOOST, 0, 100);
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), happiness: newHappiness, last_activity: "shower", last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ happiness: newHappiness, last_activity: "shower", last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error("Fehler beim Duschen:", error);
+  await applyCare({ cleanliness: 45, bond: 5 }, 4, 2, () => ({ last_activity: "shower" }));
 }
 
 function startDiscoParty() {
@@ -705,17 +810,7 @@ async function completeCoffee() {
 
   showToast("Kaffee ist fertig ☕ Wohl bekomm's!", "success");
 
-  const newHappiness = clamp(decayedHappiness() + COFFEE_HAPPINESS_BOOST, 0, 100);
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), happiness: newHappiness, last_activity: "coffee", last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ happiness: newHappiness, last_activity: "coffee", last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error("Fehler beim Kaffeekochen:", error);
+  await applyCare({ bond: 20 }, 8, 3, () => ({ last_activity: "coffee" }));
 
   setTimeout(() => exitCoffeeScene(), 2400);
 }
@@ -804,6 +899,157 @@ coffeeBtn.addEventListener("click", () => {
 });
 
 leaveCoffeeScene.addEventListener("click", exitCoffeeScene);
+
+/* ---------- room scene ---------- */
+
+function enterRoomScene() {
+  petMainView.classList.add("leaving");
+
+  setTimeout(() => {
+    petMainView.classList.add("hidden");
+    petMainView.classList.remove("leaving");
+    roomScene.classList.remove("hidden");
+    roomScene.classList.add("entering");
+    void roomScene.offsetWidth;
+    roomScene.classList.remove("entering");
+  }, 350);
+}
+
+function exitRoomScene() {
+  roomScene.classList.add("entering");
+
+  setTimeout(() => {
+    roomScene.classList.add("hidden");
+    roomScene.classList.remove("entering");
+    petMainView.classList.add("leaving");
+    petMainView.classList.remove("hidden");
+    void petMainView.offsetWidth;
+    petMainView.classList.remove("leaving");
+  }, 350);
+}
+
+openRoomBtn.addEventListener("click", () => {
+  if (showerLathering || isAsleep()) return;
+  enterRoomScene();
+});
+
+leaveRoomScene.addEventListener("click", exitRoomScene);
+
+/* ---------- shop ---------- */
+
+function renderShopList(container, items) {
+  container.innerHTML = "";
+  const owned = (petState && petState.owned_items) || [];
+  const coins = (petState && petState.coins) || 0;
+
+  items.forEach(item => {
+    const isOwned = owned.includes(item.id);
+    const field = SLOT_TO_FIELD[item.slot];
+    const isEquipped = petState && petState[field] === item.id;
+
+    let btnHtml;
+    if (isEquipped) {
+      btnHtml = `<button class="shop-item-btn equipped" data-action="unequip" data-slot="${item.slot}">Ausgerüstet</button>`;
+    } else if (isOwned) {
+      btnHtml = `<button class="shop-item-btn equip" data-action="equip" data-slot="${item.slot}" data-id="${item.id}">Ausrüsten</button>`;
+    } else if (coins >= item.price) {
+      btnHtml = `<button class="shop-item-btn buy" data-action="buy" data-slot="${item.slot}" data-id="${item.id}" data-price="${item.price}">Kaufen</button>`;
+    } else {
+      btnHtml = `<button class="shop-item-btn locked" disabled>🪙 ${item.price}</button>`;
+    }
+
+    const row = document.createElement("div");
+    row.className = "shop-item";
+    row.innerHTML = `
+      <span class="shop-item-icon">${item.icon}</span>
+      <div class="shop-item-info">
+        <div class="shop-item-name">${item.name}</div>
+        <div class="shop-item-price">🪙 ${item.price}${isOwned ? " · besitzt du schon" : ""}</div>
+      </div>
+      ${btnHtml}
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderShop() {
+  shopCoinCount.textContent = (petState && petState.coins) || 0;
+  renderShopList(shopItemsRoom, SHOP_ITEMS.room);
+  renderShopList(shopItemsOutfit, SHOP_ITEMS.outfit);
+}
+
+async function handleShopClick(event) {
+  const btn = event.target.closest(".shop-item-btn");
+  if (!btn || btn.disabled) return;
+
+  const action = btn.dataset.action;
+  const slot = btn.dataset.slot;
+  const id = btn.dataset.id;
+  const field = SLOT_TO_FIELD[slot];
+  const nowIso = new Date().toISOString();
+
+  if (action === "buy") {
+    if (!requirePerson()) return;
+    const price = Number(btn.dataset.price);
+    if (((petState && petState.coins) || 0) < price) return;
+
+    const owned = [...((petState && petState.owned_items) || []), id];
+    const payload = {
+      coins: petState.coins - price,
+      owned_items: owned,
+      [field]: id,
+      last_interacted_by: currentPerson,
+      updated_at: nowIso
+    };
+
+    petState = { ...petState, ...payload };
+    render();
+    renderShop();
+    vibrate([10, 20, 10]);
+    const item = findShopItem(id);
+    showToast(`${item ? item.name : "Artikel"} gekauft und ausgerüstet 🎉`, "success");
+
+    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+    if (error) console.error("Fehler beim Kauf:", error);
+  } else if (action === "equip") {
+    if (!requirePerson()) return;
+    const payload = { [field]: id, last_interacted_by: currentPerson, updated_at: nowIso };
+    petState = { ...petState, ...payload };
+    render();
+    renderShop();
+
+    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+    if (error) console.error("Fehler beim Ausrüsten:", error);
+  } else if (action === "unequip") {
+    const payload = { [field]: null, last_interacted_by: currentPerson, updated_at: nowIso };
+    petState = { ...petState, ...payload };
+    render();
+    renderShop();
+
+    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+    if (error) console.error("Fehler beim Ablegen:", error);
+  }
+}
+
+shopItemsRoom.addEventListener("click", handleShopClick);
+shopItemsOutfit.addEventListener("click", handleShopClick);
+
+shopTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    shopTabs.forEach(t => t.classList.toggle("active", t === tab));
+    shopItemsRoom.classList.toggle("hidden", tab.dataset.tab !== "room");
+    shopItemsOutfit.classList.toggle("hidden", tab.dataset.tab !== "outfit");
+  });
+});
+
+function openShop() {
+  renderShop();
+  shopModal.classList.remove("hidden");
+}
+
+openShopBtn.addEventListener("click", openShop);
+openShopFromRoom.addEventListener("click", openShop);
+closeShopModal.addEventListener("click", () => shopModal.classList.add("hidden"));
 
 /* ---------- pointer gestures ---------- */
 

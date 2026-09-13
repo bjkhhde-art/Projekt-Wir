@@ -20,6 +20,11 @@
 
     <div class="pet-stage card">
       <div id="petMainView">
+      <div class="pet-topbar">
+        <span id="growthBadge" class="growth-badge">🐣 Baby</span>
+        <button id="openShopBtn" class="pet-coin-pill" title="Shop öffnen">🪙 <span id="coinCount">0</span></button>
+      </div>
+
       <p id="moodLabel" class="mood-label"></p>
 
       <div id="petCreature" class="pet-creature mood-neutral">
@@ -51,7 +56,32 @@
 
           <path class="cake-frosting-band" d="M35,108 L165,108 L165,116 C160,128 152,116 145,126 C138,136 130,118 122,128 C114,138 106,120 98,130 C90,140 82,122 74,130 C66,138 58,120 50,128 C42,136 38,120 35,116 Z"/>
 
+          <g id="accessoryScarf" class="accessory-piece hidden">
+            <path d="M36,102 Q100,120 164,102 L164,113 Q100,131 36,113 Z" class="scarf-body"/>
+            <rect x="90" y="111" width="11" height="24" rx="3" class="scarf-tail"/>
+          </g>
+
           <path class="cake-frosting-top" d="M32,85 C22,78 25,60 38,55 C34,42 50,30 62,38 C64,22 82,14 92,26 C96,10 112,10 116,26 C128,15 144,24 142,40 C156,32 170,44 165,58 C176,64 176,80 166,85 Z"/>
+
+          <g id="hatCrown" class="hat-piece hidden">
+            <path d="M55,60 L60,40 L74,53 L88,36 L100,52 L112,36 L126,53 L140,40 L145,60 Z" class="crown-body"/>
+            <circle cx="60" cy="40" r="3.4" class="crown-gem"/>
+            <circle cx="100" cy="36" r="4" class="crown-gem"/>
+            <circle cx="140" cy="40" r="3.4" class="crown-gem"/>
+          </g>
+
+          <g id="hatBeanie" class="hat-piece hidden">
+            <path d="M54,58 C54,32 146,32 146,58 Z" class="beanie-body"/>
+            <rect x="51" y="52" width="98" height="11" rx="5.5" class="beanie-brim"/>
+            <circle cx="100" cy="30" r="6.5" class="beanie-pom"/>
+          </g>
+
+          <g id="hatParty" class="hat-piece hidden" transform="translate(146,32) rotate(18)">
+            <path d="M0,-26 L-13,11 L13,11 Z" class="party-hat-body"/>
+            <circle cx="-8" cy="0" r="2.2" class="party-hat-dot"/>
+            <circle cx="4" cy="-9" r="2.2" class="party-hat-dot"/>
+            <circle cx="0" cy="-26" r="4.2" class="party-hat-pom"/>
+          </g>
 
           <path id="petCarrotLeft" class="cake-carrot" d="M48,50 L54,28 L60,50 Z"/>
           <path class="cake-leaf" d="M52,30 C48,20 54,14 58,18 C60,24 56,28 52,30 Z"/>
@@ -80,6 +110,12 @@
 
           <path id="petEyeClosedLeft" class="pet-eye-closed hidden" d="M69,152 Q78,159 87,152"/>
           <path id="petEyeClosedRight" class="pet-eye-closed hidden" d="M113,152 Q122,159 131,152"/>
+
+          <g id="accessorySunglasses" class="accessory-piece hidden">
+            <rect x="65" y="144" width="26" height="17" rx="8.5" class="sunglasses-lens"/>
+            <rect x="109" y="144" width="26" height="17" rx="8.5" class="sunglasses-lens"/>
+            <rect x="89" y="150" width="22" height="4" class="sunglasses-bridge"/>
+          </g>
 
           <path id="petMouthPath" class="pet-mouth-path" d="M90,178 Q100,183 110,178"/>
 
@@ -116,8 +152,23 @@
 
       <p id="petStatusText" class="pet-status-text">Mochi wird wach…</p>
 
-      <div class="pet-happiness-bar">
-        <div id="petHappinessFill" class="pet-happiness-fill"></div>
+      <div class="pet-stats-grid">
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon" title="Sättigung">🥕</span>
+          <div class="pet-stat-bar"><div id="statHungerFill" class="pet-stat-fill stat-hunger"></div></div>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon" title="Energie">⚡</span>
+          <div class="pet-stat-bar"><div id="statEnergyFill" class="pet-stat-fill stat-energy"></div></div>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon" title="Sauberkeit">🧼</span>
+          <div class="pet-stat-bar"><div id="statCleanFill" class="pet-stat-fill stat-clean"></div></div>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon" title="Nähe">💗</span>
+          <div class="pet-stat-bar"><div id="statBondFill" class="pet-stat-fill stat-bond"></div></div>
+        </div>
       </div>
 
       <p id="petHint" class="pet-hint">Wir streicheln Mochi mit einer Wischbewegung oder halten gedrückt zum Kuscheln 🤗</p>
@@ -129,6 +180,7 @@
         <button id="danceBtn" class="activity-btn"><span class="activity-icon">💃</span><span class="activity-label">Tanzen</span></button>
         <button id="coffeeBtn" class="activity-btn"><span class="activity-icon">☕</span><span class="activity-label">Kaffee</span></button>
         <button id="sleepBtn" class="activity-btn"><span id="sleepIcon" class="activity-icon">😴</span><span id="sleepLabel" class="activity-label">Schlafen</span></button>
+        <button id="openRoomBtn" class="activity-btn"><span class="activity-icon">🏠</span><span class="activity-label">Zimmer</span></button>
       </div>
       </div>
 
@@ -210,6 +262,97 @@
 
         <button id="leaveCoffeeScene" class="btn btn-secondary btn-sm">← Zurück zu Mochi</button>
       </div>
+
+      <div id="roomScene" class="coffee-scene hidden">
+        <p class="coffee-step-label">Mochis Zimmer</p>
+
+        <svg class="coffee-svg" viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+          <g id="wallSky" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-sky-bg"/>
+            <circle cx="270" cy="40" r="14" class="wall-moon"/>
+            <circle cx="277" cy="35" r="13" class="wall-moon-shadow"/>
+            <circle cx="40" cy="30" r="2" class="wall-star"/>
+            <circle cx="90" cy="18" r="1.6" class="wall-star"/>
+            <circle cx="150" cy="40" r="2.2" class="wall-star"/>
+            <circle cx="200" cy="22" r="1.6" class="wall-star"/>
+            <circle cx="30" cy="70" r="1.8" class="wall-star"/>
+            <circle cx="120" cy="70" r="1.6" class="wall-star"/>
+          </g>
+
+          <g id="wallClouds" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-clouds-bg"/>
+            <g class="wall-cloud" transform="translate(60,40)">
+              <ellipse cx="0" cy="0" rx="22" ry="12"/>
+              <ellipse cx="18" cy="-4" rx="16" ry="10"/>
+              <ellipse cx="-18" cy="-2" rx="14" ry="9"/>
+            </g>
+            <g class="wall-cloud" transform="translate(230,68)">
+              <ellipse cx="0" cy="0" rx="26" ry="14"/>
+              <ellipse cx="22" cy="-4" rx="18" ry="11"/>
+              <ellipse cx="-20" cy="-2" rx="16" ry="10"/>
+            </g>
+          </g>
+
+          <g id="wallHearts" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-hearts-bg"/>
+            <path d="M40,30 C40,26 46,26 46,31 C46,26 52,26 52,30 C52,36 46,40 46,40 C46,40 40,36 40,30 Z" class="wall-heart"/>
+            <path d="M120,55 C120,51 126,51 126,56 C126,51 132,51 132,55 C132,61 126,65 126,65 C126,65 120,61 120,55 Z" class="wall-heart"/>
+            <path d="M220,30 C220,26 226,26 226,31 C226,26 232,26 232,30 C232,36 226,40 226,40 C226,40 220,36 220,30 Z" class="wall-heart"/>
+            <path d="M270,62 C270,58 276,58 276,63 C276,58 282,58 282,62 C282,68 276,72 276,72 C276,72 270,68 270,62 Z" class="wall-heart"/>
+          </g>
+
+          <g id="floorWood" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-wood-bg"/>
+            <line x1="0" y1="145" x2="320" y2="145" class="floor-wood-line"/>
+            <line x1="0" y1="160" x2="320" y2="160" class="floor-wood-line"/>
+            <line x1="0" y1="175" x2="320" y2="175" class="floor-wood-line"/>
+            <line x1="0" y1="190" x2="320" y2="190" class="floor-wood-line"/>
+          </g>
+
+          <g id="floorRugPink" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-base-bg"/>
+            <rect x="60" y="145" width="200" height="48" rx="14" class="floor-rug-pink"/>
+            <rect x="72" y="157" width="176" height="24" rx="8" class="floor-rug-pink-inner"/>
+          </g>
+
+          <g id="floorRugStars" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-base-bg"/>
+            <rect x="60" y="145" width="200" height="48" rx="14" class="floor-rug-stars"/>
+            <circle cx="100" cy="160" r="2.4" class="floor-rug-star"/>
+            <circle cx="140" cy="175" r="2" class="floor-rug-star"/>
+            <circle cx="180" cy="160" r="2.4" class="floor-rug-star"/>
+            <circle cx="220" cy="175" r="2" class="floor-rug-star"/>
+          </g>
+
+          <g id="decoPlant" class="room-deco hidden" transform="translate(32,176)">
+            <rect x="-10" y="0" width="20" height="16" rx="3" class="deco-pot"/>
+            <ellipse cx="0" cy="-8" rx="12" ry="14" class="deco-plant-leaf"/>
+            <ellipse cx="-8" cy="-2" rx="8" ry="10" class="deco-plant-leaf"/>
+            <ellipse cx="8" cy="-2" rx="8" ry="10" class="deco-plant-leaf"/>
+          </g>
+
+          <g id="decoLamp" class="room-deco hidden" transform="translate(288,150)">
+            <rect x="-1.5" y="0" width="3" height="40" class="deco-lamp-pole"/>
+            <ellipse cx="0" cy="40" rx="14" ry="4" class="deco-lamp-base"/>
+            <path d="M-12,-10 L12,-10 L8,4 L-8,4 Z" class="deco-lamp-shade"/>
+            <circle cx="0" cy="-3" r="3" class="deco-lamp-glow"/>
+          </g>
+
+          <g id="mochiRoomIcon" class="mochi-room-icon">
+            <ellipse cx="0" cy="14" rx="20" ry="20" class="mochi-mini-body"/>
+            <circle cx="-7" cy="10" r="3" class="mochi-mini-eye"/>
+            <circle cx="7" cy="10" r="3" class="mochi-mini-eye"/>
+            <path d="M-5,19 Q0,23 5,19" class="mochi-mini-mouth"/>
+          </g>
+        </svg>
+
+        <p id="roomHint" class="pet-hint">Im Shop können wir Wand, Boden und Deko für Mochis Zimmer kaufen</p>
+
+        <div class="modal-buttons">
+          <button id="openShopFromRoom" class="btn btn-secondary btn-sm">🪙 Zum Shop</button>
+          <button id="leaveRoomScene" class="btn btn-secondary btn-sm">← Zurück zu Mochi</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -238,6 +381,26 @@
       </div>
       <div class="modal-buttons">
         <button id="closeFoodModal" class="btn btn-secondary btn-block">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shopModal" class="modal hidden">
+    <div class="modal-box shop-modal-box">
+      <h2>Mochi Shop 🛍️</h2>
+      <p class="push-modal-text">Wir verdienen Münzen, wenn wir uns um Mochi kümmern.</p>
+      <div class="shop-coin-display">🪙 <span id="shopCoinCount">0</span></div>
+
+      <div class="shop-tabs">
+        <button class="shop-tab active" data-tab="room">🏠 Zimmer</button>
+        <button class="shop-tab" data-tab="outfit">👑 Outfits</button>
+      </div>
+
+      <div id="shopItemsRoom" class="shop-items"></div>
+      <div id="shopItemsOutfit" class="shop-items hidden"></div>
+
+      <div class="modal-buttons">
+        <button id="closeShopModal" class="btn btn-secondary btn-block">Schließen</button>
       </div>
     </div>
   </div>
