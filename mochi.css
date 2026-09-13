@@ -1036,15 +1036,43 @@
 .deco-lamp-glow { fill: #ffe9b8; }
 
 .mochi-room-icon {
-  transform: translate(160px, 148px);
+  transform: translate(160px, 152px);
   transform-box: view-box;
-  transform-origin: 160px 168px;
+  transform-origin: 160px 172px;
   animation: mochi-room-bob 2.4s ease-in-out infinite;
 }
 
 @keyframes mochi-room-bob {
-  0%, 100% { transform: translate(160px, 148px); }
-  50% { transform: translate(160px, 143px); }
+  0%, 100% { transform: translate(160px, 152px); }
+  50% { transform: translate(160px, 147px); }
+}
+
+.mochi-mini-frosting {
+  fill: #fff8ef;
+  stroke: #e8ddc8;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.mochi-mini-carrot {
+  fill: #f0883e;
+  stroke: #c96a28;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.mochi-mini-candle {
+  fill: #fff3df;
+  stroke: #e8ddc8;
+  stroke-width: 1.5;
+}
+
+.mochi-mini-flame {
+  fill: #ffb648;
+}
+
+.mochi-mini-cheek {
+  fill: rgba(255, 130, 110, 0.55);
 }
 
 /* ---------- shop modal ---------- */
