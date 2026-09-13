@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Alicante ↔ Hamburg</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="vergleich.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body>
+
+  <main class="page">
+    <h1 class="page-title">Alicante ↔ Hamburg 🌍</h1>
+    <p class="page-subtitle">So sieht es gerade bei uns beiden aus</p>
+
+    <section class="card distance-card">
+      <span class="distance-icon">📍</span>
+      <p id="distanceValue" class="distance-value">– km</p>
+      <p class="distance-label">Luftlinie zwischen uns</p>
+    </section>
+
+    <section class="card city-card">
+      <div class="city-header">
+        <span class="city-flag">🇩🇪</span>
+        <div>
+          <h2 class="city-name">Hamburg</h2>
+          <p class="city-sub">Zuhause 🏠</p>
+        </div>
+      </div>
+
+      <div class="city-weather-main">
+        <span id="hamburgIcon" class="city-weather-icon">–</span>
+        <span id="hamburgTemp" class="city-temp">–°</span>
+      </div>
+      <p id="hamburgCondition" class="city-condition">Lädt...</p>
+
+      <div class="city-meta-row">
+        <span id="hamburgWind" class="city-meta-chip">💨 –</span>
+        <span id="hamburgHumidity" class="city-meta-chip">💧 –</span>
+      </div>
+
+      <div id="hamburgForecast" class="city-forecast"></div>
+      <div id="hamburgWarnings" class="city-warnings"></div>
+    </section>
+
+    <section class="card city-card">
+      <div class="city-header">
+        <span class="city-flag">🇪🇸</span>
+        <div>
+          <h2 class="city-name">Alicante</h2>
+          <p class="city-sub">Austauschsemester 🎓</p>
+        </div>
+      </div>
+
+      <div class="city-weather-main">
+        <span id="alicanteIcon" class="city-weather-icon">–</span>
+        <span id="alicanteTemp" class="city-temp">–°</span>
+      </div>
+      <p id="alicanteCondition" class="city-condition">Lädt...</p>
+
+      <div class="city-meta-row">
+        <span id="alicanteWind" class="city-meta-chip">💨 –</span>
+        <span id="alicanteHumidity" class="city-meta-chip">💧 –</span>
+      </div>
+
+      <div id="alicanteForecast" class="city-forecast"></div>
+      <div id="alicanteWarnings" class="city-warnings"></div>
+    </section>
+
+    <section class="card news-section">
+      <h2 class="section-heading">Schlagzeilen</h2>
+      <div class="news-columns">
+        <div class="news-col">
+          <h3 class="news-col-title">🇩🇪 Deutschland</h3>
+          <div id="newsDe" class="news-list"><p class="news-loading">Lädt...</p></div>
+        </div>
+        <div class="news-col">
+          <h3 class="news-col-title">🇪🇸 Spanien</h3>
+          <div id="newsEs" class="news-list"><p class="news-loading">Lädt...</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="reflexion.html" class="nav-item"><span class="nav-icon">🪞</span><span class="nav-label">Reflexion</span></a>
+    <a href="vergleich.html" class="nav-item"><span class="nav-icon">🌍</span><span class="nav-label">Vergleich</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+    <a href="liebesbriefe.html" class="nav-item"><span class="nav-icon">💌</span><span class="nav-label">Briefe</span></a>
+    <a href="einstellungen.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="vergleich.js"></script>
+</body>
+</html>
