@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Reflexion</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="reflexion.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body>
+
+  <main class="page">
+    <h1 class="page-title">Reflexion 🪞</h1>
+    <p class="page-subtitle">Kommunikation, Nähe und gemeinsame Zeit im Blick behalten</p>
+
+    <section class="reflection-card card">
+      <h2 class="reflection-title">Heute</h2>
+      <p id="dailyDateLabel" class="reflection-subtitle"></p>
+
+      <div id="dailyForm" class="reflection-form hidden">
+        <label>Kommunikation heute</label>
+        <div class="rating-hearts" id="dailyCommunicationRating" data-field="communication"></div>
+
+        <label>Nähe heute</label>
+        <div class="rating-hearts" id="dailyClosenessRating" data-field="closeness"></div>
+
+        <label>Kurze Notiz (optional)</label>
+        <input id="dailyNoteInput" type="text" placeholder="z. B. Videocall am Abend hat gutgetan">
+
+        <button id="submitDailyBtn" class="btn btn-block">Abschicken</button>
+      </div>
+
+      <div id="dailyWaiting" class="reflection-waiting hidden">
+        <p id="dailyWaitingText"></p>
+        <button id="editDailyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
+      </div>
+
+      <div id="dailyReveal" class="reflection-reveal hidden"></div>
+    </section>
+
+    <section class="reflection-card card">
+      <h2 class="reflection-title">Diese Woche</h2>
+      <p id="weeklyDateLabel" class="reflection-subtitle"></p>
+
+      <div id="weeklyForm" class="reflection-form hidden">
+        <label>Kommunikation diese Woche</label>
+        <div class="rating-hearts" id="weeklyCommunicationRating" data-field="communication"></div>
+
+        <label>Nähe diese Woche</label>
+        <div class="rating-hearts" id="weeklyClosenessRating" data-field="closeness"></div>
+
+        <label>Gemeinsame Zeit diese Woche</label>
+        <div class="rating-hearts" id="weeklyTimeRating" data-field="time"></div>
+
+        <label>Gab es Konflikte?</label>
+        <div class="conflict-toggle">
+          <button type="button" id="conflictNoBtn" class="chip conflict-chip active" data-value="false">Nein</button>
+          <button type="button" id="conflictYesBtn" class="chip conflict-chip" data-value="true">Ja</button>
+        </div>
+
+        <div id="conflictNoteWrap" class="hidden">
+          <label>Was genau? (optional)</label>
+          <textarea id="conflictNoteInput" rows="2" placeholder="Worum ging es?"></textarea>
+        </div>
+
+        <label>Sonstiges (optional)</label>
+        <textarea id="weeklyNoteInput" rows="3" placeholder="Was möchten wir sonst noch festhalten?"></textarea>
+
+        <button id="submitWeeklyBtn" class="btn btn-block">Abschicken</button>
+      </div>
+
+      <div id="weeklyWaiting" class="reflection-waiting hidden">
+        <p id="weeklyWaitingText"></p>
+        <button id="editWeeklyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
+      </div>
+
+      <div id="weeklyReveal" class="reflection-reveal hidden"></div>
+    </section>
+
+    <section class="reflection-history">
+      <h2 class="reflection-history-title">Verlauf</h2>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wessen Reflexion das ist.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="reflexion.html" class="nav-item"><span class="nav-icon">🪞</span><span class="nav-label">Reflexion</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="erinnerungen.html" class="nav-item"><span class="nav-icon">📸</span><span class="nav-label">Trips</span></a>
+    <a href="questions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Fragen</span></a>
+    <a href="liebesbriefe.html" class="nav-item"><span class="nav-icon">💌</span><span class="nav-label">Briefe</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="reflexion.js"></script>
+</body>
+</html>

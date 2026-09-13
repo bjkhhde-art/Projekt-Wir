@@ -1,0 +1,168 @@
+.reflection-card {
+  margin-bottom: 20px;
+  padding: 22px;
+}
+
+.reflection-title {
+  margin: 0 0 2px;
+  font-size: 20px;
+}
+
+.reflection-subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.reflection-form label {
+  margin-top: 16px;
+}
+
+.reflection-form label:first-child {
+  margin-top: 0;
+}
+
+.rating-hearts {
+  display: flex;
+  gap: 6px;
+}
+
+.rating-heart {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  padding: 0;
+}
+
+.rating-heart:hover {
+  transform: scale(1.1);
+}
+
+.rating-heart.filled {
+  opacity: 1;
+}
+
+.conflict-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.conflict-chip {
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  cursor: pointer;
+}
+
+.conflict-chip.active {
+  background: var(--gradient-brand);
+  color: white;
+  border-color: transparent;
+}
+
+#submitDailyBtn,
+#submitWeeklyBtn {
+  margin-top: 20px;
+}
+
+.reflection-waiting {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.reflection-waiting p {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+}
+
+.reflection-reveal {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.reveal-person {
+  flex: 1 1 200px;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.reveal-person h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-family: var(--font-heading);
+}
+
+.reveal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 4px 0;
+}
+
+.reveal-row .reveal-hearts {
+  color: var(--pink);
+  letter-spacing: 1px;
+}
+
+.reveal-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.reveal-conflict {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.reflection-history {
+  margin-top: 8px;
+}
+
+.reflection-history-title {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.history-item-label {
+  color: var(--text-muted);
+}
+
+.history-item-hearts {
+  color: var(--pink);
+  font-size: 12px;
+}
+
+.history-empty {
+  color: var(--text-faint);
+  font-size: 13.5px;
+  text-align: center;
+  padding: 10px 0;
+}
