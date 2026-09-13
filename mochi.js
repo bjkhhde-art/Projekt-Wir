@@ -14,6 +14,7 @@ const petSmoke = document.getElementById("petSmoke");
 const eyeClosedLeft = document.getElementById("petEyeClosedLeft");
 const eyeClosedRight = document.getElementById("petEyeClosedRight");
 const bedPieces = document.querySelectorAll(".bed-piece");
+const sleepSky = document.getElementById("sleepSky");
 const petFoamOverlay = document.getElementById("petFoamOverlay");
 const shampooBottle = document.getElementById("shampooBottle");
 const petHint = document.getElementById("petHint");
@@ -110,6 +111,7 @@ const SHOWER_SCRUB_NEEDED = 180;
 const SHOWER_TICK_DISTANCE = 18;
 const DISCO_PARTY_DURATION_MS = 3200;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
+const SUNRISE_DURATION_MS = 1400;
 const DEFAULT_STAT = 70;
 
 const COFFEE_STEPS = [
@@ -192,6 +194,7 @@ let lastPetTrigger = 0;
 let lastCuddleTrigger = 0;
 let lastActivityTrigger = 0;
 let showerLathering = false;
+let wakingInProgress = false;
 let showerScrubProgress = 0;
 let showerDrag = null;
 let coffeeStep = 0;
@@ -437,6 +440,8 @@ setInterval(() => {
 
 async function wakeMochi() {
   if (!requirePerson()) return;
+  if (wakingInProgress) return;
+  wakingInProgress = true;
 
   vibrate([15, 15]);
 
@@ -445,9 +450,16 @@ async function wakeMochi() {
   const energyBoost = Math.round(sleptRatio * 50);
   const coinReward = sleptRatio >= 0.8 ? 6 : 0;
 
+  showToast("Die Sonne geht auf ☀️", "success");
+  sleepSky.classList.add("waking");
+
+  await new Promise(resolve => setTimeout(resolve, SUNRISE_DURATION_MS));
+
+  sleepSky.classList.remove("waking");
   showToast("Mochi ist aufgewacht 💤➡️😊", "success");
 
   await applyCare({ energy: energyBoost }, coinReward, 3, { sleep_started_at: null });
+  wakingInProgress = false;
 }
 
 async function triggerPet() {

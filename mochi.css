@@ -656,6 +656,116 @@
   50% { transform: rotate(-18deg); }
 }
 
+/* ---------- sleep: night sky + sunrise ---------- */
+
+.sleep-sky-bg {
+  fill: #201542;
+  transition: fill 0.4s ease;
+}
+
+.sleep-moon {
+  fill: #f5ecff;
+  opacity: 0.9;
+  transition: opacity 0.6s ease;
+}
+
+.sleep-moon-shadow {
+  fill: #201542;
+  transition: opacity 0.6s ease;
+}
+
+.sleep-star {
+  fill: #fff8ef;
+  animation: sleep-star-twinkle 2.4s ease-in-out infinite;
+  transition: opacity 0.6s ease;
+}
+
+.sleep-star:nth-child(4n) { animation-delay: 0.5s; }
+.sleep-star:nth-child(4n+1) { animation-delay: 1s; }
+.sleep-star:nth-child(4n+2) { animation-delay: 1.5s; }
+
+@keyframes sleep-star-twinkle {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.shooting-star {
+  opacity: 0;
+  transform-box: fill-box;
+}
+
+.shooting-star-trail {
+  stroke: #fff8ef;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.shooting-star-head {
+  fill: #fff8ef;
+}
+
+.shooting-star-1 {
+  animation: shooting-star-fly-1 5s linear infinite;
+  animation-delay: 0.8s;
+}
+
+.shooting-star-2 {
+  animation: shooting-star-fly-2 5s linear infinite;
+  animation-delay: 3.1s;
+}
+
+@keyframes shooting-star-fly-1 {
+  0% { transform: translate(158px, 6px); opacity: 0; }
+  6% { opacity: 1; }
+  20% { transform: translate(88px, 56px); opacity: 0; }
+  100% { transform: translate(88px, 56px); opacity: 0; }
+}
+
+@keyframes shooting-star-fly-2 {
+  0% { transform: translate(60px, 2px); opacity: 0; }
+  6% { opacity: 1; }
+  20% { transform: translate(-6px, 48px); opacity: 0; }
+  100% { transform: translate(-6px, 48px); opacity: 0; }
+}
+
+.sleep-sun {
+  fill: #ffd76a;
+  opacity: 0;
+  transform-box: fill-box;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 106, 0.75));
+}
+
+#sleepSky.waking .sleep-sky-bg {
+  animation: sunrise-sky-shift 1.4s ease-in forwards;
+}
+
+@keyframes sunrise-sky-shift {
+  0% { fill: #201542; }
+  45% { fill: #ff9d6c; }
+  100% { fill: #bfe0f7; }
+}
+
+#sleepSky.waking .sleep-moon,
+#sleepSky.waking .sleep-moon-shadow,
+#sleepSky.waking .sleep-star {
+  opacity: 0;
+}
+
+#sleepSky.waking .shooting-star {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+#sleepSky.waking .sleep-sun {
+  animation: sunrise-sun-rise 1.4s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+
+@keyframes sunrise-sun-rise {
+  0% { transform: translateY(0px); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-180px); opacity: 1; }
+}
+
 /* ---------- sleep: bed + snoring ---------- */
 
 .bed-headboard {
