@@ -953,6 +953,61 @@
   opacity: 0.88;
 }
 
+.cap-dome {
+  fill: #60a5fa;
+  stroke: #3b7fd4;
+  stroke-width: 1.5;
+}
+
+.cap-brim {
+  fill: #3b7fd4;
+  stroke: #2f66ab;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.cap-button {
+  fill: #fff8ef;
+}
+
+.flowercrown-band {
+  fill: none;
+  stroke: #7fae55;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.flower-petal {
+  fill: #ff8fab;
+}
+
+.flower-center {
+  fill: #ffe066;
+}
+
+.bowtie-wing {
+  fill: #ff5c8a;
+  stroke: #c9385f;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.bowtie-knot {
+  fill: #c9385f;
+}
+
+.necklace-chain {
+  fill: none;
+  stroke: #ffe066;
+  stroke-width: 2;
+}
+
+.necklace-pendant {
+  fill: #ff8fab;
+  stroke: #e0688e;
+  stroke-width: 1.2;
+}
+
 /* ---------- four independent stat bars ---------- */
 
 .pet-stats-grid {
@@ -1005,6 +1060,14 @@
   transition: opacity 0.2s ease;
 }
 
+.room-trim {
+  fill: #e4d4f7;
+}
+
+.room-mochi-shadow {
+  fill: rgba(60, 40, 25, 0.14);
+}
+
 .wall-sky-bg { fill: #2b2350; }
 .wall-moon { fill: #ffe9b8; }
 .wall-moon-shadow { fill: #2b2350; }
@@ -1015,6 +1078,12 @@
 
 .wall-hearts-bg { fill: #ffdce8; }
 .wall-heart { fill: #ff5c8a; opacity: 0.75; }
+
+.wall-mint-bg { fill: #d9f2e6; }
+.wall-mint-stripe { stroke: #a8ddc3; stroke-width: 14; }
+
+.wall-dots-bg { fill: #fff0d9; }
+.wall-dot { fill: #ffc978; opacity: 0.8; }
 
 .floor-wood-bg { fill: #c99361; }
 .floor-wood-line { stroke: #a9693f; stroke-width: 2; }
@@ -1027,6 +1096,12 @@
 .floor-rug-stars { fill: #8b5cf6; }
 .floor-rug-star { fill: #ffe9b8; }
 
+.floor-tiles-bg { fill: #f3e6c9; }
+.floor-tile-dark { fill: #e0c9a0; }
+
+.floor-rug-mint { fill: #6ec9a4; }
+.floor-rug-mint-inner { fill: #8fdab8; }
+
 .deco-pot { fill: #c96a28; }
 .deco-plant-leaf { fill: #7fae55; }
 
@@ -1034,6 +1109,30 @@
 .deco-lamp-base { fill: #5c3820; }
 .deco-lamp-shade { fill: #f59e0b; }
 .deco-lamp-glow { fill: #ffe9b8; }
+
+.window-frame { fill: #fff8ef; stroke: #e8ddc8; stroke-width: 2; }
+.window-pane { fill: #bfe0f7; }
+.window-crossbar { stroke: #fff8ef; stroke-width: 2.5; }
+.window-ledge { fill: #e8ddc8; }
+
+.shelf-plank { fill: #a9693f; }
+.shelf-book.book-a { fill: #ff5c8a; }
+.shelf-book.book-b { fill: #8b5cf6; }
+.shelf-book.book-c { fill: #60a5fa; }
+.shelf-plant-pot { fill: #7fae55; }
+
+.toybox-body { fill: #ff8fab; stroke: #e0688e; stroke-width: 1.5; }
+.toybox-lid { fill: #ffb1c4; stroke: #e0688e; stroke-width: 1.5; }
+.toybox-heart { fill: #ffffff; opacity: 0.85; }
+
+.balloon-string { stroke: #c9b8a8; stroke-width: 1; }
+.balloon { stroke: rgba(0, 0, 0, 0.12); stroke-width: 1; }
+.balloon-pink { fill: #ff8fab; }
+.balloon-purple { fill: #b18cf9; }
+.balloon-yellow { fill: #ffd166; }
+
+.cushion-body { fill: #b18cf9; stroke: #9a6fef; stroke-width: 1.5; }
+.cushion-seam { fill: none; stroke: #9a6fef; stroke-width: 1.5; opacity: 0.6; }
 
 .mochi-room-icon {
   transform: translate(160px, 152px);

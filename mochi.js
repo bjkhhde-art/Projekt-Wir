@@ -137,23 +137,38 @@ const DECAY_BASE = { hunger: 4, energy: 2.5, cleanliness: 2, bond: 3 };
 const GROWTH_THRESHOLDS = { baby: 0, kid: 20, adult: 60 };
 const GROWTH_LABELS = { baby: "🐣 Baby", kid: "🎂 Kind", adult: "✨ Erwachsen" };
 
+const MAX_DECOR = 4;
+
 const SHOP_ITEMS = {
   room: [
     { id: "sky", slot: "wall", name: "Sternenhimmel", icon: "🌌", price: 20 },
     { id: "clouds", slot: "wall", name: "Wolken", icon: "☁️", price: 20 },
     { id: "hearts", slot: "wall", name: "Herzen-Tapete", icon: "💕", price: 30 },
+    { id: "mint", slot: "wall", name: "Minze-Streifen", icon: "🌿", price: 20 },
+    { id: "dots", slot: "wall", name: "Punkte-Tapete", icon: "⚪", price: 25 },
     { id: "wood", slot: "floor", name: "Holzboden", icon: "🪵", price: 15 },
     { id: "rug_pink", slot: "floor", name: "Rosa Teppich", icon: "🩷", price: 20 },
     { id: "rug_stars", slot: "floor", name: "Sternenteppich", icon: "⭐", price: 30 },
+    { id: "tiles", slot: "floor", name: "Fliesenboden", icon: "🔲", price: 20 },
+    { id: "rug_mint", slot: "floor", name: "Minze-Teppich", icon: "🟢", price: 25 },
     { id: "plant", slot: "deco", name: "Pflanze", icon: "🪴", price: 15 },
-    { id: "lamp", slot: "deco", name: "Lampe", icon: "💡", price: 20 }
+    { id: "lamp", slot: "deco", name: "Lampe", icon: "💡", price: 20 },
+    { id: "window", slot: "deco", name: "Fenster", icon: "🪟", price: 25 },
+    { id: "shelf", slot: "deco", name: "Bücherregal", icon: "📚", price: 25 },
+    { id: "toybox", slot: "deco", name: "Spielzeugkiste", icon: "🧸", price: 20 },
+    { id: "balloons", slot: "deco", name: "Luftballons", icon: "🎈", price: 15 },
+    { id: "cushion", slot: "deco", name: "Kissen", icon: "🛋️", price: 15 }
   ],
   outfit: [
     { id: "party", slot: "hat", name: "Partyhut", icon: "🎉", price: 15 },
     { id: "crown", slot: "hat", name: "Krone", icon: "👑", price: 35 },
     { id: "beanie", slot: "hat", name: "Wintermütze", icon: "🧶", price: 20 },
+    { id: "flowercrown", slot: "hat", name: "Blumenkranz", icon: "🌸", price: 30 },
+    { id: "cap", slot: "hat", name: "Käppi", icon: "🧢", price: 15 },
     { id: "scarf", slot: "accessory", name: "Schal", icon: "🧣", price: 15 },
-    { id: "sunglasses", slot: "accessory", name: "Sonnenbrille", icon: "🕶️", price: 20 }
+    { id: "sunglasses", slot: "accessory", name: "Sonnenbrille", icon: "🕶️", price: 20 },
+    { id: "bowtie", slot: "accessory", name: "Fliege", icon: "🎀", price: 12 },
+    { id: "necklace", slot: "accessory", name: "Kette", icon: "📿", price: 18 }
   ]
 };
 
@@ -314,10 +329,11 @@ function renderRoomLook() {
   }
 
   document.querySelectorAll(".room-deco").forEach(el => el.classList.add("hidden"));
-  if (petState && petState.room_deco) {
-    const el = document.getElementById(itemElementId("deco", petState.room_deco));
+  const placedDeco = (petState && petState.room_decor) || [];
+  placedDeco.forEach(id => {
+    const el = document.getElementById(itemElementId("deco", id));
     if (el) el.classList.remove("hidden");
-  }
+  });
 }
 
 function render() {
@@ -941,17 +957,22 @@ function renderShopList(container, items) {
   container.innerHTML = "";
   const owned = (petState && petState.owned_items) || [];
   const coins = (petState && petState.coins) || 0;
+  const placedDeco = (petState && petState.room_decor) || [];
 
   items.forEach(item => {
     const isOwned = owned.includes(item.id);
-    const field = SLOT_TO_FIELD[item.slot];
-    const isEquipped = petState && petState[field] === item.id;
+    const isDeco = item.slot === "deco";
+    const isEquipped = isDeco
+      ? placedDeco.includes(item.id)
+      : petState && petState[SLOT_TO_FIELD[item.slot]] === item.id;
 
     let btnHtml;
     if (isEquipped) {
-      btnHtml = `<button class="shop-item-btn equipped" data-action="unequip" data-slot="${item.slot}">Ausgerüstet</button>`;
+      const label = isDeco ? "Abräumen" : "Ausgerüstet";
+      btnHtml = `<button class="shop-item-btn equipped" data-action="unequip" data-slot="${item.slot}" data-id="${item.id}">${label}</button>`;
     } else if (isOwned) {
-      btnHtml = `<button class="shop-item-btn equip" data-action="equip" data-slot="${item.slot}" data-id="${item.id}">Ausrüsten</button>`;
+      const label = isDeco ? "Aufstellen" : "Ausrüsten";
+      btnHtml = `<button class="shop-item-btn equip" data-action="equip" data-slot="${item.slot}" data-id="${item.id}">${label}</button>`;
     } else if (coins >= item.price) {
       btnHtml = `<button class="shop-item-btn buy" data-action="buy" data-slot="${item.slot}" data-id="${item.id}" data-price="${item.price}">Kaufen</button>`;
     } else {
@@ -985,8 +1006,72 @@ async function handleShopClick(event) {
   const action = btn.dataset.action;
   const slot = btn.dataset.slot;
   const id = btn.dataset.id;
-  const field = SLOT_TO_FIELD[slot];
   const nowIso = new Date().toISOString();
+
+  if (slot === "deco") {
+    if (action === "buy") {
+      if (!requirePerson()) return;
+      const price = Number(btn.dataset.price);
+      if (((petState && petState.coins) || 0) < price) return;
+
+      const owned = [...((petState && petState.owned_items) || []), id];
+      const placed = [...((petState && petState.room_decor) || [])];
+      const roomHasSpace = placed.length < MAX_DECOR;
+      if (roomHasSpace) placed.push(id);
+
+      const payload = {
+        coins: petState.coins - price,
+        owned_items: owned,
+        room_decor: placed,
+        last_interacted_by: currentPerson,
+        updated_at: nowIso
+      };
+
+      petState = { ...petState, ...payload };
+      render();
+      renderShop();
+      vibrate([10, 20, 10]);
+      const item = findShopItem(id);
+      const itemName = item ? item.name : "Artikel";
+      showToast(
+        roomHasSpace
+          ? `${itemName} gekauft und aufgestellt 🎉`
+          : `${itemName} gekauft. Zimmer ist voll, räum zuerst etwas ab 📦`,
+        "success"
+      );
+
+      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+      if (error) console.error("Fehler beim Kauf:", error);
+    } else if (action === "equip") {
+      if (!requirePerson()) return;
+      const placed = [...((petState && petState.room_decor) || [])];
+      if (placed.includes(id)) return;
+      if (placed.length >= MAX_DECOR) {
+        showToast("Zimmer ist schon voll, räum zuerst etwas ab 📦", "success");
+        return;
+      }
+      placed.push(id);
+      const payload = { room_decor: placed, last_interacted_by: currentPerson, updated_at: nowIso };
+      petState = { ...petState, ...payload };
+      render();
+      renderShop();
+
+      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+      if (error) console.error("Fehler beim Aufstellen:", error);
+    } else if (action === "unequip") {
+      const placed = ((petState && petState.room_decor) || []).filter(existing => existing !== id);
+      const payload = { room_decor: placed, last_interacted_by: currentPerson, updated_at: nowIso };
+      petState = { ...petState, ...payload };
+      render();
+      renderShop();
+
+      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
+      if (error) console.error("Fehler beim Abräumen:", error);
+    }
+    return;
+  }
+
+  const field = SLOT_TO_FIELD[slot];
 
   if (action === "buy") {
     if (!requirePerson()) return;

@@ -83,6 +83,37 @@
             <circle cx="0" cy="-26" r="4.2" class="party-hat-pom"/>
           </g>
 
+          <g id="hatCap" class="hat-piece hidden">
+            <path d="M56,58 C56,34 144,34 144,58 Z" class="cap-dome"/>
+            <path d="M120,56 C136,54 150,58 152,64 C152,67 148,67 144,65 C136,61 126,59 118,59 Z" class="cap-brim"/>
+            <circle cx="100" cy="35" r="3" class="cap-button"/>
+          </g>
+
+          <g id="hatFlowercrown" class="hat-piece hidden">
+            <path d="M54,56 Q100,66 146,56" class="flowercrown-band"/>
+            <g class="flowercrown-flower" transform="translate(66,48)">
+              <circle cx="0" cy="-6" r="3" class="flower-petal"/>
+              <circle cx="0" cy="6" r="3" class="flower-petal"/>
+              <circle cx="-6" cy="0" r="3" class="flower-petal"/>
+              <circle cx="6" cy="0" r="3" class="flower-petal"/>
+              <circle cx="0" cy="0" r="2.6" class="flower-center"/>
+            </g>
+            <g class="flowercrown-flower" transform="translate(100,38)">
+              <circle cx="0" cy="-6" r="3.4" class="flower-petal"/>
+              <circle cx="0" cy="6" r="3.4" class="flower-petal"/>
+              <circle cx="-6" cy="0" r="3.4" class="flower-petal"/>
+              <circle cx="6" cy="0" r="3.4" class="flower-petal"/>
+              <circle cx="0" cy="0" r="3" class="flower-center"/>
+            </g>
+            <g class="flowercrown-flower" transform="translate(134,48)">
+              <circle cx="0" cy="-6" r="3" class="flower-petal"/>
+              <circle cx="0" cy="6" r="3" class="flower-petal"/>
+              <circle cx="-6" cy="0" r="3" class="flower-petal"/>
+              <circle cx="6" cy="0" r="3" class="flower-petal"/>
+              <circle cx="0" cy="0" r="2.6" class="flower-center"/>
+            </g>
+          </g>
+
           <path id="petCarrotLeft" class="cake-carrot" d="M48,50 L54,28 L60,50 Z"/>
           <path class="cake-leaf" d="M52,30 C48,20 54,14 58,18 C60,24 56,28 52,30 Z"/>
 
@@ -115,6 +146,17 @@
             <rect x="65" y="144" width="26" height="17" rx="8.5" class="sunglasses-lens"/>
             <rect x="109" y="144" width="26" height="17" rx="8.5" class="sunglasses-lens"/>
             <rect x="89" y="150" width="22" height="4" class="sunglasses-bridge"/>
+          </g>
+
+          <g id="accessoryBowtie" class="accessory-piece hidden">
+            <path d="M100,108 L84,99 L84,117 Z" class="bowtie-wing"/>
+            <path d="M100,108 L116,99 L116,117 Z" class="bowtie-wing"/>
+            <circle cx="100" cy="108" r="5" class="bowtie-knot"/>
+          </g>
+
+          <g id="accessoryNecklace" class="accessory-piece hidden">
+            <path d="M70,104 Q100,124 130,104" class="necklace-chain"/>
+            <circle cx="100" cy="121" r="4.2" class="necklace-pendant"/>
           </g>
 
           <path id="petMouthPath" class="pet-mouth-path" d="M90,178 Q100,183 110,178"/>
@@ -267,6 +309,21 @@
         <p class="coffee-step-label">Mochis Zimmer</p>
 
         <svg class="coffee-svg" viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="roomBaseWallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#f5eeff"/>
+              <stop offset="100%" stop-color="#ece0fb"/>
+            </linearGradient>
+            <linearGradient id="roomBaseFloorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#fbeee0"/>
+              <stop offset="100%" stop-color="#f3ddc4"/>
+            </linearGradient>
+          </defs>
+
+          <rect x="0" y="0" width="320" height="130" fill="url(#roomBaseWallGrad)"/>
+          <rect x="0" y="130" width="320" height="70" fill="url(#roomBaseFloorGrad)"/>
+          <rect x="0" y="127" width="320" height="5" class="room-trim"/>
+
           <g id="wallSky" class="room-wall hidden">
             <rect x="0" y="0" width="320" height="130" class="wall-sky-bg"/>
             <circle cx="270" cy="40" r="14" class="wall-moon"/>
@@ -301,6 +358,33 @@
             <path d="M270,62 C270,58 276,58 276,63 C276,58 282,58 282,62 C282,68 276,72 276,72 C276,72 270,68 270,62 Z" class="wall-heart"/>
           </g>
 
+          <g id="wallMint" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-mint-bg"/>
+            <line x1="-30" y1="150" x2="30" y2="-20" class="wall-mint-stripe"/>
+            <line x1="20" y1="150" x2="80" y2="-20" class="wall-mint-stripe"/>
+            <line x1="70" y1="150" x2="130" y2="-20" class="wall-mint-stripe"/>
+            <line x1="120" y1="150" x2="180" y2="-20" class="wall-mint-stripe"/>
+            <line x1="170" y1="150" x2="230" y2="-20" class="wall-mint-stripe"/>
+            <line x1="220" y1="150" x2="280" y2="-20" class="wall-mint-stripe"/>
+            <line x1="270" y1="150" x2="330" y2="-20" class="wall-mint-stripe"/>
+            <line x1="320" y1="150" x2="380" y2="-20" class="wall-mint-stripe"/>
+          </g>
+
+          <g id="wallDots" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-dots-bg"/>
+            <circle cx="30" cy="25" r="5" class="wall-dot"/>
+            <circle cx="80" cy="55" r="5" class="wall-dot"/>
+            <circle cx="130" cy="20" r="5" class="wall-dot"/>
+            <circle cx="180" cy="60" r="5" class="wall-dot"/>
+            <circle cx="230" cy="30" r="5" class="wall-dot"/>
+            <circle cx="280" cy="65" r="5" class="wall-dot"/>
+            <circle cx="55" cy="90" r="5" class="wall-dot"/>
+            <circle cx="155" cy="95" r="5" class="wall-dot"/>
+            <circle cx="255" cy="100" r="5" class="wall-dot"/>
+            <circle cx="10" cy="60" r="5" class="wall-dot"/>
+            <circle cx="300" cy="20" r="5" class="wall-dot"/>
+          </g>
+
           <g id="floorWood" class="room-floor hidden">
             <rect x="0" y="130" width="320" height="70" class="floor-wood-bg"/>
             <line x1="0" y1="145" x2="320" y2="145" class="floor-wood-line"/>
@@ -324,6 +408,24 @@
             <circle cx="220" cy="175" r="2" class="floor-rug-star"/>
           </g>
 
+          <g id="floorTiles" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-tiles-bg"/>
+            <rect x="0" y="130" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="80" y="130" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="160" y="130" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="240" y="130" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="40" y="165" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="120" y="165" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="200" y="165" width="40" height="35" class="floor-tile-dark"/>
+            <rect x="280" y="165" width="40" height="35" class="floor-tile-dark"/>
+          </g>
+
+          <g id="floorRugMint" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-base-bg"/>
+            <rect x="60" y="145" width="200" height="48" rx="14" class="floor-rug-mint"/>
+            <rect x="72" y="157" width="176" height="24" rx="8" class="floor-rug-mint-inner"/>
+          </g>
+
           <g id="decoPlant" class="room-deco hidden" transform="translate(32,176)">
             <rect x="-10" y="0" width="20" height="16" rx="3" class="deco-pot"/>
             <ellipse cx="0" cy="-8" rx="12" ry="14" class="deco-plant-leaf"/>
@@ -337,6 +439,44 @@
             <path d="M-12,-10 L12,-10 L8,4 L-8,4 Z" class="deco-lamp-shade"/>
             <circle cx="0" cy="-3" r="3" class="deco-lamp-glow"/>
           </g>
+
+          <g id="decoWindow" class="room-deco hidden" transform="translate(60,45)">
+            <rect x="-22" y="-20" width="44" height="40" rx="6" class="window-frame"/>
+            <rect x="-17" y="-15" width="34" height="30" class="window-pane"/>
+            <line x1="0" y1="-15" x2="0" y2="15" class="window-crossbar"/>
+            <line x1="-17" y1="0" x2="17" y2="0" class="window-crossbar"/>
+            <rect x="-26" y="18" width="52" height="4" rx="2" class="window-ledge"/>
+          </g>
+
+          <g id="decoShelf" class="room-deco hidden" transform="translate(250,55)">
+            <rect x="-26" y="0" width="52" height="4" rx="2" class="shelf-plank"/>
+            <rect x="-20" y="-16" width="8" height="16" class="shelf-book book-a"/>
+            <rect x="-10" y="-13" width="8" height="13" class="shelf-book book-b"/>
+            <rect x="0" y="-18" width="8" height="18" class="shelf-book book-c"/>
+            <circle cx="16" cy="-9" r="8" class="shelf-plant-pot"/>
+          </g>
+
+          <g id="decoToybox" class="room-deco hidden" transform="translate(255,178)">
+            <rect x="-20" y="-18" width="40" height="24" rx="4" class="toybox-body"/>
+            <path d="M-20,-18 Q0,-28 20,-18 L20,-12 Q0,-20 -20,-12 Z" class="toybox-lid"/>
+            <path d="M-5,-4 C-5,-7 -1,-7 -1,-3 C-1,-7 3,-7 3,-4 C3,-1 -1,2 -1,2 C-1,2 -5,-1 -5,-4 Z" class="toybox-heart"/>
+          </g>
+
+          <g id="decoBalloons" class="room-deco hidden" transform="translate(155,22)">
+            <line x1="-14" y1="14" x2="-8" y2="34" class="balloon-string"/>
+            <line x1="0" y1="16" x2="0" y2="36" class="balloon-string"/>
+            <line x1="14" y1="14" x2="8" y2="34" class="balloon-string"/>
+            <ellipse cx="-14" cy="0" rx="10" ry="13" class="balloon balloon-pink"/>
+            <ellipse cx="0" cy="-6" rx="11" ry="14" class="balloon balloon-purple"/>
+            <ellipse cx="14" cy="0" rx="10" ry="13" class="balloon balloon-yellow"/>
+          </g>
+
+          <g id="decoCushion" class="room-deco hidden" transform="translate(95,185)">
+            <ellipse cx="0" cy="0" rx="24" ry="12" class="cushion-body"/>
+            <path d="M-16,-3 Q0,4 16,-3" class="cushion-seam"/>
+          </g>
+
+          <ellipse cx="160" cy="190" rx="28" ry="7" class="room-mochi-shadow"/>
 
           <g id="mochiRoomIcon" class="mochi-room-icon">
             <g transform="scale(0.4) translate(-100,-100)">
@@ -355,7 +495,7 @@
           </g>
         </svg>
 
-        <p id="roomHint" class="pet-hint">Im Shop können wir Wand, Boden und Deko für Mochis Zimmer kaufen</p>
+        <p id="roomHint" class="pet-hint">Im Shop können wir Wand, Boden und bis zu 4 Deko-Objekte gleichzeitig für Mochis Zimmer kaufen</p>
 
         <div class="modal-buttons">
           <button id="openShopFromRoom" class="btn btn-secondary btn-sm">🪙 Zum Shop</button>
