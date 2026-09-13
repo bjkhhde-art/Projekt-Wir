@@ -34,8 +34,47 @@
 }
 
 .cell.done {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(34, 197, 94, 0.06));
-  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.26), rgba(34, 197, 94, 0.1));
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.cell-done-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--success);
+  color: white;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.35);
+}
+
+.cell.empty {
+  background: transparent;
+  border: 2px dashed var(--surface-border);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cell.empty:hover {
+  border-color: var(--pink);
+  background: rgba(255, 92, 138, 0.06);
+}
+
+.cell-plus {
+  font-size: 30px;
+  font-weight: 300;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.cell.empty:hover .cell-plus {
+  color: var(--pink);
 }
 
 .cell.delete-mode {

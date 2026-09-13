@@ -160,6 +160,13 @@
   max-width: 130px;
 }
 
+.battery-updated {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
 @media (max-width: 420px) {
   .battery-row {
     gap: 16px;

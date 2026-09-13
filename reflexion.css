@@ -71,12 +71,25 @@
 
 .reflection-waiting {
   text-align: center;
-  padding: 12px 0;
+  padding: 20px 0 12px;
+}
+
+.reflection-waiting-icon {
+  display: block;
+  font-size: 34px;
+  margin-bottom: 10px;
+  animation: reflection-waiting-swing 2.4s ease-in-out infinite;
+}
+
+@keyframes reflection-waiting-swing {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
 }
 
 .reflection-waiting p {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   color: var(--text-muted);
+  font-size: 15px;
 }
 
 .reflection-reveal {

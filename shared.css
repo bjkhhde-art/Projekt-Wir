@@ -98,6 +98,15 @@ body {
   animation: page-in 0.45s ease both;
 }
 
+/* Opt-in: for pages whose content can be shorter than the viewport, so it
+   doesn't sit pinned to the top with dead space above the nav bar. */
+.page-fill {
+  min-height: calc(100dvh - var(--nav-height) - 20px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 @keyframes page-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }

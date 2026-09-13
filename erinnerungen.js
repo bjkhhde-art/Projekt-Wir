@@ -69,6 +69,64 @@ async function loadMemories() {
   renderMemories();
 }
 
+window.handleBrokenCover = function (imgEl) {
+  const placeholder = document.createElement("div");
+  placeholder.className = "memory-cover-placeholder";
+  placeholder.textContent = "📷";
+  imgEl.replaceWith(placeholder);
+};
+
+function buildMemoryCard(memory) {
+  const card = document.createElement("div");
+  card.className = "memory-card card card-hover";
+
+  card.innerHTML = `
+    ${isFutureMemory(memory.start_date) ? `<span class="future-badge chip">Geplant</span>` : ""}
+    <div class="memory-card-actions">
+      <button class="icon-action edit-memory-btn" title="Bearbeiten">✏️</button>
+      <button class="icon-action delete-memory-btn" title="Löschen">×</button>
+    </div>
+    ${memory.cover_url
+      ? `<img src="${memory.cover_url}" alt="${memory.title}" onerror="window.handleBrokenCover(this)">`
+      : `<div class="memory-cover-placeholder">📷</div>`}
+    <div class="memory-content">
+      <h2>${memory.title}</h2>
+      <p>${memory.location || ""}</p>
+      <p>${formatDateRange(memory.start_date, memory.end_date)}</p>
+    </div>
+  `;
+
+  card.addEventListener("click", () => {
+    openGallery(memory);
+  });
+
+  card.querySelector(".delete-memory-btn").addEventListener("click", event => {
+    event.stopPropagation();
+    deleteMemory(memory.id);
+  });
+
+  card.querySelector(".edit-memory-btn").addEventListener("click", event => {
+    event.stopPropagation();
+    openEditModal(memory);
+  });
+
+  return card;
+}
+
+function buildMemorySectionHeading(text) {
+  const heading = document.createElement("h2");
+  heading.className = "section-heading";
+  heading.textContent = text;
+  return heading;
+}
+
+function buildMemorySubgrid(list) {
+  const grid = document.createElement("div");
+  grid.className = "memory-subgrid";
+  list.forEach(memory => grid.appendChild(buildMemoryCard(memory)));
+  return grid;
+}
+
 function renderMemories() {
   memoryGrid.innerHTML = "";
   renderMapMarkers();
@@ -77,50 +135,26 @@ function renderMemories() {
     memoryGrid.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">📸</span>
-        <p>Noch keine Erinnerungen angelegt.<br>Tippt unten rechts auf + und startet euren ersten Trip.</p>
+        <p>Noch keine Erinnerungen angelegt.<br>Wir tippen unten rechts auf + und starten unseren ersten Trip.</p>
       </div>
     `;
     return;
   }
 
-  memories.forEach(memory => {
-    const card = document.createElement("div");
-    card.className = "memory-card card card-hover";
+  const upcoming = memories.filter(memory => isFutureMemory(memory.start_date));
+  const past = memories.filter(memory => !isFutureMemory(memory.start_date));
 
-    if (isFutureMemory(memory.start_date)) {
-      card.classList.add("future-memory");
+  if (upcoming.length > 0) {
+    memoryGrid.appendChild(buildMemorySectionHeading("Kommt noch ✈️"));
+    memoryGrid.appendChild(buildMemorySubgrid(upcoming));
+  }
+
+  if (past.length > 0) {
+    if (upcoming.length > 0) {
+      memoryGrid.appendChild(buildMemorySectionHeading("Erinnerungen"));
     }
-
-    card.innerHTML = `
-      ${isFutureMemory(memory.start_date) ? `<span class="future-badge chip">Geplant</span>` : ""}
-      <div class="memory-card-actions">
-        <button class="icon-action edit-memory-btn" title="Bearbeiten">✏️</button>
-        <button class="icon-action delete-memory-btn" title="Löschen">×</button>
-      </div>
-      <img src="${memory.cover_url || ""}" alt="${memory.title}" onerror="this.style.display='none'">
-      <div class="memory-content">
-        <h2>${memory.title}</h2>
-        <p>${memory.location || ""}</p>
-        <p>${formatDateRange(memory.start_date, memory.end_date)}</p>
-      </div>
-    `;
-
-    card.addEventListener("click", () => {
-      openGallery(memory);
-    });
-
-    card.querySelector(".delete-memory-btn").addEventListener("click", event => {
-      event.stopPropagation();
-      deleteMemory(memory.id);
-    });
-
-    card.querySelector(".edit-memory-btn").addEventListener("click", event => {
-      event.stopPropagation();
-      openEditModal(memory);
-    });
-
-    memoryGrid.appendChild(card);
-  });
+    memoryGrid.appendChild(buildMemorySubgrid(past));
+  }
 }
 
 /* ---------- world map ---------- */
@@ -369,7 +403,7 @@ function renderImages() {
     imageGrid.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">🖼️</span>
-        <p>Noch keine Bilder in diesem Trip.<br>Zieht welche in das Feld oben.</p>
+        <p>Noch keine Bilder in diesem Trip.<br>Wir ziehen welche in das Feld oben.</p>
       </div>
     `;
     return;

@@ -71,6 +71,7 @@ function renderBoard() {
       }
 
       cell.innerHTML = `
+        ${item.done ? `<span class="cell-done-badge">✓ Geschafft</span>` : ""}
         ${!deleteMode ? `<button class="cell-edit-btn" title="Bearbeiten">✏️</button>` : ""}
         <div class="category">${item.category || "Sonstiges ⭐"}</div>
         <div class="author">Von: ${item.author || "Unbekannt"}</div>
@@ -95,6 +96,14 @@ function renderBoard() {
           openEditModal(item);
         });
       }
+    } else if (!deleteMode) {
+      cell.classList.add("empty");
+      cell.innerHTML = `<span class="cell-plus">+</span>`;
+      cell.title = "Neues Bingofeld hinzufügen";
+
+      cell.addEventListener("click", () => {
+        openAddModalHandler();
+      });
     }
 
     board.appendChild(cell);

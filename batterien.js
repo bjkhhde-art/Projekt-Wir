@@ -52,13 +52,18 @@ function triggerSpark(shell) {
 
 const extremeFlags = {};
 
-function renderLevel(config, level) {
+function renderLevel(config, level, updatedAt) {
   const rounded = Math.round(clamp(level, 0, 100));
   const shell = document.getElementById(`battery-${config.slug}`);
   const fill = shell.querySelector(".battery-fill");
   const percentEl = document.getElementById(`percent-${config.slug}`);
   const emojiEl = document.getElementById(`emoji-${config.slug}`);
   const statusEl = document.getElementById(`status-${config.slug}`);
+  const updatedEl = document.getElementById(`updated-${config.slug}`);
+
+  if (updatedEl && updatedAt) {
+    updatedEl.textContent = `Zuletzt geändert ${timeAgo(updatedAt)}`;
+  }
 
   fill.style.height = rounded + "%";
   fill.style.background = gradientForLevel(rounded);
@@ -131,7 +136,7 @@ async function loadLevels() {
   data.forEach(row => {
     levels[row.person] = row.level;
     const config = PEOPLE.find(p => p.person === row.person);
-    if (config) renderLevel(config, row.level);
+    if (config) renderLevel(config, row.level, row.updated_at);
   });
 }
 
@@ -214,7 +219,7 @@ supabaseClient
       if (shell.classList.contains("dragging")) return;
 
       levels[row.person] = row.level;
-      renderLevel(config, row.level);
+      renderLevel(config, row.level, row.updated_at);
     }
   )
   .subscribe();

@@ -190,7 +190,7 @@ function renderDaily() {
     dailyReveal.innerHTML = renderRevealHtml(dailyRows);
   } else if (mine) {
     dailyWaiting.classList.remove("hidden");
-    dailyWaitingText.textContent = `Danke! Warten auf ${partnerName()} ⏳`;
+    dailyWaitingText.textContent = `Danke! Warten auf ${partnerName()}`;
   } else {
     dailyForm.classList.remove("hidden");
     dailyRatings.communication = 0;
@@ -270,7 +270,7 @@ function renderWeekly() {
     weeklyReveal.innerHTML = renderRevealHtml(weeklyRows);
   } else if (mine) {
     weeklyWaiting.classList.remove("hidden");
-    weeklyWaitingText.textContent = `Danke! Warten auf ${partnerName()} ⏳`;
+    weeklyWaitingText.textContent = `Danke! Warten auf ${partnerName()}`;
   } else {
     weeklyForm.classList.remove("hidden");
     weeklyRatings.communication = 0;
