@@ -27,7 +27,56 @@
       </div>
     </section>
 
-    <section class="home-grid">
+    <section class="dashboard-section">
+      <h2 class="section-heading">Auf einen Blick</h2>
+
+      <div class="dashboard-grid">
+
+        <a href="mochi.html" class="dash-tile card card-hover">
+          <div class="dash-tile-head">
+            <span class="dash-tile-icon">🎂</span>
+            <span class="dash-tile-title">Mochi</span>
+          </div>
+          <p id="dashMochiMood" class="dash-tile-value">–</p>
+          <div class="dash-bar"><div id="dashMochiFill" class="dash-bar-fill"></div></div>
+        </a>
+
+        <a href="batterien.html" id="dashBatteryTile" class="dash-tile card card-hover">
+          <div class="dash-tile-head">
+            <span class="dash-tile-icon">🔋</span>
+            <span id="dashBatteryLabel" class="dash-tile-title">Kuschelbatterie</span>
+          </div>
+          <p id="dashBatteryValue" class="dash-tile-value">–</p>
+          <div class="dash-bar"><div id="dashBatteryFill" class="dash-bar-fill"></div></div>
+        </a>
+
+        <a href="erinnerungen.html" id="dashTripTile" class="dash-tile dash-tile-trip dash-tile-wide card card-hover">
+          <img id="dashTripImg" class="dash-trip-img" src="" alt="" onerror="this.style.display='none'">
+          <div class="dash-trip-overlay">
+            <span class="dash-trip-label">📸 Letzte Reise</span>
+            <h3 id="dashTripTitle">Lädt...</h3>
+            <p id="dashTripMeta"></p>
+          </div>
+        </a>
+
+        <div class="dash-tile dash-tile-question dash-tile-wide card">
+          <div class="dash-tile-head">
+            <span class="dash-tile-icon">💬</span>
+            <span class="dash-tile-title">Frage für uns</span>
+          </div>
+          <p id="dashQuestionText" class="dash-question-text">Lade Frage...</p>
+          <div class="dash-question-actions">
+            <button id="dashNewQuestionBtn" class="btn btn-secondary btn-sm">Neue Frage 🔀</button>
+            <a href="questions.html" class="btn btn-sm">Mehr Fragen →</a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-heading">Alle Bereiche</h2>
+      <div class="home-grid">
 
       <a href="couple-quest.html" class="home-card card card-hover">
         <span class="card-icon">🎯</span>
@@ -83,6 +132,7 @@
         <p>Push Benachrichtigungen ganz nach unserem Geschmack</p>
       </a>
 
+      </div>
     </section>
 
   </main>
@@ -99,6 +149,17 @@
 
       <div class="modal-buttons">
         <button id="dismissPushModal" class="btn btn-ghost btn-block">Später</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir dir den Akku vom anderen anzeigen können.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
       </div>
     </div>
   </div>

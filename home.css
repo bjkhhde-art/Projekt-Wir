@@ -113,3 +113,162 @@
     padding: 22px 18px;
   }
 }
+
+/* ---------- dashboard: auf einen Blick ---------- */
+
+.section-heading {
+  font-size: 17px;
+  margin: 0 0 14px;
+  padding: 0 2px;
+}
+
+.dashboard-section {
+  margin-bottom: 34px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dash-tile {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+  padding: 18px;
+  overflow: hidden;
+}
+
+.dash-tile-wide {
+  grid-column: 1 / -1;
+}
+
+.dash-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dash-tile-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dash-tile-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dash-tile-value {
+  margin: 0 0 10px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.dash-bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-border);
+  overflow: hidden;
+}
+
+.dash-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-brand);
+  transition: width 0.6s ease, background 0.6s ease;
+}
+
+.dash-tile-trip {
+  position: relative;
+  padding: 0;
+  min-height: 150px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dash-trip-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dash-trip-overlay {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 16px 18px;
+  color: white;
+}
+
+.dash-tile-trip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(20, 8, 20, 0.78) 0%, rgba(20, 8, 20, 0.1) 70%);
+  z-index: 0;
+}
+
+.dash-tile-trip.dash-trip-empty {
+  min-height: auto;
+  display: block;
+  padding: 18px;
+}
+
+.dash-tile-trip.dash-trip-empty::before {
+  display: none;
+}
+
+.dash-trip-empty .dash-trip-overlay {
+  color: var(--text);
+  padding: 0;
+}
+
+.dash-trip-label {
+  display: block;
+  font-size: 12.5px;
+  opacity: 0.85;
+  margin-bottom: 2px;
+}
+
+.dash-trip-overlay h3 {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-family: var(--font-heading);
+}
+
+.dash-trip-overlay p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.dash-tile-question {
+  cursor: default;
+}
+
+.dash-question-text {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 44px;
+}
+
+.dash-question-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 400px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
