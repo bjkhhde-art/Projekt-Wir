@@ -857,6 +857,92 @@
   50% { transform: rotate(-8deg); }
 }
 
+/* ---------- dance: party backdrop ---------- */
+
+.party-backdrop {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.pet-creature.disco-rising .party-backdrop,
+.pet-creature.party .party-backdrop {
+  opacity: 1;
+}
+
+.party-bg {
+  fill: #170c2b;
+}
+
+.party-beam {
+  opacity: 0.22;
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+.party-beam-pink { fill: #ff5c8a; }
+.party-beam-cyan { fill: #60d6ff; }
+.party-beam-gold { fill: #ffd76a; }
+
+.pet-creature.party .party-beam-pink {
+  animation: party-beam-sway-a 2.2s ease-in-out infinite;
+}
+
+.pet-creature.party .party-beam-cyan {
+  animation: party-beam-sway-b 2.6s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+.pet-creature.party .party-beam-gold {
+  animation: party-beam-sway-c 1.9s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+@keyframes party-beam-sway-a {
+  0%, 100% { opacity: 0.2; transform: rotate(-4deg); }
+  50% { opacity: 0.45; transform: rotate(4deg); }
+}
+
+@keyframes party-beam-sway-b {
+  0%, 100% { opacity: 0.18; transform: rotate(4deg); }
+  50% { opacity: 0.4; transform: rotate(-4deg); }
+}
+
+@keyframes party-beam-sway-c {
+  0%, 100% { opacity: 0.22; transform: rotate(-3deg); }
+  50% { opacity: 0.5; transform: rotate(3deg); }
+}
+
+.confetti {
+  opacity: 0;
+  transform-box: fill-box;
+}
+
+.pet-creature.party .confetti {
+  animation: confetti-fall 2.8s linear infinite;
+}
+
+.confetti-pink { fill: #ff5c8a; }
+.confetti-cyan { fill: #60d6ff; }
+.confetti-gold { fill: #ffd76a; }
+.confetti-purple { fill: #b18cf9; }
+
+.confetti-1 { animation-delay: 0s; }
+.confetti-2 { animation-delay: 0.3s; }
+.confetti-3 { animation-delay: 0.6s; }
+.confetti-4 { animation-delay: 0.9s; }
+.confetti-5 { animation-delay: 1.2s; }
+.confetti-6 { animation-delay: 1.5s; }
+.confetti-7 { animation-delay: 1.8s; }
+.confetti-8 { animation-delay: 2.1s; }
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(230px) rotate(360deg); opacity: 0; }
+}
+
 /* ---------- dance: disco party ---------- */
 
 #discoBallGroup {
@@ -866,6 +952,7 @@
   transform-origin: 100px 14px;
   transition: opacity 0.4s ease;
   pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
 }
 
 .pet-creature.disco-rising #discoBallGroup {
