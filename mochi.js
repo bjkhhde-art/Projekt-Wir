@@ -23,6 +23,10 @@ const DEFAULT_PET_HINT = "Wir streicheln Mochi mit einer Wischbewegung oder halt
 const growthBadge = document.getElementById("growthBadge");
 const coinCount = document.getElementById("coinCount");
 const openShopBtn = document.getElementById("openShopBtn");
+const openAchievementsBtn = document.getElementById("openAchievementsBtn");
+const achievementsModal = document.getElementById("achievementsModal");
+const closeAchievementsModal = document.getElementById("closeAchievementsModal");
+const achievementsList = document.getElementById("achievementsList");
 
 const statHungerFill = document.getElementById("statHungerFill");
 const statEnergyFill = document.getElementById("statEnergyFill");
@@ -107,10 +111,14 @@ const STROKE_TICK_DISTANCE = 24;
 const PET_COOLDOWN_MS = 3000;
 const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
 const ACTIVITY_COOLDOWN_MS = 60 * 1000;
-const SHOWER_SCRUB_NEEDED = 180;
-const SHOWER_TICK_DISTANCE = 18;
+const SHOWER_BUBBLE_COUNT = 10;
+const SHOWER_BUBBLE_LIFETIME_MS = 1300;
+const SHOWER_BUBBLE_SPAWN_GAP_MS = 500;
+const DANCE_BEAT_COUNT = 8;
+const DANCE_BEAT_INTERVAL_MS = 650;
+const DANCE_HIT_WINDOW_MS = 280;
+const DANCE_PARTY_TAIL_MS = 500;
 const DISCO_RISE_DURATION_MS = 1400;
-const DISCO_PARTY_DURATION_MS = 3200;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const SUNRISE_DURATION_MS = 1400;
 const DEFAULT_STAT = 70;
@@ -135,7 +143,7 @@ const ACTIVITIES = {
 
 /* ---------- stats, growth & shop model ---------- */
 
-const DECAY_BASE = { hunger: 4, energy: 2.5, cleanliness: 2, bond: 3 };
+const DECAY_BASE = { hunger: 7, energy: 4.5, cleanliness: 3.5, bond: 5.5 };
 const GROWTH_THRESHOLDS = { baby: 0, kid: 20, adult: 60 };
 const GROWTH_LABELS = { baby: "🐣 Baby", kid: "🎂 Kind", adult: "✨ Erwachsen" };
 
@@ -186,6 +194,35 @@ function findShopItem(id) {
   return [...SHOP_ITEMS.room, ...SHOP_ITEMS.outfit].find(item => item.id === id);
 }
 
+/* ---------- achievements ---------- */
+
+const ACHIEVEMENTS = [
+  { id: "first_care", icon: "🌱", name: "Erste Schritte", desc: "1x um Mochi gekümmert", check: s => (s.total_care_actions || 0) >= 1 },
+  { id: "care_10", icon: "💗", name: "Gute Freunde", desc: "10x um Mochi gekümmert", check: s => (s.total_care_actions || 0) >= 10 },
+  { id: "care_50", icon: "💞", name: "Unzertrennlich", desc: "50x um Mochi gekümmert", check: s => (s.total_care_actions || 0) >= 50 },
+  { id: "care_150", icon: "💖", name: "Seelenverwandt", desc: "150x um Mochi gekümmert", check: s => (s.total_care_actions || 0) >= 150 },
+  { id: "grown_kid", icon: "🎂", name: "Kindheit", desc: "Mochi ist zum Kind herangewachsen", check: s => (s.care_score || 0) >= GROWTH_THRESHOLDS.kid },
+  { id: "grown_adult", icon: "✨", name: "Erwachsen", desc: "Mochi ist erwachsen geworden", check: s => (s.care_score || 0) >= GROWTH_THRESHOLDS.adult },
+  { id: "coins_50", icon: "🪙", name: "Sparschwein", desc: "50 Münzen insgesamt verdient", check: s => (s.total_coins_earned || 0) >= 50 },
+  { id: "coins_200", icon: "💰", name: "Kleiner Schatz", desc: "200 Münzen insgesamt verdient", check: s => (s.total_coins_earned || 0) >= 200 },
+  { id: "coins_500", icon: "👑", name: "Großer Schatz", desc: "500 Münzen insgesamt verdient", check: s => (s.total_coins_earned || 0) >= 500 },
+  { id: "collector_5", icon: "🛍️", name: "Sammler", desc: "5 Gegenstände besessen", check: s => ((s.owned_items) || []).length >= 5 },
+  { id: "collector_12", icon: "🏆", name: "Großsammler", desc: "12 Gegenstände besessen", check: s => ((s.owned_items) || []).length >= 12 },
+  { id: "room_full", icon: "🏠", name: "Eingerichtet", desc: "Zimmer komplett möbliert (4 Deko-Objekte)", check: s => ((s.room_decor) || []).length >= 4 }
+];
+
+function announceNewAchievements(oldState, newState) {
+  if (!oldState) return;
+  ACHIEVEMENTS.forEach(achievement => {
+    const wasUnlocked = achievement.check(oldState);
+    const isUnlocked = achievement.check(newState);
+    if (!wasUnlocked && isUnlocked) {
+      showToast(`Erfolg freigeschaltet: ${achievement.icon} ${achievement.name}!`, "success");
+      celebrate(10);
+    }
+  });
+}
+
 let petState = null;
 let batteryAvg = 50;
 let currentPerson = localStorage.getItem("pw_person");
@@ -195,8 +232,15 @@ let lastCuddleTrigger = 0;
 let lastActivityTrigger = 0;
 let showerLathering = false;
 let wakingInProgress = false;
-let showerScrubProgress = 0;
-let showerDrag = null;
+let showerBubblesSpawned = 0;
+let showerBubblesCaught = 0;
+let showerBubblesResolved = 0;
+let showerBubbleTimer = null;
+let danceRhythmActive = false;
+let danceBeatTimestamps = [];
+let danceBeatConsumed = [];
+let danceHits = 0;
+let danceBeatIntervalId = null;
 let coffeeStep = 0;
 let lockPhase = "dock";
 
@@ -285,13 +329,17 @@ async function applyCare(statDeltas, coinReward, careReward, extraFields) {
     ...stats,
     coins: (petState && petState.coins || 0) + coinReward,
     care_score: (petState && petState.care_score || 0) + careReward,
+    total_care_actions: ((petState && petState.total_care_actions) || 0) + 1,
+    total_coins_earned: ((petState && petState.total_coins_earned) || 0) + coinReward,
     last_interacted_by: currentPerson,
     updated_at: nowIso,
     ...resolvedExtra
   };
 
+  const previousState = petState;
   petState = { ...(petState || {}), ...payload };
   render();
+  announceNewAchievements(previousState, petState);
 
   const { error } = await supabaseClient
     .from("pet_state")
@@ -582,21 +630,88 @@ async function toggleSleep() {
   if (error) console.error("Fehler beim Einschlafen:", error);
 }
 
+function spawnShowerBubble() {
+  if (!showerLathering) return;
+
+  const bubble = document.createElement("button");
+  bubble.type = "button";
+  bubble.className = "shower-bubble-target";
+  bubble.style.left = (28 + Math.random() * 44) + "%";
+  bubble.style.top = (30 + Math.random() * 42) + "%";
+  const size = 30 + Math.random() * 16;
+  bubble.style.width = size + "px";
+  bubble.style.height = size + "px";
+
+  let resolved = false;
+
+  const missTimer = setTimeout(() => {
+    if (resolved) return;
+    resolved = true;
+    bubble.classList.add("popped-miss");
+    setTimeout(() => bubble.remove(), 200);
+    afterBubbleResolved();
+  }, SHOWER_BUBBLE_LIFETIME_MS);
+
+  bubble.addEventListener("pointerdown", event => {
+    event.stopPropagation();
+    if (resolved) return;
+    resolved = true;
+    clearTimeout(missTimer);
+    showerBubblesCaught++;
+    vibrate(8);
+    spawnParticle("🫧", { size: 14 });
+    bubble.classList.add("popped-catch");
+    setTimeout(() => bubble.remove(), 200);
+    afterBubbleResolved();
+  });
+
+  petCreature.appendChild(bubble);
+}
+
+function afterBubbleResolved() {
+  showerBubblesResolved++;
+  petFoamOverlay.setAttribute("opacity", String(Math.min(0.85, (showerBubblesResolved / SHOWER_BUBBLE_COUNT) * 0.85)));
+  petHint.textContent = `Tippe die Seifenblasen an, bevor sie zerplatzen! (${showerBubblesResolved}/${SHOWER_BUBBLE_COUNT})`;
+
+  if (showerBubblesResolved >= SHOWER_BUBBLE_COUNT) {
+    finishShower();
+  }
+}
+
+function startShowerBubbleRound() {
+  showerBubblesSpawned = 0;
+  showerBubblesCaught = 0;
+  showerBubblesResolved = 0;
+
+  spawnShowerBubble();
+  showerBubblesSpawned++;
+
+  showerBubbleTimer = setInterval(() => {
+    if (showerBubblesSpawned >= SHOWER_BUBBLE_COUNT) {
+      clearInterval(showerBubbleTimer);
+      return;
+    }
+    spawnShowerBubble();
+    showerBubblesSpawned++;
+  }, SHOWER_BUBBLE_SPAWN_GAP_MS);
+}
+
 function startShowerLathering() {
   showerLathering = true;
-  showerScrubProgress = 0;
   petFoamOverlay.setAttribute("opacity", "0");
   petCreature.classList.add("showering");
   shampooBottle.classList.remove("hidden");
   [feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
   showerBtn.classList.add("hidden");
-  petHint.textContent = "Wir schäumen Mochi mit einer Wischbewegung ein (0%)";
-  showToast("Wir schäumen Mochi mit Shampoo ein 🧴", "success");
+  petHint.textContent = `Tippe die Seifenblasen an, bevor sie zerplatzen! (0/${SHOWER_BUBBLE_COUNT})`;
+  showToast("Seifenblasen-Zeit! Fang so viele wie möglich 🫧", "success");
+  startShowerBubbleRound();
 }
 
 async function finishShower() {
   showerLathering = false;
-  showerDrag = null;
+  clearInterval(showerBubbleTimer);
+  document.querySelectorAll(".shower-bubble-target").forEach(el => el.remove());
   lastActivityTrigger = Date.now();
   shampooBottle.classList.add("hidden");
   petHint.textContent = DEFAULT_PET_HINT;
@@ -609,9 +724,64 @@ async function finishShower() {
   vibrate([10, 10, 10, 10]);
   setTimeout(() => petCreature.classList.remove("showering"), 1300);
 
-  showToast("Mochi ist frisch geduscht 🚿✨", "success");
+  const hitRate = showerBubblesCaught / SHOWER_BUBBLE_COUNT;
+  const cleanlinessGain = Math.round(25 + hitRate * 25);
+  const coinReward = Math.round(2 + hitRate * 6);
 
-  await applyCare({ cleanliness: 45, bond: 5 }, 4, 2, () => ({ last_activity: "shower" }));
+  showToast(`Mochi ist frisch geduscht 🚿✨ (${showerBubblesCaught}/${SHOWER_BUBBLE_COUNT} Blasen gefangen)`, "success");
+
+  await applyCare({ cleanliness: cleanlinessGain, bond: 5 }, coinReward, 2, () => ({ last_activity: "shower" }));
+}
+
+function danceUpdateHint() {
+  petHint.textContent = `Tippe im Takt auf Mochi! (${danceHits}/${DANCE_BEAT_COUNT} getroffen)`;
+}
+
+function registerDanceTap() {
+  const now = Date.now();
+  for (let i = danceBeatTimestamps.length - 1; i >= 0; i--) {
+    if (danceBeatConsumed[i]) continue;
+    if (Math.abs(now - danceBeatTimestamps[i]) <= DANCE_HIT_WINDOW_MS) {
+      danceBeatConsumed[i] = true;
+      danceHits++;
+      spawnParticle("✨", {});
+      danceUpdateHint();
+      return;
+    }
+  }
+}
+
+function runDanceRhythm() {
+  return new Promise(resolve => {
+    danceRhythmActive = true;
+    danceHits = 0;
+    danceBeatTimestamps = [];
+    danceBeatConsumed = [];
+    danceUpdateHint();
+
+    let beatIndex = 0;
+
+    function fireBeat() {
+      if (beatIndex >= DANCE_BEAT_COUNT) {
+        clearInterval(danceBeatIntervalId);
+        danceRhythmActive = false;
+        resolve(danceHits / DANCE_BEAT_COUNT);
+        return;
+      }
+
+      danceBeatTimestamps.push(Date.now());
+      danceBeatConsumed.push(false);
+      beatIndex++;
+
+      petCreature.classList.remove("beat-pulse");
+      void petCreature.offsetWidth;
+      petCreature.classList.add("beat-pulse");
+      vibrate(12);
+    }
+
+    fireBeat();
+    danceBeatIntervalId = setInterval(fireBeat, DANCE_BEAT_INTERVAL_MS);
+  });
 }
 
 async function performDance() {
@@ -631,25 +801,36 @@ async function performDance() {
 
   lastActivityTrigger = now;
 
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
+
   petCreature.classList.add("disco-rising");
   vibrate([10, 15, 10]);
 
   await new Promise(resolve => setTimeout(resolve, DISCO_RISE_DURATION_MS));
 
   petCreature.classList.remove("disco-rising");
-
-  await applyCare({ bond: 12 }, 5, 2, () => ({ last_activity: "dance" }));
-
   petCreature.classList.add("party");
   vibrate([10, 20, 10, 20, 10]);
+  showToast("Tanz mit dem Takt mit! 🎶", "success");
+
+  const hitRate = await runDanceRhythm();
+
+  const coinReward = Math.round(2 + hitRate * 6);
+  const bondGain = Math.round(6 + hitRate * 10);
+  const finalHits = danceHits;
 
   for (let i = 0; i < 7; i++) {
-    setTimeout(() => spawnParticle(["🎵", "🎶", "✨", "🪩"][Math.floor(Math.random() * 4)]), i * 260);
+    setTimeout(() => spawnParticle(["🎵", "🎶", "✨", "🪩"][Math.floor(Math.random() * 4)]), i * 200);
   }
 
-  showToast("Mochi hat getanzt 🎉", "success");
+  petHint.textContent = DEFAULT_PET_HINT;
+  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
 
-  setTimeout(() => petCreature.classList.remove("party"), DISCO_PARTY_DURATION_MS);
+  setTimeout(() => petCreature.classList.remove("party"), DANCE_PARTY_TAIL_MS);
+
+  showToast(`Mochi hat getanzt 🎉 (${finalHits}/${DANCE_BEAT_COUNT} im Takt)`, "success");
+
+  await applyCare({ bond: bondGain }, coinReward, 2, () => ({ last_activity: "dance" }));
 
   return true;
 }
@@ -1068,9 +1249,11 @@ async function handleShopClick(event) {
         updated_at: nowIso
       };
 
+      const previousState = petState;
       petState = { ...petState, ...payload };
       render();
       renderShop();
+      announceNewAchievements(previousState, petState);
       vibrate([10, 20, 10]);
       const item = findShopItem(id);
       const itemName = item ? item.name : "Artikel";
@@ -1128,9 +1311,11 @@ async function handleShopClick(event) {
       updated_at: nowIso
     };
 
+    const previousState = petState;
     petState = { ...petState, ...payload };
     render();
     renderShop();
+    announceNewAchievements(previousState, petState);
     vibrate([10, 20, 10]);
     const item = findShopItem(id);
     showToast(`${item ? item.name : "Artikel"} gekauft und ausgerüstet 🎉`, "success");
@@ -1177,13 +1362,49 @@ openShopBtn.addEventListener("click", openShop);
 openShopFromRoom.addEventListener("click", openShop);
 closeShopModal.addEventListener("click", () => shopModal.classList.add("hidden"));
 
+/* ---------- achievements modal ---------- */
+
+function renderAchievements() {
+  achievementsList.innerHTML = "";
+  const state = petState || {};
+
+  ACHIEVEMENTS.forEach(achievement => {
+    const unlocked = achievement.check(state);
+    const card = document.createElement("div");
+    card.className = "achievement-card " + (unlocked ? "unlocked" : "locked");
+    card.innerHTML = `
+      <span class="achievement-icon">${unlocked ? achievement.icon : "🔒"}</span>
+      <div class="achievement-info">
+        <div class="achievement-name">${achievement.name}</div>
+        <div class="achievement-desc">${achievement.desc}</div>
+      </div>
+    `;
+    achievementsList.appendChild(card);
+  });
+}
+
+openAchievementsBtn.addEventListener("click", () => {
+  renderAchievements();
+  achievementsModal.classList.remove("hidden");
+});
+
+closeAchievementsModal.addEventListener("click", () => achievementsModal.classList.add("hidden"));
+
 /* ---------- pointer gestures ---------- */
 
 petCreature.addEventListener("pointerdown", event => {
-  petCreature.setPointerCapture(event.pointerId);
+  try {
+    petCreature.setPointerCapture(event.pointerId);
+  } catch (error) {
+    // some browsers reject capture for an id not yet tracked as active; harmless to skip
+  }
+
+  if (danceRhythmActive) {
+    registerDanceTap();
+    return;
+  }
 
   if (showerLathering) {
-    showerDrag = { startX: event.clientX, startY: event.clientY, tickDistance: 0 };
     return;
   }
 
@@ -1203,27 +1424,7 @@ petCreature.addEventListener("pointerdown", event => {
 });
 
 petCreature.addEventListener("pointermove", event => {
-  if (showerLathering && showerDrag) {
-    const dist = Math.hypot(event.clientX - showerDrag.startX, event.clientY - showerDrag.startY);
-    showerDrag.tickDistance += dist;
-    showerDrag.startX = event.clientX;
-    showerDrag.startY = event.clientY;
-
-    if (showerDrag.tickDistance >= SHOWER_TICK_DISTANCE) {
-      showerDrag.tickDistance = 0;
-      showerScrubProgress = Math.min(showerScrubProgress + SHOWER_TICK_DISTANCE, SHOWER_SCRUB_NEEDED);
-      petFoamOverlay.setAttribute("opacity", String(Math.min(0.85, (showerScrubProgress / SHOWER_SCRUB_NEEDED) * 0.85)));
-      spawnParticle("🫧", { size: 14 });
-      vibrate(6);
-
-      if (showerScrubProgress >= SHOWER_SCRUB_NEEDED) {
-        finishShower();
-      } else {
-        petHint.textContent = `Wir schäumen Mochi mit einer Wischbewegung ein (${Math.round((showerScrubProgress / SHOWER_SCRUB_NEEDED) * 100)}%)`;
-      }
-    }
-    return;
-  }
+  if (danceRhythmActive || showerLathering) return;
 
   if (!gestureState) return;
 
@@ -1252,10 +1453,7 @@ petCreature.addEventListener("pointermove", event => {
 });
 
 function endGesture() {
-  if (showerLathering) {
-    showerDrag = null;
-    return;
-  }
+  if (danceRhythmActive || showerLathering) return;
 
   if (!gestureState) return;
 

@@ -22,7 +22,10 @@
       <div id="petMainView">
       <div class="pet-topbar">
         <span id="growthBadge" class="growth-badge">🐣 Baby</span>
-        <button id="openShopBtn" class="pet-coin-pill" title="Shop öffnen">🪙 <span id="coinCount">0</span></button>
+        <div class="pet-topbar-right">
+          <button id="openAchievementsBtn" class="pet-topbar-icon-btn" title="Erfolge öffnen">🏆</button>
+          <button id="openShopBtn" class="pet-coin-pill" title="Shop öffnen">🪙 <span id="coinCount">0</span></button>
+        </div>
       </div>
 
       <p id="moodLabel" class="mood-label"></p>
@@ -237,6 +240,7 @@
           </g>
         </svg>
         <div id="petHearts" class="pet-hearts"></div>
+        <div id="beatRing" class="beat-ring"></div>
       </div>
 
       <p id="petStatusText" class="pet-status-text">Mochi wird wach…</p>
@@ -597,6 +601,19 @@
 
       <div class="modal-buttons">
         <button id="closeShopModal" class="btn btn-secondary btn-block">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="achievementsModal" class="modal hidden">
+    <div class="modal-box shop-modal-box">
+      <h2>Erfolge 🏆</h2>
+      <p class="push-modal-text">Das haben wir gemeinsam mit Mochi schon geschafft.</p>
+
+      <div id="achievementsList" class="achievements-list"></div>
+
+      <div class="modal-buttons">
+        <button id="closeAchievementsModal" class="btn btn-secondary btn-block">Schließen</button>
       </div>
     </div>
   </div>

@@ -857,6 +857,67 @@
   50% { transform: rotate(-8deg); }
 }
 
+.shower-bubble-target {
+  position: absolute;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15) 40%, rgba(191, 224, 247, 0.35) 70%);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 2px 8px rgba(90, 130, 170, 0.25), inset 0 0 6px rgba(255, 255, 255, 0.6);
+  animation: bubble-float 1.3s ease-in-out infinite;
+  z-index: 5;
+}
+
+@keyframes bubble-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.shower-bubble-target.popped-catch {
+  animation: bubble-pop-catch 0.2s ease-out forwards;
+}
+
+@keyframes bubble-pop-catch {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.shower-bubble-target.popped-miss {
+  animation: bubble-pop-miss 0.2s ease-in forwards;
+}
+
+@keyframes bubble-pop-miss {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(0.6); opacity: 0; }
+}
+
+/* ---------- dance: beat ring pulse ---------- */
+
+.beat-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.75);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pet-creature.beat-pulse .beat-ring {
+  animation: beat-ring-pulse 0.5s ease-out;
+}
+
+@keyframes beat-ring-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
 /* ---------- dance: party backdrop ---------- */
 
 .party-backdrop {
@@ -1045,6 +1106,32 @@
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: var(--radius-pill);
   padding: 5px 12px;
+}
+
+.pet-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pet-topbar-icon-btn {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--purple-deep);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.pet-topbar-icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pet-topbar-icon-btn:active {
+  transform: scale(0.95);
 }
 
 .pet-coin-pill {
@@ -1491,6 +1578,58 @@
 .shop-item-btn.equipped {
   background: var(--gradient-brand);
   color: white;
+}
+
+/* ---------- achievements modal ---------- */
+
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+}
+
+.achievement-card.unlocked {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.achievement-card.locked {
+  opacity: 0.55;
+}
+
+.achievement-icon {
+  font-size: 24px;
+  flex: none;
+  width: 32px;
+  text-align: center;
+}
+
+.achievement-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.achievement-desc {
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 @media (max-width: 420px) {
