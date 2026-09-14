@@ -90,12 +90,21 @@ dashBatteryTile.addEventListener("click", event => {
 
 /* ---------- dashboard: Mochi mood ---------- */
 
+const MOCHI_DECAY_BASE = { hunger: 7, energy: 4.5, cleanliness: 3.5, bond: 5.5 };
+const MOCHI_DEFAULT_STAT = 70;
+
 function computeDecayedHappiness(petState, batteryAvg) {
-  const stored = petState && typeof petState.happiness === "number" ? petState.happiness : 50;
   const lastUpdate = petState && petState.updated_at ? new Date(petState.updated_at).getTime() : Date.now();
   const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / 3600000);
-  const decayPerHour = clamp(3 - (batteryAvg / 100) * 2.5, 0.5, 3);
-  return clamp(Math.round(stored - hoursElapsed * decayPerHour), 0, 100);
+
+  const statTotal = Object.keys(MOCHI_DECAY_BASE).reduce((sum, key) => {
+    const stored = petState && typeof petState[key] === "number" ? petState[key] : MOCHI_DEFAULT_STAT;
+    const base = MOCHI_DECAY_BASE[key];
+    const decayRate = clamp(base - (batteryAvg / 100) * (base - base * 0.17), base * 0.17, base);
+    return sum + clamp(Math.round(stored - hoursElapsed * decayRate), 0, 100);
+  }, 0);
+
+  return Math.round(statTotal / Object.keys(MOCHI_DECAY_BASE).length);
 }
 
 const MOOD_LABELS = {

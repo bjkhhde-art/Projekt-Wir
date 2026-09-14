@@ -43,6 +43,11 @@
   cursor: grabbing;
 }
 
+.battery-shell:focus-visible {
+  outline: 3px solid var(--purple);
+  outline-offset: 3px;
+}
+
 .battery-inner {
   position: absolute;
   inset: 0;

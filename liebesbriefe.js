@@ -142,7 +142,7 @@ function closeFlapFully() {
 
 function openLetter(note) {
   currentNoteId = note.id;
-  letterMessageEl.innerHTML = escapeHtml(note.message);
+  letterMessageEl.innerHTML = escapeHtmlWithBreaks(note.message);
   letterSignatureEl.textContent = `Von ${note.author}`;
   letterDateEl.textContent = formatDate(note.created_at);
 
@@ -206,23 +206,8 @@ function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML.replace(/\n/g, "<br>");
-}
-
-function timeAgo(dateString) {
-  const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
-
-  if (seconds < 60) return "gerade eben";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `vor ${minutes} Min.`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `vor ${hours} Std.`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `vor ${days} Tag(en)`;
-  return formatDate(dateString);
+function escapeHtmlWithBreaks(text) {
+  return escapeHtml(text).replace(/\n/g, "<br>");
 }
 
 /* ---------- push notifications ---------- */

@@ -25,7 +25,7 @@ self.addEventListener("notificationclick", event => {
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
-      const existing = clientList.find(client => client.url.includes("liebesbriefe.html"));
+      const existing = clientList.find(client => client.url.includes(targetUrl));
       if (existing) return existing.focus();
       return self.clients.openWindow(targetUrl);
     })

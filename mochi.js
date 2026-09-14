@@ -1283,6 +1283,7 @@ async function handleShopClick(event) {
       const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
       if (error) console.error("Fehler beim Aufstellen:", error);
     } else if (action === "unequip") {
+      if (!requirePerson()) return;
       const placed = ((petState && petState.room_decor) || []).filter(existing => existing !== id);
       const payload = { room_decor: placed, last_interacted_by: currentPerson, updated_at: nowIso };
       petState = { ...petState, ...payload };
@@ -1332,6 +1333,7 @@ async function handleShopClick(event) {
     const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
     if (error) console.error("Fehler beim Ausrüsten:", error);
   } else if (action === "unequip") {
+    if (!requirePerson()) return;
     const payload = { [field]: null, last_interacted_by: currentPerson, updated_at: nowIso };
     petState = { ...petState, ...payload };
     render();

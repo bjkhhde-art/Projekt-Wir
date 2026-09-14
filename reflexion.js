@@ -61,14 +61,6 @@ if (!currentPerson) {
   personModal.classList.remove("hidden");
 }
 
-/* ---------- helpers ---------- */
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function heartsDisplay(value) {
   return "💗".repeat(value) + "🤍".repeat(5 - value);
 }

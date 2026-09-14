@@ -73,10 +73,10 @@ function renderBoard() {
       cell.innerHTML = `
         ${item.done ? `<span class="cell-done-badge">✓ Geschafft</span>` : ""}
         ${!deleteMode ? `<button class="cell-edit-btn" title="Bearbeiten">✏️</button>` : ""}
-        <div class="category">${item.category || "Sonstiges ⭐"}</div>
-        <div class="author">Von: ${item.author || "Unbekannt"}</div>
+        <div class="category">${escapeHtml(item.category || "Sonstiges ⭐")}</div>
+        <div class="author">Von: ${escapeHtml(item.author || "Unbekannt")}</div>
         <div class="due-date">${item.due_date ? "Fällig: " + formatDate(item.due_date) : ""}</div>
-        <div class="cell-title">${item.title}</div>
+        <div class="cell-title">${escapeHtml(item.title)}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
 

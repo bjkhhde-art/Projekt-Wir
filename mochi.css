@@ -291,23 +291,6 @@
   min-height: 20px;
 }
 
-.pet-happiness-bar {
-  width: min(100%, 260px);
-  height: 12px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-solid);
-  border: 1.5px solid var(--surface-border);
-  overflow: hidden;
-  margin-bottom: 14px;
-}
-
-.pet-happiness-fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-brand);
-  transition: width 0.5s ease, background 0.5s ease;
-}
-
 .pet-hint {
   margin: 0;
   font-size: 12.5px;

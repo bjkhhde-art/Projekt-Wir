@@ -11,6 +11,12 @@ window.formatDate = function (dateString) {
   return new Date(dateString).toLocaleDateString("de-DE");
 };
 
+window.escapeHtml = function (text) {
+  const div = document.createElement("div");
+  div.textContent = text == null ? "" : text;
+  return div.innerHTML;
+};
+
 window.daysBetween = function (startDate, endDate) {
   const start = new Date(startDate);
   const end = endDate ? new Date(endDate) : new Date();

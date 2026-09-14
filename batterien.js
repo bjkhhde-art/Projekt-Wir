@@ -70,6 +70,8 @@ function renderLevel(config, level, updatedAt) {
   percentEl.textContent = rounded + "%";
   emojiEl.textContent = emojiForLevel(rounded);
   statusEl.textContent = statusForLevel(rounded);
+  shell.setAttribute("aria-valuenow", rounded);
+  shell.setAttribute("aria-valuetext", `${rounded}% – ${statusForLevel(rounded)}`);
 
   const flags = extremeFlags[config.person] || (extremeFlags[config.person] = { wasFull: false, wasEmpty: false });
   let firedBigVibration = false;
@@ -200,6 +202,21 @@ function attachDrag(config) {
 
   shell.addEventListener("pointerup", endDrag);
   shell.addEventListener("pointercancel", endDrag);
+
+  shell.addEventListener("keydown", event => {
+    const steps = { ArrowUp: 5, ArrowRight: 5, ArrowDown: -5, ArrowLeft: -5, Home: -101, End: 101, PageUp: 10, PageDown: -10 };
+    if (!(event.key in steps)) return;
+
+    event.preventDefault();
+    const current = levels[config.person] ?? 50;
+    const newLevel = clamp(current + steps[event.key], 0, 100);
+    if (newLevel === current) return;
+
+    levels[config.person] = newLevel;
+    renderLevel(config, newLevel);
+    saveLevel(config.person, newLevel);
+    vibrate(8);
+  });
 }
 
 PEOPLE.forEach(attachDrag);

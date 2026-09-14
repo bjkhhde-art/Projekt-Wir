@@ -87,11 +87,11 @@ function buildMemoryCard(memory) {
       <button class="icon-action delete-memory-btn" title="Löschen">×</button>
     </div>
     ${memory.cover_url
-      ? `<img src="${memory.cover_url}" alt="${memory.title}" onerror="window.handleBrokenCover(this)">`
+      ? `<img src="${memory.cover_url}" alt="${escapeHtml(memory.title)}" onerror="window.handleBrokenCover(this)">`
       : `<div class="memory-cover-placeholder">📷</div>`}
     <div class="memory-content">
-      <h2>${memory.title}</h2>
-      <p>${memory.location || ""}</p>
+      <h2>${escapeHtml(memory.title)}</h2>
+      <p>${escapeHtml(memory.location || "")}</p>
       <p>${formatDateRange(memory.start_date, memory.end_date)}</p>
     </div>
   `;
@@ -415,9 +415,9 @@ function renderImages() {
 
     card.innerHTML = `
       <button class="delete-image-btn icon-action" title="Löschen">×</button>
-      <img src="${image.image_url}" alt="${image.caption || "Erinnerungsbild"}">
+      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}">
       <div class="image-caption-row">
-        <p class="image-caption ${image.caption ? "" : "empty"}">${image.caption || "Beschriftung hinzufügen…"}</p>
+        <p class="image-caption ${image.caption ? "" : "empty"}">${escapeHtml(image.caption || "Beschriftung hinzufügen…")}</p>
         <button class="edit-caption-btn icon-action" title="Beschriftung bearbeiten">✏️</button>
       </div>
     `;
@@ -655,7 +655,7 @@ function formatDateRange(start, end) {
   if (!start && !end) return "";
   if (start && !end) return formatDate(start);
   if (!start && end) return formatDate(end);
-  return `${formatDate(start)} - ${formatDate(end)}`;
+  return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
 /* ---------- event wiring ---------- */
