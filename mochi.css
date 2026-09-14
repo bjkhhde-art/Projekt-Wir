@@ -143,10 +143,6 @@
   75% { transform: translateY(-10px) rotate(4deg); }
 }
 
-.pet-creature.dancing .pet-svg {
-  animation: pet-dance 0.5s ease-in-out infinite;
-}
-
 @keyframes pet-dance {
   0%, 100% { transform: rotate(0deg) translateX(0); }
   25% { transform: rotate(-8deg) translateX(-4px); }
@@ -865,15 +861,20 @@
 
 #discoBallGroup {
   opacity: 0;
-  transform: translateY(0);
+  transform: translateY(45px);
   transform-box: view-box;
   transform-origin: 100px 14px;
   transition: opacity 0.4s ease;
   pointer-events: none;
 }
 
+.pet-creature.disco-rising #discoBallGroup {
+  animation: disco-ball-rise 1.4s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+
 .pet-creature.party #discoBallGroup {
-  animation: disco-ball-rise 0.6s cubic-bezier(.2, .7, .3, 1) forwards;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @keyframes disco-ball-rise {

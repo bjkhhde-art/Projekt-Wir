@@ -109,6 +109,7 @@ const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
 const ACTIVITY_COOLDOWN_MS = 60 * 1000;
 const SHOWER_SCRUB_NEEDED = 180;
 const SHOWER_TICK_DISTANCE = 18;
+const DISCO_RISE_DURATION_MS = 1400;
 const DISCO_PARTY_DURATION_MS = 3200;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const SUNRISE_DURATION_MS = 1400;
@@ -129,8 +130,7 @@ const DOCK_DISTANCE = 55;
 
 const ACTIVITIES = {
   feed: { label: "Mochi hat genascht", particleEmoji: "🥕", particleCount: 1, falling: false, animationClass: "feeding", vibratePattern: [10, 20, 10] },
-  sport: { label: "Mochi hat Sport gemacht", particleEmoji: "💦", particleCount: 4, falling: false, animationClass: "exercising", vibratePattern: [15, 30, 15, 30] },
-  dance: { label: "Mochi hat getanzt", particleEmoji: "🎵", particleCount: 5, falling: false, animationClass: "dancing", vibratePattern: [10, 20, 10, 20, 10] }
+  sport: { label: "Mochi hat Sport gemacht", particleEmoji: "💦", particleCount: 4, falling: false, animationClass: "exercising", vibratePattern: [15, 30, 15, 30] }
 };
 
 /* ---------- stats, growth & shop model ---------- */
@@ -614,12 +614,44 @@ async function finishShower() {
   await applyCare({ cleanliness: 45, bond: 5 }, 4, 2, () => ({ last_activity: "shower" }));
 }
 
-function startDiscoParty() {
+async function performDance() {
+  if (showerLathering) return false;
+
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return false;
+  }
+
+  const now = Date.now();
+  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
+    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
+    return false;
+  }
+  if (!requirePerson()) return false;
+
+  lastActivityTrigger = now;
+
+  petCreature.classList.add("disco-rising");
+  vibrate([10, 15, 10]);
+
+  await new Promise(resolve => setTimeout(resolve, DISCO_RISE_DURATION_MS));
+
+  petCreature.classList.remove("disco-rising");
+
+  await applyCare({ bond: 12 }, 5, 2, () => ({ last_activity: "dance" }));
+
   petCreature.classList.add("party");
+  vibrate([10, 20, 10, 20, 10]);
+
   for (let i = 0; i < 7; i++) {
     setTimeout(() => spawnParticle(["🎵", "🎶", "✨", "🪩"][Math.floor(Math.random() * 4)]), i * 260);
   }
+
+  showToast("Mochi hat getanzt 🎉", "success");
+
   setTimeout(() => petCreature.classList.remove("party"), DISCO_PARTY_DURATION_MS);
+
+  return true;
 }
 
 /* ---------- activity buttons ---------- */
@@ -659,10 +691,7 @@ showerBtn.addEventListener("click", () => {
 
 sportBtn.addEventListener("click", () => performActivity("sport"));
 
-danceBtn.addEventListener("click", async () => {
-  const started = await performActivity("dance");
-  if (started) startDiscoParty();
-});
+danceBtn.addEventListener("click", () => performDance());
 
 sleepBtn.addEventListener("click", toggleSleep);
 
