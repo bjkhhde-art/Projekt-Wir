@@ -110,7 +110,6 @@ const STROKE_MIN_DISTANCE = 50;
 const STROKE_TICK_DISTANCE = 24;
 const PET_COOLDOWN_MS = 3000;
 const CUDDLE_COOLDOWN_MS = 5 * 60 * 1000;
-const ACTIVITY_COOLDOWN_MS = 60 * 1000;
 const SHOWER_BUBBLE_COUNT = 10;
 const SHOWER_BUBBLE_LIFETIME_MS = 1300;
 const SHOWER_BUBBLE_SPAWN_GAP_MS = 500;
@@ -229,7 +228,7 @@ let currentPerson = localStorage.getItem("pw_person");
 let gestureState = null;
 let lastPetTrigger = 0;
 let lastCuddleTrigger = 0;
-let lastActivityTrigger = 0;
+let activityLocked = false;
 let showerLathering = false;
 let wakingInProgress = false;
 let showerBubblesSpawned = 0;
@@ -565,22 +564,17 @@ async function triggerCuddle() {
 }
 
 async function performActivity(kind, extraLabel, particleEmojiOverride) {
-  if (showerLathering) return false;
+  if (showerLathering || activityLocked) return false;
 
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return false;
   }
 
-  const now = Date.now();
-  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
-    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
-    return false;
-  }
   if (!requirePerson()) return false;
 
   const activity = ACTIVITIES[kind];
-  lastActivityTrigger = now;
+  activityLocked = true;
 
   petCreature.classList.add(activity.animationClass);
   vibrate(activity.vibratePattern);
@@ -602,6 +596,7 @@ async function performActivity(kind, extraLabel, particleEmojiOverride) {
     await applyCare({ bond: 12 }, 5, 2, extra);
   }
 
+  activityLocked = false;
   return true;
 }
 
@@ -712,7 +707,6 @@ async function finishShower() {
   showerLathering = false;
   clearInterval(showerBubbleTimer);
   document.querySelectorAll(".shower-bubble-target").forEach(el => el.remove());
-  lastActivityTrigger = Date.now();
   shampooBottle.classList.add("hidden");
   petHint.textContent = DEFAULT_PET_HINT;
   [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
@@ -785,21 +779,16 @@ function runDanceRhythm() {
 }
 
 async function performDance() {
-  if (showerLathering) return false;
+  if (showerLathering || activityLocked) return false;
 
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return false;
   }
 
-  const now = Date.now();
-  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
-    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
-    return false;
-  }
   if (!requirePerson()) return false;
 
-  lastActivityTrigger = now;
+  activityLocked = true;
 
   [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
 
@@ -832,13 +821,14 @@ async function performDance() {
 
   await applyCare({ bond: bondGain }, coinReward, 2, () => ({ last_activity: "dance" }));
 
+  activityLocked = false;
   return true;
 }
 
 /* ---------- activity buttons ---------- */
 
 feedBtn.addEventListener("click", () => {
-  if (showerLathering) return;
+  if (showerLathering || activityLocked) return;
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return;
@@ -856,14 +846,9 @@ foodButtons.forEach(button => {
 });
 
 showerBtn.addEventListener("click", () => {
-  if (showerLathering) return;
+  if (showerLathering || activityLocked) return;
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
-    return;
-  }
-  const now = Date.now();
-  if (now - lastActivityTrigger < ACTIVITY_COOLDOWN_MS) {
-    showToast("Mochi braucht kurz eine Pause, gleich nochmal 💭", "success");
     return;
   }
   if (!requirePerson()) return;
@@ -1127,7 +1112,7 @@ attachRotateGesture(
 );
 
 coffeeBtn.addEventListener("click", () => {
-  if (showerLathering) return;
+  if (showerLathering || activityLocked) return;
   if (isAsleep()) {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return;
@@ -1167,7 +1152,7 @@ function exitRoomScene() {
 }
 
 openRoomBtn.addEventListener("click", () => {
-  if (showerLathering || isAsleep()) return;
+  if (showerLathering || activityLocked || isAsleep()) return;
   enterRoomScene();
 });
 
