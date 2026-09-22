@@ -1,0 +1,208 @@
+.vision-timeline {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.vision-empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.vision-empty-state .empty-icon {
+  display: block;
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.vision-bucket {
+  margin-bottom: 30px;
+}
+
+.vision-bucket-heading {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0 0 16px 4px;
+  color: var(--text);
+}
+
+.vision-track {
+  position: relative;
+  padding-left: 28px;
+}
+
+.vision-track::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--pink), var(--purple));
+  opacity: 0.35;
+  border-radius: 2px;
+}
+
+.vision-entry {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.vision-entry:last-child {
+  margin-bottom: 0;
+}
+
+.vision-dot {
+  position: absolute;
+  left: -28px;
+  top: 18px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1.5px rgba(139, 92, 246, 0.25);
+  z-index: 1;
+}
+
+.vision-dot.achieved {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.3);
+}
+
+.vision-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: left;
+  transition: opacity 0.2s ease;
+}
+
+.vision-card.achieved {
+  opacity: 0.75;
+}
+
+.vision-card-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-border);
+}
+
+.vision-card-placeholder {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: var(--surface-border);
+  opacity: 0.5;
+}
+
+.vision-card-body {
+  padding: 14px 16px;
+  position: relative;
+}
+
+.vision-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vision-card-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.vision-card.achieved .vision-card-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(16, 185, 129, 0.6);
+}
+
+.vision-card-desc {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+.vision-person-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  color: white;
+  white-space: nowrap;
+}
+
+.vision-person-badge.person-isi {
+  background: var(--pink-deep);
+}
+
+.vision-person-badge.person-benji {
+  background: var(--purple-deep);
+}
+
+.vision-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.vision-achieved-toggle {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.vision-achieved-toggle.is-achieved {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #0f9c6f;
+}
+
+.vision-card-icon-btn {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1.5px solid var(--surface-border);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.vision-card-icon-btn:hover {
+  transform: scale(1.08);
+}
+
+.vision-card-icon-btn.delete-vision-btn {
+  color: var(--danger);
+}
+
+@media (min-width: 560px) {
+  .vision-card-image {
+    height: 190px;
+  }
+}
