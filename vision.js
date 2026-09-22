@@ -10,7 +10,7 @@ const visionModal = document.getElementById("visionModal");
 const visionModalTitle = document.getElementById("visionModalTitle");
 const visionTitleInput = document.getElementById("visionTitleInput");
 const visionDescInput = document.getElementById("visionDescInput");
-const visionHorizonInput = document.getElementById("visionHorizonInput");
+const visionYearInput = document.getElementById("visionYearInput");
 const visionCoverPreviewWrap = document.getElementById("visionCoverPreviewWrap");
 const visionCoverPreviewImg = document.getElementById("visionCoverPreviewImg");
 const visionCoverInput = document.getElementById("visionCoverInput");
@@ -20,19 +20,21 @@ const closeVisionModal = document.getElementById("closeVisionModal");
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
 
-const HORIZON_ORDER = ["bald", "1_2", "3_5", "5_plus", "irgendwann"];
-
-const HORIZON_HEADINGS = {
-  bald: "🌱 Schon bald",
-  "1_2": "🌤️ In 1–2 Jahren",
-  "3_5": "🌳 In 3–5 Jahren",
-  "5_plus": "🏔️ In über 5 Jahren",
-  irgendwann: "✨ Irgendwann"
-};
+const CURRENT_YEAR = new Date().getFullYear();
+const MAX_YEAR = 2100;
 
 let currentPerson = localStorage.getItem("pw_person");
 let visions = [];
 let editingVisionId = null;
+
+function populateYearOptions() {
+  let options = "";
+  for (let year = CURRENT_YEAR; year <= MAX_YEAR; year++) {
+    options += `<option value="${year}">${year}</option>`;
+  }
+  visionYearInput.innerHTML = options;
+}
+populateYearOptions();
 
 function requirePerson() {
   if (currentPerson) return true;
@@ -59,40 +61,71 @@ function personBadge(person) {
   return `<span class="vision-person-badge ${isIsi ? "person-isi" : "person-benji"}">${isIsi ? "💗" : "💜"} ${escapeHtml(person)}</span>`;
 }
 
-function buildVisionEntry(vision) {
-  const entry = document.createElement("div");
-  entry.className = "vision-entry";
+function buildVisionCard(vision) {
+  const card = document.createElement("div");
+  card.className = `vision-card card ${vision.achieved ? "achieved" : ""}`;
 
-  entry.innerHTML = `
-    <div class="vision-dot ${vision.achieved ? "achieved" : ""}"></div>
-    <div class="vision-card card ${vision.achieved ? "achieved" : ""}">
-      ${vision.image_url
-        ? `<img class="vision-card-image" src="${vision.image_url}" alt="${escapeHtml(vision.title)}">`
-        : ""}
-      <div class="vision-card-body">
-        <div class="vision-card-top">
-          <div>
-            <h3 class="vision-card-title">${vision.achieved ? "✓ " : ""}${escapeHtml(vision.title)}</h3>
-            ${vision.description ? `<p class="vision-card-desc">${escapeHtml(vision.description)}</p>` : ""}
-          </div>
-          ${personBadge(vision.person)}
+  card.innerHTML = `
+    ${vision.image_url
+      ? `<img class="vision-card-image" src="${vision.image_url}" alt="${escapeHtml(vision.title)}">`
+      : ""}
+    <div class="vision-card-body">
+      <div class="vision-card-top">
+        <div>
+          <h3 class="vision-card-title">${vision.achieved ? "✓ " : ""}${escapeHtml(vision.title)}</h3>
+          ${vision.description ? `<p class="vision-card-desc">${escapeHtml(vision.description)}</p>` : ""}
         </div>
-        <div class="vision-card-actions">
-          <button class="vision-achieved-toggle ${vision.achieved ? "is-achieved" : ""}" data-action="toggle">
-            ${vision.achieved ? "✓ Erreicht" : "Als erreicht markieren"}
-          </button>
-          <button class="vision-card-icon-btn edit-vision-btn" data-action="edit" title="Bearbeiten">✏️</button>
-          <button class="vision-card-icon-btn delete-vision-btn" data-action="delete" title="Löschen">×</button>
-        </div>
+        ${personBadge(vision.person)}
+      </div>
+      <div class="vision-card-actions">
+        <button class="vision-achieved-toggle ${vision.achieved ? "is-achieved" : ""}" data-action="toggle">
+          ${vision.achieved ? "✓ Erreicht" : "Als erreicht markieren"}
+        </button>
+        <button class="vision-card-icon-btn edit-vision-btn" data-action="edit" title="Bearbeiten">✏️</button>
+        <button class="vision-card-icon-btn delete-vision-btn" data-action="delete" title="Löschen">×</button>
       </div>
     </div>
   `;
 
-  entry.querySelector('[data-action="toggle"]').addEventListener("click", () => toggleAchieved(vision));
-  entry.querySelector('[data-action="edit"]').addEventListener("click", () => openEditModal(vision));
-  entry.querySelector('[data-action="delete"]').addEventListener("click", () => deleteVision(vision.id));
+  card.querySelector('[data-action="toggle"]').addEventListener("click", () => toggleAchieved(vision));
+  card.querySelector('[data-action="edit"]').addEventListener("click", () => openEditModal(vision));
+  card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteVision(vision.id));
 
-  return entry;
+  return card;
+}
+
+function buildYearRow(year, entries) {
+  const row = document.createElement("div");
+  row.dataset.year = year;
+  row.className = "vision-year-row" +
+    (entries.length > 0 ? " has-entries" : "") +
+    (year === CURRENT_YEAR ? " is-current-year" : "");
+
+  const gutter = document.createElement("div");
+  gutter.className = "vision-year-gutter";
+  const dot = document.createElement("span");
+  dot.className = "vision-year-dot";
+  gutter.appendChild(dot);
+
+  const content = document.createElement("div");
+  content.className = "vision-year-content";
+
+  const num = document.createElement("div");
+  num.className = "vision-year-num";
+  num.textContent = String(year);
+  content.appendChild(num);
+
+  if (entries.length > 0) {
+    const entriesWrap = document.createElement("div");
+    entriesWrap.className = "vision-year-entries";
+    entries.forEach(vision => entriesWrap.appendChild(buildVisionCard(vision)));
+    content.appendChild(entriesWrap);
+  }
+
+  row.appendChild(gutter);
+  row.appendChild(content);
+
+  return row;
 }
 
 function renderTimeline() {
@@ -108,25 +141,15 @@ function renderTimeline() {
     return;
   }
 
-  HORIZON_ORDER.forEach(horizon => {
-    const entries = visions.filter(v => v.horizon === horizon);
-    if (entries.length === 0) return;
+  const track = document.createElement("div");
+  track.className = "vision-track";
 
-    const bucket = document.createElement("div");
-    bucket.className = "vision-bucket";
+  for (let year = CURRENT_YEAR; year <= MAX_YEAR; year++) {
+    const entries = visions.filter(v => v.target_year === year);
+    track.appendChild(buildYearRow(year, entries));
+  }
 
-    const heading = document.createElement("h2");
-    heading.className = "vision-bucket-heading";
-    heading.textContent = HORIZON_HEADINGS[horizon] || horizon;
-    bucket.appendChild(heading);
-
-    const track = document.createElement("div");
-    track.className = "vision-track";
-    entries.forEach(vision => track.appendChild(buildVisionEntry(vision)));
-    bucket.appendChild(track);
-
-    visionTimeline.appendChild(bucket);
-  });
+  visionTimeline.appendChild(track);
 }
 
 /* ---------- data ---------- */
@@ -217,7 +240,7 @@ function openCreateModal() {
 
   visionTitleInput.value = "";
   visionDescInput.value = "";
-  visionHorizonInput.value = "bald";
+  visionYearInput.value = String(CURRENT_YEAR);
   visionCoverInput.value = "";
   visionCoverPreviewWrap.classList.add("hidden");
   visionCoverPreviewImg.src = "";
@@ -233,7 +256,7 @@ function openEditModal(vision) {
 
   visionTitleInput.value = vision.title || "";
   visionDescInput.value = vision.description || "";
-  visionHorizonInput.value = vision.horizon || "bald";
+  visionYearInput.value = String(vision.target_year || CURRENT_YEAR);
   visionCoverInput.value = "";
 
   if (vision.image_url) {
@@ -250,7 +273,7 @@ function openEditModal(vision) {
 async function saveVision() {
   const title = visionTitleInput.value.trim();
   const description = visionDescInput.value.trim();
-  const horizon = visionHorizonInput.value;
+  const targetYear = Number(visionYearInput.value);
   const coverFile = visionCoverInput.files[0];
 
   if (!title) {
@@ -269,7 +292,7 @@ async function saveVision() {
     }
 
     if (editingVisionId) {
-      const update = { title, description, horizon };
+      const update = { title, description, target_year: targetYear };
       if (imageUrl) update.image_url = imageUrl;
 
       const { error } = await supabaseClient
@@ -286,7 +309,7 @@ async function saveVision() {
         .insert({
           title,
           description,
-          horizon,
+          target_year: targetYear,
           person: currentPerson,
           image_url: imageUrl || null
         });
@@ -294,7 +317,7 @@ async function saveVision() {
       if (error) throw error;
 
       celebrate(10);
-      showToast(`${currentPerson} hat ein neues Ziel eingetragen 🔭`, "success");
+      showToast(`${currentPerson} hat ein neues Ziel für ${targetYear} eingetragen 🔭`, "success");
     }
 
     visionModal.classList.add("hidden");
