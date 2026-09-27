@@ -6,6 +6,38 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 document.getElementById("heroDays").textContent =
   daysBetween(MILESTONES.anniversary.date) + " 🎉";
 
+const ALICANTE_START = "2026-10-01";
+const ALICANTE_END = "2027-01-24";
+
+const alicantePercent = document.getElementById("alicantePercent");
+const alicanteProgressFill = document.getElementById("alicanteProgressFill");
+const alicanteDaysLeft = document.getElementById("alicanteDaysLeft");
+
+function renderAlicanteProgress() {
+  const start = new Date(ALICANTE_START + "T00:00:00");
+  const end = new Date(ALICANTE_END + "T00:00:00");
+  const now = new Date();
+
+  const totalMs = end - start;
+  const elapsedMs = clamp(now - start, 0, totalMs);
+  const percent = Math.round((elapsedMs / totalMs) * 100);
+
+  alicantePercent.textContent = percent + "%";
+  alicanteProgressFill.style.width = percent + "%";
+
+  if (now < start) {
+    const daysUntilStart = Math.ceil((start - now) / 86400000);
+    alicanteDaysLeft.textContent = `Isi fliegt in ${daysUntilStart} Tag${daysUntilStart === 1 ? "" : "en"} nach Alicante`;
+  } else if (now > end) {
+    alicanteDaysLeft.textContent = "Isi ist wieder in Deutschland 🎉";
+  } else {
+    const daysLeft = Math.ceil((end - now) / 86400000);
+    alicanteDaysLeft.textContent = `Noch ${daysLeft} Tag${daysLeft === 1 ? "" : "e"}, bis Isi wieder in Deutschland ist`;
+  }
+}
+
+renderAlicanteProgress();
+
 const pushModal = document.getElementById("pushModal");
 const dismissPushModal = document.getElementById("dismissPushModal");
 const pushPersonButtons = document.querySelectorAll(".push-person-btn");
