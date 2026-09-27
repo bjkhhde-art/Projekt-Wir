@@ -15,6 +15,9 @@ const weeklyTimeRow = document.getElementById("weeklyTimeRow");
 const dailyReminderTime = document.getElementById("dailyReminderTime");
 const weeklyReminderTime = document.getElementById("weeklyReminderTime");
 
+const alicanteStartInput = document.getElementById("alicanteStartInput");
+const alicanteEndInput = document.getElementById("alicanteEndInput");
+
 const DEFAULT_SETTINGS = {
   letters_enabled: true,
   quest_enabled: true,
@@ -168,6 +171,50 @@ weeklyReminderTime.addEventListener("change", () => {
   saveSettings({ weekly_reminder_time: weeklyReminderTime.value });
 });
 
+/* ---------- Alicante-Zeitraum (geteilt) ---------- */
+
+async function loadAlicanteSettings() {
+  const { data, error } = await supabaseClient
+    .from("app_settings")
+    .select("alicante_start, alicante_end")
+    .eq("id", "shared")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Fehler beim Laden des Alicante-Zeitraums:", error);
+    return;
+  }
+
+  if (data) {
+    alicanteStartInput.value = data.alicante_start || "";
+    alicanteEndInput.value = data.alicante_end || "";
+  }
+}
+
+async function saveAlicanteSettings(patch) {
+  const { error } = await supabaseClient
+    .from("app_settings")
+    .upsert({ id: "shared", ...patch }, { onConflict: "id" });
+
+  if (error) {
+    console.error("Fehler beim Speichern des Alicante-Zeitraums:", error);
+    showToast("Datum konnte nicht gespeichert werden.", "error");
+    return;
+  }
+
+  showToast("Alicante-Zeitraum gespeichert 💾", "success");
+}
+
+alicanteStartInput.addEventListener("change", () => {
+  if (!alicanteStartInput.value) return;
+  saveAlicanteSettings({ alicante_start: alicanteStartInput.value });
+});
+
+alicanteEndInput.addEventListener("change", () => {
+  if (!alicanteEndInput.value) return;
+  saveAlicanteSettings({ alicante_end: alicanteEndInput.value });
+});
+
 /* ---------- push status ---------- */
 
 function refreshPushStatus() {
@@ -212,3 +259,4 @@ enablePushBtn.addEventListener("click", async () => {
 renderSettings();
 refreshPushStatus();
 loadSettings();
+loadAlicanteSettings();
