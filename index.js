@@ -6,16 +6,16 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 document.getElementById("heroDays").textContent =
   daysBetween(MILESTONES.anniversary.date) + " 🎉";
 
-const ALICANTE_START = "2026-10-01";
-const ALICANTE_END = "2027-01-24";
+const DEFAULT_ALICANTE_START = "2026-09-01";
+const DEFAULT_ALICANTE_END = "2027-01-24";
 
 const alicantePercent = document.getElementById("alicantePercent");
 const alicanteProgressFill = document.getElementById("alicanteProgressFill");
 const alicanteDaysLeft = document.getElementById("alicanteDaysLeft");
 
-function renderAlicanteProgress() {
-  const start = new Date(ALICANTE_START + "T00:00:00");
-  const end = new Date(ALICANTE_END + "T00:00:00");
+function renderAlicanteProgress(startDate, endDate) {
+  const start = new Date((startDate || DEFAULT_ALICANTE_START) + "T00:00:00");
+  const end = new Date((endDate || DEFAULT_ALICANTE_END) + "T00:00:00");
   const now = new Date();
 
   const totalMs = end - start;
@@ -36,7 +36,23 @@ function renderAlicanteProgress() {
   }
 }
 
-renderAlicanteProgress();
+async function loadAlicanteProgress() {
+  const { data, error } = await supabaseClient
+    .from("app_settings")
+    .select("alicante_start, alicante_end")
+    .eq("id", "shared")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Fehler beim Laden der Alicante-Daten:", error);
+    renderAlicanteProgress();
+    return;
+  }
+
+  renderAlicanteProgress(data && data.alicante_start, data && data.alicante_end);
+}
+
+loadAlicanteProgress();
 
 const pushModal = document.getElementById("pushModal");
 const dismissPushModal = document.getElementById("dismissPushModal");
