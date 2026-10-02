@@ -73,6 +73,7 @@ function renderNotes() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = `envelope-card ${authorClass}`;
+    card.setAttribute("data-reveal", "");
 
     card.innerHTML = `
       <div class="envelope-mini">
