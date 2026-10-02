@@ -3,8 +3,7 @@ const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-document.getElementById("heroDays").textContent =
-  daysBetween(MILESTONES.anniversary.date) + " 🎉";
+animateCountUp(document.getElementById("heroDays"), daysBetween(MILESTONES.anniversary.date), { suffix: " 🎉" });
 
 const DEFAULT_ALICANTE_START = "2026-09-01";
 const DEFAULT_ALICANTE_END = "2027-01-24";
@@ -22,8 +21,8 @@ function renderAlicanteProgress(startDate, endDate) {
   const elapsedMs = clamp(now - start, 0, totalMs);
   const percent = Math.round((elapsedMs / totalMs) * 100);
 
-  alicantePercent.textContent = percent + "%";
-  alicanteProgressFill.style.width = percent + "%";
+  animateCountUp(alicantePercent, percent, { suffix: "%" });
+  animateFillOnReveal(alicanteProgressFill, percent);
 
   if (now < start) {
     const daysUntilStart = Math.ceil((start - now) / 86400000);
@@ -191,7 +190,7 @@ async function loadDashMochi() {
   const mood = moodTier(happiness);
 
   dashMochiMood.textContent = MOOD_LABELS[mood];
-  dashMochiFill.style.width = happiness + "%";
+  animateFillOnReveal(dashMochiFill, happiness);
   dashMochiFill.style.background =
     happiness >= 60 ? "var(--gradient-brand)" :
     happiness >= 40 ? "var(--gradient-warm)" :
@@ -227,8 +226,8 @@ async function loadDashBattery() {
   const partnerShort = currentPerson === "Isi" ? "Benji" : "Isi";
 
   dashBatteryLabel.textContent = `Akku von ${partnerShort}`;
-  dashBatteryValue.textContent = level + "%";
-  dashBatteryFill.style.width = level + "%";
+  animateCountUp(dashBatteryValue, level, { suffix: "%" });
+  animateFillOnReveal(dashBatteryFill, level);
   dashBatteryFill.style.background =
     level <= 20 ? "linear-gradient(180deg, #f87171, var(--danger))" :
     level <= 45 ? "linear-gradient(180deg, #fbbf24, var(--warning))" :

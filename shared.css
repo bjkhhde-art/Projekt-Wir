@@ -753,13 +753,16 @@ textarea:focus {
   gap: 4px;
   padding: 4px;
   margin: 0 0 26px;
-  background: var(--surface-solid);
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1.5px solid var(--surface-border);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-soft);
   position: sticky;
   top: 10px;
   z-index: 20;
+  transition: box-shadow 0.3s ease;
 }
 
 .hub-tab {
@@ -794,26 +797,54 @@ textarea:focus {
 /* ---------- scroll reveal (Apple-style fade/slide on scroll) ---------- */
 
 .card,
-[data-reveal] {
+[data-reveal],
+.section-heading,
+.reveal-text {
   opacity: 0;
   transform: translateY(28px);
-  transition: opacity 0.7s cubic-bezier(0.16, 0.84, 0.44, 1),
-              transform 0.7s cubic-bezier(0.16, 0.84, 0.44, 1);
+  filter: blur(6px);
+  transition: opacity 0.8s cubic-bezier(0.16, 0.84, 0.44, 1),
+              transform 0.8s cubic-bezier(0.16, 0.84, 0.44, 1),
+              filter 0.8s cubic-bezier(0.16, 0.84, 0.44, 1);
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
+  will-change: opacity, transform, filter;
 }
 
 .card.reveal-visible,
-[data-reveal].reveal-visible {
+[data-reveal].reveal-visible,
+.section-heading.reveal-visible,
+.reveal-text.reveal-visible {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
+}
+
+/* elements that should scale in slightly rather than slide, e.g. stat tiles */
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.88);
+  filter: blur(6px);
+  transition: opacity 0.8s cubic-bezier(0.16, 0.84, 0.44, 1),
+              transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+              filter 0.8s cubic-bezier(0.16, 0.84, 0.44, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-scale.reveal-visible {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  [data-reveal] {
+  [data-reveal],
+  .section-heading,
+  .reveal-text,
+  .reveal-scale {
     opacity: 1;
     transform: none;
+    filter: none;
     transition: none;
   }
 }

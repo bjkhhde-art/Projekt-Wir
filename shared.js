@@ -121,6 +121,71 @@ window.sendAppNotification = async function (supabaseClient, { title, body, excl
   }
 };
 
+window.animateCountUp = function (el, target, opts) {
+  opts = opts || {};
+  const duration = opts.duration || 1100;
+  const suffix = opts.suffix || "";
+  const prefix = opts.prefix || "";
+  const decimals = opts.decimals || 0;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function setText(value) {
+    el.textContent = prefix + value.toLocaleString("de-DE", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    }) + suffix;
+  }
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    setText(target);
+    return;
+  }
+
+  setText(0);
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+
+      const start = performance.now();
+      function tick(now) {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setText(target * eased);
+        if (progress < 1) requestAnimationFrame(tick);
+        else setText(target);
+      }
+      requestAnimationFrame(tick);
+    });
+  }, { threshold: 0.3 });
+
+  observer.observe(el);
+};
+
+window.animateFillOnReveal = function (el, targetPercent) {
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    el.style.width = targetPercent + "%";
+    return;
+  }
+
+  el.style.width = "0%";
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      requestAnimationFrame(() => {
+        el.style.width = targetPercent + "%";
+      });
+    });
+  }, { threshold: 0.3 });
+
+  observer.observe(el);
+};
+
 (function () {
   function ensureLayer(id, className) {
     let el = document.getElementById(id);
@@ -206,7 +271,7 @@ window.sendAppNotification = async function (supabaseClient, { title, body, excl
   /* ---------- scroll reveal (Apple-style fade/slide on scroll) ---------- */
 
   function initScrollReveal() {
-    const SELECTOR = ".card, [data-reveal]";
+    const SELECTOR = ".card, [data-reveal], .section-heading, .reveal-text, .reveal-scale";
     const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reduceMotion || !("IntersectionObserver" in window)) {
