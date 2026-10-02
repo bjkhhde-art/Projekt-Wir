@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Wir</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="reflexion.css">
+  <link rel="stylesheet" href="questions.css">
+  <link rel="stylesheet" href="liebesbriefe.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body data-hub="wir">
+
+  <main class="page">
+    <h1 class="page-title">Wir 💬</h1>
+    <p class="page-subtitle">Reflexion, Gesprächsthemen und kleine Nachrichten füreinander</p>
+
+    <div class="hub-tabs" role="tablist">
+      <button class="hub-tab" data-tab="reflexion" role="tab">🪞 Reflexion</button>
+      <button class="hub-tab" data-tab="fragen" role="tab">💬 Fragen</button>
+      <button class="hub-tab" data-tab="briefe" role="tab">💌 Briefe</button>
+    </div>
+
+    <section class="hub-panel" data-panel="reflexion">
+
+      <section class="reflection-card card">
+        <h2 class="reflection-title">Heute</h2>
+        <p id="dailyDateLabel" class="reflection-subtitle"></p>
+
+        <div id="dailyForm" class="reflection-form hidden">
+          <label>Kommunikation heute</label>
+          <div class="rating-hearts" id="dailyCommunicationRating" data-field="communication"></div>
+
+          <label>Nähe heute</label>
+          <div class="rating-hearts" id="dailyClosenessRating" data-field="closeness"></div>
+
+          <label>Kurze Notiz (optional)</label>
+          <input id="dailyNoteInput" type="text" placeholder="z. B. Videocall am Abend hat gutgetan">
+
+          <button id="submitDailyBtn" class="btn btn-block">Abschicken</button>
+        </div>
+
+        <div id="dailyWaiting" class="reflection-waiting hidden">
+          <span class="reflection-waiting-icon">⏳</span>
+          <p id="dailyWaitingText"></p>
+          <button id="editDailyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
+        </div>
+
+        <div id="dailyReveal" class="reflection-reveal hidden"></div>
+      </section>
+
+      <section class="reflection-card card">
+        <h2 class="reflection-title">Diese Woche</h2>
+        <p id="weeklyDateLabel" class="reflection-subtitle"></p>
+
+        <div id="weeklyForm" class="reflection-form hidden">
+          <label>Kommunikation diese Woche</label>
+          <div class="rating-hearts" id="weeklyCommunicationRating" data-field="communication"></div>
+
+          <label>Nähe diese Woche</label>
+          <div class="rating-hearts" id="weeklyClosenessRating" data-field="closeness"></div>
+
+          <label>Gemeinsame Zeit diese Woche</label>
+          <div class="rating-hearts" id="weeklyTimeRating" data-field="time"></div>
+
+          <label>Gab es Konflikte?</label>
+          <div class="conflict-toggle">
+            <button type="button" id="conflictNoBtn" class="chip conflict-chip active" data-value="false">Nein</button>
+            <button type="button" id="conflictYesBtn" class="chip conflict-chip" data-value="true">Ja</button>
+          </div>
+
+          <div id="conflictNoteWrap" class="hidden">
+            <label>Was genau? (optional)</label>
+            <textarea id="conflictNoteInput" rows="2" placeholder="Worum ging es?"></textarea>
+          </div>
+
+          <label>Sonstiges (optional)</label>
+          <textarea id="weeklyNoteInput" rows="3" placeholder="Was möchten wir sonst noch festhalten?"></textarea>
+
+          <button id="submitWeeklyBtn" class="btn btn-block">Abschicken</button>
+        </div>
+
+        <div id="weeklyWaiting" class="reflection-waiting hidden">
+          <span class="reflection-waiting-icon">⏳</span>
+          <p id="weeklyWaitingText"></p>
+          <button id="editWeeklyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
+        </div>
+
+        <div id="weeklyReveal" class="reflection-reveal hidden"></div>
+      </section>
+
+      <section class="reflection-history">
+        <h2 class="reflection-history-title">Verlauf</h2>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+    </section>
+
+    <section class="hub-panel" data-panel="fragen" hidden>
+
+      <section class="category-section">
+        <button class="category-btn active" data-group="easy">🧊 Easy Talk</button>
+        <button class="category-btn" data-group="deep">💗 Deep Talk</button>
+        <button class="category-btn" data-group="relationship">💑 Beziehung</button>
+        <button class="category-btn sexy" data-group="sexy">🔥 Sexy Time</button>
+      </section>
+
+      <div class="question-wrapper">
+        <div class="question-card card">
+          <div id="questionGroupLabel" class="question-group-label chip">🧊 Easy Talk</div>
+          <div id="questionRealCategory" class="question-real-category"></div>
+
+          <p id="questionText" class="question-text">
+            Lade Fragen...
+          </p>
+
+          <div class="question-actions">
+            <button id="resetSeenBtn" class="btn btn-secondary">← Vorherige</button>
+            <button id="newQuestionBtn" class="btn">Nächste Frage →</button>
+          </div>
+        </div>
+
+        <p id="questionCounter" class="question-counter"></p>
+      </div>
+
+    </section>
+
+    <section class="hub-panel" data-panel="briefe" hidden>
+      <div id="notesFeed" class="notes-feed"></div>
+    </section>
+
+  </main>
+
+  <button id="openNoteModal" class="fab" title="Neue Nachricht" aria-label="Neue Nachricht" data-show-for="briefe">+</button>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wessen Reflexion das ist.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="noteModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Neue Nachricht</h2>
+
+      <label>Von</label>
+      <select id="noteAuthorInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <label>Nachricht</label>
+      <textarea id="noteMessageInput" rows="4" placeholder="Schreib etwas Liebes…"></textarea>
+
+      <div class="modal-buttons">
+        <button id="sendNoteBtn" class="btn">Absenden 💌</button>
+        <button id="closeNoteModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="letterOverlay" class="letter-overlay hidden">
+    <button id="deleteLetterBtn" class="close-lightbox delete-letter-btn" title="Löschen">🗑️</button>
+    <button id="closeLetterOverlay" class="close-lightbox" title="Schließen">×</button>
+
+    <div class="envelope-scene">
+      <div class="envelope-big" id="envelopeBig">
+        <div class="letter-paper" id="letterPaper">
+          <p class="letter-date" id="letterDate"></p>
+          <p class="letter-message" id="letterMessage"></p>
+          <p class="letter-signature" id="letterSignature"></p>
+        </div>
+
+        <div class="envelope-body">
+          <span class="envelope-seal">💗</span>
+        </div>
+
+        <div class="envelope-flap" id="envelopeFlap">
+          <div class="envelope-mini-stamp"><span class="stamp-icon">💗</span></div>
+          <span class="postmark"></span>
+          <span class="flap-arrow">▲</span>
+          <span class="flap-hint">Hoch wischen<br>zum Öffnen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="hub-tabs.js"></script>
+  <script src="reflexion.js"></script>
+  <script src="questions.js"></script>
+  <script src="liebesbriefe.js"></script>
+</body>
+</html>

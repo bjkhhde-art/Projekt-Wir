@@ -12,7 +12,7 @@ self.addEventListener("push", event => {
     body: data.body || "Du hast eine neue Nachricht bekommen.",
     icon: "favicon.svg",
     badge: "favicon.svg",
-    data: { url: data.url || "liebesbriefe.html" }
+    data: { url: data.url || "wir.html?tab=briefe" }
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -21,7 +21,7 @@ self.addEventListener("push", event => {
 self.addEventListener("notificationclick", event => {
   event.notification.close();
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || "liebesbriefe.html";
+  const targetUrl = (event.notification.data && event.notification.data.url) || "wir.html?tab=briefe";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {

@@ -314,3 +314,27 @@ loadDashMochi();
 loadDashBattery();
 loadDashTrip();
 loadDashQuestion();
+
+/* ---------- hero parallax ---------- */
+
+(function initHeroParallax() {
+  const heart = document.querySelector(".hero .heart-parallax");
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!heart || reduceMotion) return;
+
+  let ticking = false;
+
+  function update() {
+    const y = window.scrollY || 0;
+    heart.style.transform = `translateY(${y * 0.25}px) scale(${Math.max(0.85, 1 - y / 900)})`;
+    heart.style.opacity = String(Math.max(0, 1 - y / 300));
+    ticking = false;
+  }
+
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      requestAnimationFrame(update);
+      ticking = true;
+    }
+  }, { passive: true });
+})();

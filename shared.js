@@ -202,4 +202,67 @@ window.sendAppNotification = async function (supabaseClient, { title, body, excl
   }
 
   document.addEventListener("DOMContentLoaded", highlightNav);
+
+  /* ---------- scroll reveal (Apple-style fade/slide on scroll) ---------- */
+
+  function initScrollReveal() {
+    const SELECTOR = ".card, [data-reveal]";
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      document.querySelectorAll(SELECTOR).forEach(el => el.classList.add("reveal-visible"));
+      return;
+    }
+
+    const seen = new WeakSet();
+    const groupCounters = new WeakMap();
+    const STAGGER_STEP_MS = 70;
+    const STAGGER_MAX_STEPS = 5;
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("reveal-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+
+    function observeElement(el) {
+      if (seen.has(el)) return;
+      seen.add(el);
+
+      const parent = el.parentElement;
+      if (parent) {
+        const index = groupCounters.get(parent) || 0;
+        groupCounters.set(parent, index + 1);
+        el.style.setProperty("--reveal-delay", Math.min(index, STAGGER_MAX_STEPS) * STAGGER_STEP_MS + "ms");
+      }
+
+      observer.observe(el);
+    }
+
+    function scanAndObserve(root) {
+      if (root.nodeType !== 1) return;
+      if (root.matches && root.matches(SELECTOR)) observeElement(root);
+      if (root.querySelectorAll) {
+        root.querySelectorAll(SELECTOR).forEach(observeElement);
+      }
+    }
+
+    scanAndObserve(document.body);
+
+    const mutationObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(scanAndObserve);
+      });
+    });
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initScrollReveal);
+  } else {
+    initScrollReveal();
+  }
 })();

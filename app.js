@@ -93,7 +93,7 @@ function renderBoard() {
       if (editBtn) {
         editBtn.addEventListener("click", event => {
           event.stopPropagation();
-          openEditModal(item);
+          openQuestEditModal(item);
         });
       }
     } else if (!deleteMode) {
@@ -125,7 +125,7 @@ function openAddModalHandler() {
   input.focus();
 }
 
-function openEditModal(item) {
+function openQuestEditModal(item) {
   editingItemId = item.id;
   questModalTitle.textContent = "Feld bearbeiten";
   addBtn.textContent = "Änderungen speichern";
@@ -207,7 +207,7 @@ async function saveItem() {
       body: `${authorInput.value} hat "${title}" hinzugefügt.`,
       excludePerson: person,
       category: "quest",
-      url: "couple-quest.html"
+      url: "ziele.html?tab=quest"
     });
   }
 

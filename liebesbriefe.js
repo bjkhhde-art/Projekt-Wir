@@ -1,8 +1,3 @@
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const notesFeed = document.getElementById("notesFeed");
 
 const openNoteModal = document.getElementById("openNoteModal");
@@ -73,6 +68,7 @@ function renderNotes() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = `envelope-card ${authorClass}`;
+    card.setAttribute("data-reveal", "");
 
     card.innerHTML = `
       <div class="envelope-mini">
@@ -220,7 +216,7 @@ function notifyNewLetter(author) {
     body: `${author} hat dir eine Nachricht geschrieben.`,
     excludePerson: person,
     category: "letters",
-    url: "liebesbriefe.html"
+    url: "wir.html?tab=briefe"
   });
 }
 
