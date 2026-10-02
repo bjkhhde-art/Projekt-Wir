@@ -2,6 +2,29 @@
   padding-bottom: 10px;
 }
 
+.settings-gear {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  border-radius: 50%;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  text-decoration: none;
+  transition: transform 0.25s ease;
+}
+
+.settings-gear:hover {
+  transform: rotate(45deg);
+}
+
 .hero {
   text-align: center;
   margin: 20px auto 34px;

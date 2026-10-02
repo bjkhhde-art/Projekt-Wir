@@ -1,8 +1,3 @@
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const visionTimeline = document.getElementById("visionTimeline");
 
 const openVisionModal = document.getElementById("openVisionModal");
@@ -88,7 +83,7 @@ function buildVisionCard(vision) {
   `;
 
   card.querySelector('[data-action="toggle"]').addEventListener("click", () => toggleAchieved(vision));
-  card.querySelector('[data-action="edit"]').addEventListener("click", () => openEditModal(vision));
+  card.querySelector('[data-action="edit"]').addEventListener("click", () => openVisionEditModal(vision));
   card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteVision(vision.id));
 
   return card;
@@ -249,7 +244,7 @@ function openCreateModal() {
   visionTitleInput.focus();
 }
 
-function openEditModal(vision) {
+function openVisionEditModal(vision) {
   editingVisionId = vision.id;
   visionModalTitle.textContent = "Ziel bearbeiten";
   saveVisionBtn.textContent = "Änderungen speichern";

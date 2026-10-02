@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Reise</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="vergleich.css">
+  <link rel="stylesheet" href="erinnerungen.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body data-hub="reise">
+
+  <main class="page">
+    <h1 class="page-title">Reise ✈️</h1>
+    <p class="page-subtitle">Alicante &amp; Hamburg im Vergleich, und unsere gemeinsamen Erinnerungen</p>
+
+    <div class="hub-tabs" role="tablist">
+      <button class="hub-tab" data-tab="vergleich" role="tab">🌍 Vergleich</button>
+      <button class="hub-tab" data-tab="erinnerungen" role="tab">📸 Erinnerungen</button>
+    </div>
+
+    <section class="hub-panel" data-panel="vergleich">
+
+      <section class="card distance-card">
+        <span class="distance-icon">📍</span>
+        <p id="distanceValue" class="distance-value">– km</p>
+        <p class="distance-label">Luftlinie zwischen uns</p>
+      </section>
+
+      <section class="card city-card">
+        <div class="city-header">
+          <span class="city-flag">🇩🇪</span>
+          <div>
+            <h2 class="city-name">Hamburg</h2>
+            <p class="city-sub">Zuhause 🏠</p>
+          </div>
+        </div>
+
+        <div class="city-weather-main">
+          <span id="hamburgIcon" class="city-weather-icon">–</span>
+          <span id="hamburgTemp" class="city-temp">–°</span>
+        </div>
+        <p id="hamburgCondition" class="city-condition">Lädt...</p>
+
+        <div class="city-meta-row">
+          <span id="hamburgWind" class="city-meta-chip">💨 –</span>
+          <span id="hamburgHumidity" class="city-meta-chip">💧 –</span>
+        </div>
+
+        <div id="hamburgForecast" class="city-forecast"></div>
+        <div id="hamburgWarnings" class="city-warnings"></div>
+      </section>
+
+      <section class="card city-card">
+        <div class="city-header">
+          <span class="city-flag">🇪🇸</span>
+          <div>
+            <h2 class="city-name">Alicante</h2>
+            <p class="city-sub">Austauschsemester 🎓</p>
+          </div>
+        </div>
+
+        <div class="city-weather-main">
+          <span id="alicanteIcon" class="city-weather-icon">–</span>
+          <span id="alicanteTemp" class="city-temp">–°</span>
+        </div>
+        <p id="alicanteCondition" class="city-condition">Lädt...</p>
+
+        <div class="city-meta-row">
+          <span id="alicanteWind" class="city-meta-chip">💨 –</span>
+          <span id="alicanteHumidity" class="city-meta-chip">💧 –</span>
+        </div>
+
+        <div id="alicanteForecast" class="city-forecast"></div>
+        <div id="alicanteWarnings" class="city-warnings"></div>
+      </section>
+
+      <section class="card news-section">
+        <h2 class="section-heading">Schlagzeilen</h2>
+        <div class="news-columns">
+          <div class="news-col">
+            <h3 class="news-col-title">🇩🇪 Deutschland</h3>
+            <div id="newsDe" class="news-list"><p class="news-loading">Lädt...</p></div>
+          </div>
+          <div class="news-col">
+            <h3 class="news-col-title">🇪🇸 Spanien</h3>
+            <div id="newsEs" class="news-list"><p class="news-loading">Lädt...</p></div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+
+    <section class="hub-panel" data-panel="erinnerungen" hidden>
+
+      <section id="memoryOverview">
+        <div id="tripsMap" class="trips-map card"></div>
+
+        <div id="memoryGrid" class="memory-grid"></div>
+      </section>
+
+      <section id="galleryView" class="hidden">
+        <button id="backToMemories" class="btn btn-secondary back-button">
+          ← Zurück zur Übersicht
+        </button>
+
+        <div class="gallery-header card">
+          <div class="gallery-cover">
+            <img id="galleryCoverImg" src="" alt="">
+          </div>
+          <div class="gallery-header-text">
+            <h2 id="galleryTitle"></h2>
+            <p id="galleryInfo"></p>
+            <button id="editTripBtn" class="btn btn-sm btn-secondary">✏️ Trip bearbeiten</button>
+          </div>
+        </div>
+
+        <div id="dropzone" class="dropzone card">
+          <input id="imageInput" type="file" accept="image/*" multiple hidden>
+          <span class="dropzone-icon">📤</span>
+          <p class="dropzone-text"><strong>Bilder hierher ziehen</strong> oder klicken zum Auswählen</p>
+          <p class="dropzone-hint">Mehrere Bilder gleichzeitig möglich</p>
+        </div>
+
+        <div id="uploadQueue" class="upload-queue hidden">
+          <div id="uploadPreviewList" class="upload-preview-list"></div>
+          <label>Beschriftung (optional, gilt für alle)</label>
+          <input id="captionInput" type="text" placeholder="z. B. Sonnenuntergang am Strand">
+          <div class="modal-buttons">
+            <button id="uploadImageBtn" class="btn">Hochladen</button>
+            <button id="clearQueueBtn" class="btn btn-secondary">Auswahl leeren</button>
+          </div>
+        </div>
+
+        <div id="imageGrid" class="image-grid"></div>
+      </section>
+
+    </section>
+
+  </main>
+
+  <button id="openMemoryModal" class="fab" title="Neue Erinnerung" aria-label="Neue Erinnerung" data-show-for="erinnerungen">+</button>
+
+  <div id="memoryModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="memoryModalTitle">Neue Erinnerung</h2>
+
+      <label>Titel</label>
+      <input id="memoryTitleInput" type="text" placeholder="z. B. Hamburg">
+
+      <label>Ort</label>
+      <input id="memoryLocationInput" type="text" placeholder="z. B. Hamburg">
+
+      <label>Startdatum</label>
+      <input id="memoryStartInput" type="date">
+
+      <label>Enddatum</label>
+      <input id="memoryEndInput" type="date">
+
+      <label>GPS-Koordinaten (optional, für die Karte)</label>
+      <textarea id="memoryCoordsInput" rows="3" placeholder="53.5511, 9.9937&#10;48.1351, 11.5820"></textarea>
+      <p class="field-hint">Bei Google Maps auf den Ort lang drücken, die Koordinaten werden oben angezeigt und lassen sich kopieren. Mehrere Orte? Eine Zeile pro Ort.</p>
+
+      <label>Coverbild</label>
+      <div id="coverPreviewWrap" class="cover-preview hidden">
+        <img id="coverPreviewImg" src="" alt="Aktuelles Cover">
+      </div>
+      <input id="coverInput" type="file" accept="image/*">
+
+      <div class="modal-buttons">
+        <button id="saveMemoryBtn" class="btn">Erinnerung erstellen</button>
+        <button id="closeMemoryModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="imageLightbox" class="lightbox hidden">
+    <button id="closeLightbox" class="close-lightbox" title="Schließen" aria-label="Schließen">×</button>
+    <img id="lightboxImage" src="" alt="Großansicht">
+    <p id="lightboxCaption" class="lightbox-caption"></p>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="shared.js"></script>
+  <script src="hub-tabs.js"></script>
+  <script src="vergleich.js"></script>
+  <script src="erinnerungen.js"></script>
+</body>
+</html>

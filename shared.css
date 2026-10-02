@@ -746,6 +746,51 @@ textarea:focus {
   40%, 60% { transform: translateX(8px); }
 }
 
+/* ---------- hub tabs (segmented control for merged feature hubs) ---------- */
+
+.hub-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 26px;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+}
+
+.hub-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.hub-tab.active {
+  background: var(--gradient-brand);
+  color: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.hub-tab:active {
+  transform: scale(0.96);
+}
+
+.hub-panel[hidden] {
+  display: none !important;
+}
+
 /* ---------- scroll reveal (Apple-style fade/slide on scroll) ---------- */
 
 .card,
