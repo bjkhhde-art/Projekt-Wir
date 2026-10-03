@@ -191,13 +191,52 @@
   border-radius: 10px;
   border: none;
   padding: 0;
-  overflow: hidden;
-  background: var(--surface-border);
-  box-shadow: var(--shadow-soft);
+  background: none;
+  box-shadow: none;
   cursor: default;
 }
 
-.cabo-pile img {
+.cabo-pile::before,
+.cabo-pile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: url("cabo-cards/Cover.webp") center / cover;
+  box-shadow: var(--shadow-soft);
+}
+
+.cabo-pile::before {
+  transform: translate(3px, 4px) rotate(3deg);
+  z-index: 0;
+}
+
+.cabo-pile::after {
+  transform: translate(6px, 8px) rotate(-4deg);
+  z-index: -1;
+}
+
+.cabo-pile[data-stack="none"]::before,
+.cabo-pile[data-stack="none"]::after {
+  display: none;
+}
+
+.cabo-pile[data-stack="thin"]::after {
+  display: none;
+}
+
+.cabo-pile-top {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  z-index: 1;
+}
+
+.cabo-pile-top img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -206,10 +245,13 @@
 
 .cabo-pile.clickable {
   cursor: pointer;
+}
+
+.cabo-pile.clickable .cabo-pile-top {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.cabo-pile.clickable:hover {
+.cabo-pile.clickable:hover .cabo-pile-top {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lift);
 }
@@ -218,6 +260,7 @@
   position: absolute;
   bottom: 4px;
   right: 4px;
+  z-index: 2;
   background: rgba(0, 0, 0, 0.55);
   color: white;
   font-size: 11px;
@@ -227,6 +270,8 @@
 }
 
 .cabo-pile-empty {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

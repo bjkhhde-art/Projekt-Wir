@@ -297,8 +297,15 @@ function renderHand(container, state, person, isOwn) {
   });
 }
 
+function stackDepth(count) {
+  if (count <= 1) return "none";
+  if (count <= 3) return "thin";
+  return "full";
+}
+
 function renderPiles(state) {
   drawPileCount.textContent = String(state.deck.length);
+  drawPile.dataset.stack = stackDepth(state.deck.length);
 
   const myTurn = state.turnPerson === currentPerson && !state.roundOver;
   const canDraw = myTurn && state.turnPhase === "awaiting-draw";
@@ -307,13 +314,14 @@ function renderPiles(state) {
   drawPile.disabled = !canDraw;
   drawPile.onclick = canDraw ? () => dispatchAction(CaboEngine.drawFromDeck) : null;
 
+  discardPile.dataset.stack = stackDepth(state.discard.length);
   discardPile.innerHTML = "";
   const topDiscard = state.discard[state.discard.length - 1];
   if (topDiscard !== undefined) {
-    const img = document.createElement("img");
-    img.src = cardImg(topDiscard);
-    img.alt = `Ablagestapel: ${topDiscard}`;
-    discardPile.appendChild(img);
+    const top = document.createElement("div");
+    top.className = "cabo-pile-top";
+    top.innerHTML = `<img src="${cardImg(topDiscard)}" alt="Ablagestapel: ${topDiscard}">`;
+    discardPile.appendChild(top);
   } else {
     discardPile.innerHTML = `<span class="cabo-pile-empty">leer</span>`;
   }
