@@ -302,9 +302,8 @@ function renderHand(container, state, person, isOwn) {
     slot.className = "cabo-card-slot";
 
     const peeking = isTransientPeekSlot(state, person, isOwn, index);
-    const knownPersistently = isOwn && state.knownToOwner[currentPerson][index];
     const previewingInitial = showingInitialPeek && INITIAL_PEEK_SLOTS.includes(index);
-    const flipped = state.revealHands || knownPersistently || previewingInitial || peeking;
+    const flipped = state.revealHands || previewingInitial || peeking;
 
     const inner = document.createElement("div");
     inner.className = "cabo-flip-inner";
@@ -322,7 +321,7 @@ function renderHand(container, state, person, isOwn) {
     slot.appendChild(inner);
 
     slot.classList.toggle("flipped", flipped);
-    if ((knownPersistently || previewingInitial) && !state.revealHands) {
+    if (previewingInitial && !state.revealHands) {
       slot.classList.add("known");
     }
     if (peeking && !state.revealHands) {
