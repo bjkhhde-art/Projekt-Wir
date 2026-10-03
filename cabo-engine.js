@@ -30,10 +30,8 @@ function dealRound(players, startingPerson, scores, round) {
   let deck = shuffle(buildDeck());
 
   const hands = {};
-  const knownToOwner = {};
   players.forEach(person => {
     hands[person] = deck.splice(0, HAND_SIZE);
-    knownToOwner[person] = [false, false, false, false];
   });
 
   const discard = [deck.shift()];
@@ -41,7 +39,6 @@ function dealRound(players, startingPerson, scores, round) {
   return {
     players,
     hands,
-    knownToOwner,
     deck,
     discard,
     turnPerson: startingPerson,
@@ -186,7 +183,6 @@ function swapCard(state, person, slotIndex) {
   const next = cloneState(state);
   const oldCard = next.hands[person][slotIndex];
   next.hands[person][slotIndex] = next.drawnCard;
-  next.knownToOwner[person][slotIndex] = true;
   next.discard.push(oldCard);
   next.drawnCard = null;
   next.drawSource = null;
