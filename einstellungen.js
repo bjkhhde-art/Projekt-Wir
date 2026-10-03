@@ -18,7 +18,8 @@ const DEFAULT_SETTINGS = {
   letters_enabled: true,
   quest_enabled: true,
   battery_enabled: true,
-  mochi_enabled: true
+  mochi_enabled: true,
+  games_enabled: true
 };
 
 let currentPerson = localStorage.getItem("pw_person");

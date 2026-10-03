@@ -67,7 +67,7 @@ function buildVisionCard(vision) {
 
   card.innerHTML = `
     ${vision.image_url
-      ? `<img class="vision-card-image" src="${vision.image_url}" alt="${escapeHtml(vision.title)}">`
+      ? `<img class="vision-card-image" src="${vision.image_url}" alt="${escapeHtml(vision.title)}" loading="lazy" decoding="async">`
       : ""}
     <div class="vision-card-body">
       <div class="vision-card-top">
@@ -170,14 +170,15 @@ async function loadVisions() {
   renderTimeline();
 }
 
-async function uploadCover(file) {
+async function uploadCover(originalFile) {
+  const file = await shrinkImageForUpload(originalFile);
   const fileExt = file.name.split(".").pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
   const { error } = await supabaseClient
     .storage
     .from("vision-images")
-    .upload(fileName, file);
+    .upload(fileName, file, { contentType: file.type, cacheControl: "31536000" });
 
   if (error) {
     console.error("Fehler beim Upload:", error);

@@ -1,0 +1,12 @@
+{
+  "name": "projekt-wir-tests",
+  "private": true,
+  "type": "module",
+  "description": "Engine and two-device browser tests for the games (Cabo, 6 nimmt!, Qwixx)",
+  "scripts": {
+    "test": "node run-all.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
