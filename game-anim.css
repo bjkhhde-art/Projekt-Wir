@@ -1,0 +1,49 @@
+/* Styles for game-anim.js: flying card copies and cards waiting for them. */
+
+.anim-hidden {
+  visibility: hidden;
+}
+
+.ga-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  perspective: 700px;
+  transform-origin: top left;
+  will-change: transform, opacity;
+}
+
+.ga-ghost-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  transform-style: preserve-3d;
+  box-shadow: var(--shadow-lift);
+}
+
+.ga-ghost-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.ga-ghost-face > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ga-ghost-face > :not(img) {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.ga-ghost-front {
+  transform: rotateY(180deg);
+}
