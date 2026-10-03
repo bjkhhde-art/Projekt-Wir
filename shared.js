@@ -255,7 +255,8 @@ window.animateFillOnReveal = function (el, targetPercent) {
   };
 
   function highlightNav() {
-    const current = location.pathname.split("/").pop() || "index.html";
+    /* sub-pages (e.g. a single game) light up their section via <body data-nav="games.html"> */
+    const current = document.body.dataset.nav || location.pathname.split("/").pop() || "index.html";
     document.querySelectorAll(".nav-item").forEach(link => {
       const href = link.getAttribute("href");
       if (href === current) {
