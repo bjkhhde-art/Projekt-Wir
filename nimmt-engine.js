@@ -5,7 +5,7 @@ const NimmtEngine = (() => {
 
 const CARD_MAX = 104;
 const HAND_SIZE = 10;
-const ROW_COUNT = 4;
+const ROW_COUNT = 3; // house rule for two players (the box says 4) - tighter and more exciting
 const ROW_LIMIT = 5;
 
 function bullsFor(card) {
