@@ -46,6 +46,7 @@ function dealRound(players, startingPerson, scores, round) {
     drawnCard: null,
     drawSource: null,
     lastPeekResult: null,
+    lastEvent: null,
     caboCalledBy: null,
     finalTurnsRemaining: [],
     roundOver: false,
@@ -73,6 +74,12 @@ function assertTurn(state, person) {
   if (state.turnPerson !== person) throw new Error("Du bist gerade nicht am Zug.");
 }
 
+function assertSlot(hand, slotIndex) {
+  if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= hand.length) {
+    throw new Error("Ungültiger Platz.");
+  }
+}
+
 function ensureDeck(state) {
   if (state.deck.length > 0) return;
   const top = state.discard[state.discard.length - 1];
@@ -94,12 +101,16 @@ function advanceTurn(state, finishedPerson) {
   state.turnPhase = "awaiting-draw";
   state.drawnCard = null;
   state.drawSource = null;
+  state.lastPeekResult = null;
 }
 
 function finishRound(state) {
   state.roundOver = true;
   state.revealHands = true;
   state.turnPhase = "finished";
+  state.drawnCard = null;
+  state.drawSource = null;
+  state.lastPeekResult = null;
 
   const roundScores = {};
   state.players.forEach(person => {
@@ -149,6 +160,7 @@ function drawFromDeck(state, person) {
   next.drawnCard = next.deck.pop();
   next.drawSource = "deck";
   next.turnPhase = "post-draw-decision";
+  next.lastEvent = null;
   return next;
 }
 
@@ -161,32 +173,49 @@ function drawFromDiscard(state, person) {
   next.drawnCard = next.discard.pop();
   next.drawSource = "discard";
   next.turnPhase = "post-draw-decision";
+  next.lastEvent = null;
   return next;
 }
 
 function callCabo(state, person) {
   assertTurn(state, person);
   if (state.turnPhase !== "awaiting-draw") throw new Error("Cabo kann nur zu Beginn deines Zuges gerufen werden.");
+  if (state.caboCalledBy) throw new Error("Cabo wurde schon gerufen.");
 
   const next = cloneState(state);
   next.caboCalledBy = person;
   next.finalTurnsRemaining = next.players.filter(p => p !== person);
+  next.lastEvent = { type: "cabo", person };
   advanceTurn(next, person);
   return next;
 }
 
-function swapCard(state, person, slotIndex) {
+/* Swap the drawn card for one or more own cards. Several cards only work if they all
+   have the same value; otherwise they stay and the drawn card is discarded (turn lost). */
+function swapCards(state, person, slotIndices) {
   assertTurn(state, person);
   if (state.turnPhase !== "post-draw-decision") throw new Error("Gerade ist kein Tausch möglich.");
-  if (slotIndex < 0 || slotIndex >= HAND_SIZE) throw new Error("Ungültiger Platz.");
+  if (!Array.isArray(slotIndices) || slotIndices.length === 0) throw new Error("Wähle mindestens eine Karte zum Tauschen.");
+
+  const slots = [...new Set(slotIndices)].sort((a, b) => a - b);
+  if (slots.length !== slotIndices.length) throw new Error("Jede Karte darf nur einmal gewählt werden.");
+  slots.forEach(index => assertSlot(state.hands[person], index));
 
   const next = cloneState(state);
-  const oldCard = next.hands[person][slotIndex];
-  next.hands[person][slotIndex] = next.drawnCard;
-  next.discard.push(oldCard);
-  next.drawnCard = null;
-  next.drawSource = null;
-  next.lastPeekResult = null;
+  const hand = next.hands[person];
+  const chosen = slots.map(index => hand[index]);
+  const allEqual = chosen.every(value => value === chosen[0]);
+
+  if (allEqual) {
+    next.discard.push(...chosen);
+    hand[slots[0]] = next.drawnCard;
+    for (let k = slots.length - 1; k >= 1; k--) hand.splice(slots[k], 1);
+    next.lastEvent = slots.length > 1 ? { type: "multi-swap", person, count: slots.length } : null;
+  } else {
+    next.discard.push(next.drawnCard);
+    next.lastEvent = { type: "multi-swap-failed", person, count: slots.length };
+  }
+
   advanceTurn(next, person);
   return next;
 }
@@ -212,7 +241,11 @@ function discardDrawn(state, person) {
     return next;
   }
 
-  next.lastPeekResult = null;
+  if (card === 11 || card === 12) {
+    next.turnPhase = "await-swap-target";
+    return next;
+  }
+
   advanceTurn(next, person);
   return next;
 }
@@ -220,29 +253,59 @@ function discardDrawn(state, person) {
 function choosePeekOwnTarget(state, person, slotIndex) {
   assertTurn(state, person);
   if (state.turnPhase !== "await-peek-own-target") throw new Error("Gerade ist kein Blick auf eigene Karten möglich.");
-  if (slotIndex < 0 || slotIndex >= HAND_SIZE) throw new Error("Ungültiger Platz.");
+  assertSlot(state.hands[person], slotIndex);
 
   const next = cloneState(state);
-  next.lastPeekResult = { person, type: "own", slot: slotIndex, value: next.hands[person][slotIndex] };
-  advanceTurn(next, person);
+  next.lastPeekResult = { person, type: "own", slot: slotIndex };
+  next.turnPhase = "peek-result";
   return next;
 }
 
 function chooseSpyTarget(state, person, slotIndex) {
   assertTurn(state, person);
   if (state.turnPhase !== "await-spy-target") throw new Error("Gerade ist kein Blick auf gegnerische Karten möglich.");
-  if (slotIndex < 0 || slotIndex >= HAND_SIZE) throw new Error("Ungültiger Platz.");
-
   const target = otherPerson(state, person);
+  assertSlot(state.hands[target], slotIndex);
+
   const next = cloneState(state);
-  next.lastPeekResult = { person, type: "spy", targetPerson: target, slot: slotIndex, value: next.hands[target][slotIndex] };
+  next.lastPeekResult = { person, type: "spy", targetPerson: target, slot: slotIndex };
+  next.turnPhase = "peek-result";
+  return next;
+}
+
+/* The looked-at card stays visible until its owner turns it back; that ends the turn. */
+function finishPeek(state, person) {
+  assertTurn(state, person);
+  if (state.turnPhase !== "peek-result") throw new Error("Gerade gibt es keine aufgedeckte Karte.");
+
+  const next = cloneState(state);
   advanceTurn(next, person);
   return next;
 }
 
-function clearPeekResult(state) {
+/* Swap power (11/12): blindly exchange one own card with one of the opponent's. */
+function swapWithOpponent(state, person, ownIndex, opponentIndex) {
+  assertTurn(state, person);
+  if (state.turnPhase !== "await-swap-target") throw new Error("Gerade ist kein Kartentausch mit dem anderen möglich.");
+  const target = otherPerson(state, person);
+  assertSlot(state.hands[person], ownIndex);
+  assertSlot(state.hands[target], opponentIndex);
+
   const next = cloneState(state);
-  next.lastPeekResult = null;
+  const ownCard = next.hands[person][ownIndex];
+  next.hands[person][ownIndex] = next.hands[target][opponentIndex];
+  next.hands[target][opponentIndex] = ownCard;
+  next.lastEvent = { type: "blind-swap", person, targetPerson: target, ownIndex, opponentIndex };
+  advanceTurn(next, person);
+  return next;
+}
+
+function skipSwap(state, person) {
+  assertTurn(state, person);
+  if (state.turnPhase !== "await-swap-target") throw new Error("Gerade gibt es nichts zu überspringen.");
+
+  const next = cloneState(state);
+  advanceTurn(next, person);
   return next;
 }
 
@@ -267,11 +330,13 @@ const CaboEngine = {
   drawFromDeck,
   drawFromDiscard,
   callCabo,
-  swapCard,
+  swapCards,
   discardDrawn,
   choosePeekOwnTarget,
   chooseSpyTarget,
-  clearPeekResult,
+  finishPeek,
+  swapWithOpponent,
+  skipSwap,
   startNextRound,
   otherPerson
 };

@@ -92,14 +92,15 @@
 }
 
 .cabo-hand {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  justify-content: center;
   gap: 8px;
   max-width: 320px;
   margin: 0 auto;
 }
 
 .cabo-card-slot {
+  flex: 0 0 calc((100% - 24px) / 4);
   position: relative;
   aspect-ratio: 300 / 420;
   border-radius: 10px;
@@ -174,6 +175,25 @@
   border-radius: 10px;
   pointer-events: none;
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.cabo-card-slot.selected .cabo-flip-inner,
+.cabo-card-slot.selected:hover .cabo-flip-inner {
+  transform: translateY(-10px);
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-lift);
+}
+
+.cabo-card-slot.watched .cabo-flip-inner {
+  box-shadow: 0 0 0 3px var(--warning), var(--shadow-soft);
+  animation: cabo-watched-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cabo-watched-pulse {
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.35), var(--shadow-soft); }
+}
+
+.cabo-card-slot.just-swapped .cabo-flip-inner {
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-soft);
 }
 
 .cabo-card-slot-empty {
@@ -263,6 +283,10 @@
   box-shadow: var(--shadow-lift);
 }
 
+.cabo-pile.drop-target .cabo-pile-top {
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-lift);
+}
+
 .cabo-pile-count {
   position: absolute;
   bottom: 4px;
@@ -309,6 +333,7 @@
 .cabo-drawn-preview.clickable {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-lift);
 }
 
 .cabo-drawn-preview.clickable:hover {
@@ -318,12 +343,33 @@
 
 /* ---------- status + actions ---------- */
 
+.cabo-event {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+  margin: 0 0 6px;
+}
+
+.cabo-event:empty {
+  display: none;
+}
+
 .cabo-status {
   text-align: center;
   font-size: 14.5px;
   font-weight: 600;
   margin: 0 0 14px;
   min-height: 20px;
+}
+
+.cabo-status.nudge {
+  animation: cabo-nudge 0.4s ease;
+}
+
+@keyframes cabo-nudge {
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
 }
 
 .cabo-actions {
