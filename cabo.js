@@ -17,15 +17,23 @@ const drawPile = document.getElementById("drawPile");
 const drawPileCount = document.getElementById("drawPileCount");
 const discardPile = document.getElementById("discardPile");
 const caboStatus = document.getElementById("caboStatus");
+const caboEvent = document.getElementById("caboEvent");
 const caboActions = document.getElementById("caboActions");
 const leaveGameBtn = document.getElementById("leaveGameBtn");
 
 const INITIAL_PEEK_SLOTS = [0, 1];
 const LEAVE_CONFIRM_MS = 4000;
 
+const POWER_NAMES = { 7: "Peek", 8: "Peek", 9: "Spy", 10: "Spy", 11: "Swap", 12: "Swap" };
+
 let currentPerson = localStorage.getItem("pw_person");
 let currentGame = null;
 let leaveArmedTimer = null;
+let actionInFlight = false;
+
+/* Card picks only live on this device until the move is sent. */
+let selectedSwapSlots = new Set();
+let selectedPowerOwnSlot = null;
 
 function cardImg(value) {
   return `cabo-cards/Karte-${value}.webp`;
@@ -121,33 +129,38 @@ async function joinGame(game) {
 }
 
 async function dispatchAction(actionFn, ...args) {
-  if (!requirePerson()) return;
+  if (!requirePerson() || actionInFlight) return;
+  actionInFlight = true;
 
-  const fresh = await fetchCurrentGame();
-  if (!fresh || fresh.status !== "active") {
-    await syncFromServer();
-    return;
-  }
-
-  let nextState;
   try {
-    nextState = actionFn(fresh.state, currentPerson, ...args);
-  } catch (error) {
-    showToast(error.message, "error");
-    return;
+    const fresh = await fetchCurrentGame();
+    if (!fresh || fresh.status !== "active") {
+      await syncFromServer();
+      return;
+    }
+
+    let nextState;
+    try {
+      nextState = actionFn(fresh.state, currentPerson, ...args);
+    } catch (error) {
+      showToast(error.message, "error");
+      return;
+    }
+
+    const patch = { state: nextState, updated_at: new Date().toISOString() };
+    if (nextState.gameOver) patch.status = "finished";
+
+    const { error } = await supabaseClient.from("cabo_games").update(patch).eq("id", fresh.id);
+    if (error) {
+      console.error("Fehler beim Speichern des Spielzugs:", error);
+      showToast("Zug konnte nicht gespeichert werden.", "error");
+      return;
+    }
+
+    await syncFromServer();
+  } finally {
+    actionInFlight = false;
   }
-
-  const patch = { state: nextState, updated_at: new Date().toISOString() };
-  if (nextState.gameOver) patch.status = "finished";
-
-  const { error } = await supabaseClient.from("cabo_games").update(patch).eq("id", fresh.id);
-  if (error) {
-    console.error("Fehler beim Speichern des Spielzugs:", error);
-    showToast("Zug konnte nicht gespeichert werden.", "error");
-    return;
-  }
-
-  await syncFromServer();
 }
 
 async function leaveGame() {
@@ -263,12 +276,81 @@ function renderBoard(game) {
   opponentLabel.classList.toggle("active-turn", state.turnPerson === opponent && !state.roundOver);
   ownLabel.classList.toggle("active-turn", state.turnPerson === currentPerson && !state.roundOver);
 
+  dropStaleSelections(state);
   renderScoreStrip(state, opponent);
   renderHand(opponentHand, state, opponent, false);
   renderHand(ownHand, state, currentPerson, true);
   renderPiles(state);
+  renderEvent(state);
   renderStatusAndActions(state, game, opponent);
   renderLeaveButton(state);
+}
+
+function rerenderCurrent() {
+  if (currentGame && currentGame.state) renderBoard(currentGame);
+}
+
+function dropStaleSelections(state) {
+  const myTurn = state.turnPerson === currentPerson && !state.roundOver;
+  const handLength = (state.hands[currentPerson] || []).length;
+
+  if (!myTurn || state.turnPhase !== "post-draw-decision") {
+    selectedSwapSlots = new Set();
+  } else {
+    selectedSwapSlots = new Set([...selectedSwapSlots].filter(index => index < handLength));
+  }
+
+  if (!myTurn || state.turnPhase !== "await-swap-target" || selectedPowerOwnSlot >= handLength) {
+    selectedPowerOwnSlot = null;
+  }
+}
+
+function nudgeStatus() {
+  caboStatus.classList.remove("nudge");
+  void caboStatus.offsetWidth;
+  caboStatus.classList.add("nudge");
+}
+
+function toggleSwapSlot(index) {
+  if (selectedSwapSlots.has(index)) {
+    selectedSwapSlots.delete(index);
+  } else {
+    selectedSwapSlots.add(index);
+  }
+  rerenderCurrent();
+}
+
+function selectPowerOwnSlot(index) {
+  selectedPowerOwnSlot = selectedPowerOwnSlot === index ? null : index;
+  rerenderCurrent();
+}
+
+function describeEvent(event) {
+  if (!event) return "";
+  const mine = event.person === currentPerson;
+
+  switch (event.type) {
+    case "cabo":
+      return mine ? "Du hast Cabo gerufen." : `${event.person} hat Cabo gerufen – das ist dein letzter Zug!`;
+    case "multi-swap":
+      return mine
+        ? `Du hast ${event.count} gleiche Karten auf einmal abgelegt.`
+        : `${event.person} hat ${event.count} gleiche Karten auf einmal abgelegt.`;
+    case "multi-swap-failed":
+      return mine
+        ? "Die Karten waren nicht gleich – die gezogene Karte ist abgelegt, Zug verloren."
+        : `${event.person} hat sich vertan: Die Karten waren nicht gleich, Zug verloren.`;
+    case "blind-swap":
+      return mine
+        ? `Du hast deine ${event.ownIndex + 1}. Karte mit der ${event.opponentIndex + 1}. von ${event.targetPerson} getauscht.`
+        : `${event.person} hat deine ${event.opponentIndex + 1}. Karte mit der eigenen ${event.ownIndex + 1}. getauscht.`;
+    default:
+      return "";
+  }
+}
+
+function renderEvent(state) {
+  caboEvent.textContent = state.roundOver ? "" : describeEvent(state.lastEvent);
 }
 
 function renderScoreStrip(state, opponent) {
@@ -280,12 +362,49 @@ function renderScoreStrip(state, opponent) {
   `;
 }
 
-function isTransientPeekSlot(state, person, isOwn, index) {
-  const result = state.lastPeekResult;
-  if (!result || result.person !== currentPerson) return false;
-  if (isOwn && result.type === "own" && person === currentPerson) return result.slot === index;
-  if (!isOwn && result.type === "spy") return result.slot === index;
-  return false;
+/* During a peek/spy, the looked-at card is face-up only for the looker; the other player sees it highlighted. */
+function peekStateForSlot(state, person, index) {
+  const result = state.turnPhase === "peek-result" ? state.lastPeekResult : null;
+  if (!result || result.slot !== index) return null;
+
+  const cardOwner = result.type === "own" ? result.person : result.targetPerson;
+  if (cardOwner !== person) return null;
+  return result.person === currentPerson ? "looking" : "watched";
+}
+
+function isJustSwappedSlot(state, person, index) {
+  const event = state.lastEvent;
+  if (!event || event.type !== "blind-swap" || state.roundOver) return false;
+  return (person === event.person && index === event.ownIndex) ||
+    (person === event.targetPerson && index === event.opponentIndex);
+}
+
+function slotClickHandler(state, isOwn, index, peekState, previewingInitial) {
+  if (peekState === "looking") return () => dispatchAction(CaboEngine.finishPeek);
+  if (previewingInitial) return () => dispatchAction(CaboEngine.performInitialPeek);
+
+  const myTurn = state.turnPerson === currentPerson && !state.roundOver;
+  if (!myTurn) return null;
+
+  switch (state.turnPhase) {
+    case "post-draw-decision":
+      return isOwn ? () => toggleSwapSlot(index) : null;
+    case "await-peek-own-target":
+      return isOwn ? () => dispatchAction(CaboEngine.choosePeekOwnTarget, index) : null;
+    case "await-spy-target":
+      return isOwn ? null : () => dispatchAction(CaboEngine.chooseSpyTarget, index);
+    case "await-swap-target":
+      if (isOwn) return () => selectPowerOwnSlot(index);
+      return () => {
+        if (selectedPowerOwnSlot === null) {
+          nudgeStatus();
+          return;
+        }
+        dispatchAction(CaboEngine.swapWithOpponent, selectedPowerOwnSlot, index);
+      };
+    default:
+      return null;
+  }
 }
 
 function renderHand(container, state, person, isOwn) {
@@ -293,7 +412,6 @@ function renderHand(container, state, person, isOwn) {
   if (!person || !state.hands[person]) return;
 
   const hand = state.hands[person];
-  const myTurn = state.turnPerson === currentPerson && !state.roundOver;
   const showingInitialPeek = isOwn && state.turnPhase === "initial-peek" && !state.initialPeekDone[currentPerson];
 
   hand.forEach((value, index) => {
@@ -301,7 +419,8 @@ function renderHand(container, state, person, isOwn) {
     slot.type = "button";
     slot.className = "cabo-card-slot";
 
-    const peeking = isTransientPeekSlot(state, person, isOwn, index);
+    const peekState = peekStateForSlot(state, person, index);
+    const peeking = peekState === "looking";
     const previewingInitial = showingInitialPeek && INITIAL_PEEK_SLOTS.includes(index);
     const flipped = state.revealHands || previewingInitial || peeking;
 
@@ -327,32 +446,19 @@ function renderHand(container, state, person, isOwn) {
     if (peeking && !state.revealHands) {
       slot.classList.add("peeking");
     }
+    slot.classList.toggle("watched", peekState === "watched" && !state.revealHands);
+    slot.classList.toggle("just-swapped", isJustSwappedSlot(state, person, index));
 
-    let clickable = false;
-    let onClick = null;
+    const selected = isOwn && (
+      (state.turnPhase === "post-draw-decision" && selectedSwapSlots.has(index)) ||
+      (state.turnPhase === "await-swap-target" && selectedPowerOwnSlot === index)
+    );
+    slot.classList.toggle("selected", selected);
 
-    if (peeking) {
-      clickable = true;
-      onClick = () => dismissPeekResult();
-    } else if (previewingInitial) {
-      clickable = true;
-      onClick = () => dispatchAction(CaboEngine.performInitialPeek);
-    } else if (myTurn) {
-      if (isOwn && state.turnPhase === "post-draw-decision") {
-        clickable = true;
-        onClick = () => dispatchAction(CaboEngine.swapCard, index);
-      } else if (isOwn && state.turnPhase === "await-peek-own-target") {
-        clickable = true;
-        onClick = () => dispatchAction(CaboEngine.choosePeekOwnTarget, index);
-      } else if (!isOwn && state.turnPhase === "await-spy-target") {
-        clickable = true;
-        onClick = () => dispatchAction(CaboEngine.chooseSpyTarget, index);
-      }
-    }
-
-    if (clickable) slot.addEventListener("click", onClick);
-    slot.classList.toggle("clickable", clickable);
-    if (!clickable) slot.disabled = true;
+    const onClick = slotClickHandler(state, isOwn, index, peekState, previewingInitial);
+    if (onClick) slot.addEventListener("click", onClick);
+    slot.classList.toggle("clickable", Boolean(onClick));
+    if (!onClick) slot.disabled = true;
 
     container.appendChild(slot);
   });
@@ -387,29 +493,58 @@ function renderPiles(state) {
     discardPile.innerHTML = `<span class="cabo-pile-empty">leer</span>`;
   }
 
-  const canTakeDiscard = canDraw && state.discard.length > 0;
-  discardPile.classList.toggle("clickable", canTakeDiscard);
-  discardPile.disabled = !canTakeDiscard;
-  discardPile.onclick = canTakeDiscard ? () => dispatchAction(CaboEngine.drawFromDiscard) : null;
+  /* The discard pile is where a drawn card is put down, and where the swap power is waived. */
+  let discardAction = null;
+  if (canDraw && state.discard.length > 0) {
+    discardAction = CaboEngine.drawFromDiscard;
+  } else if (myTurn && state.turnPhase === "post-draw-decision" && state.drawSource === "deck") {
+    discardAction = CaboEngine.discardDrawn;
+  } else if (myTurn && state.turnPhase === "await-swap-target") {
+    discardAction = CaboEngine.skipSwap;
+  }
+
+  discardPile.classList.toggle("clickable", Boolean(discardAction));
+  const pickingCards = discardAction === CaboEngine.discardDrawn && selectedSwapSlots.size > 0;
+  discardPile.classList.toggle("drop-target", Boolean(discardAction) && discardAction !== CaboEngine.drawFromDiscard && !pickingCards);
+  discardPile.disabled = !discardAction;
+  discardPile.onclick = discardAction ? () => dispatchAction(discardAction) : null;
 }
 
-async function dismissPeekResult() {
-  const fresh = await fetchCurrentGame();
-  if (!fresh || fresh.status !== "active") return;
-  const nextState = CaboEngine.clearPeekResult(fresh.state);
-  await supabaseClient.from("cabo_games").update({ state: nextState, updated_at: new Date().toISOString() }).eq("id", fresh.id);
-  await syncFromServer();
+function renderDrawnCard(state) {
+  const count = selectedSwapSlots.size;
+  const drawnCard = document.createElement("button");
+  drawnCard.type = "button";
+  drawnCard.className = "cabo-drawn-preview";
+  drawnCard.classList.toggle("clickable", count > 0);
+  drawnCard.innerHTML = `<img src="${cardImg(state.drawnCard)}" alt="Gezogene Karte">`;
+  drawnCard.addEventListener("click", () => {
+    if (selectedSwapSlots.size === 0) {
+      nudgeStatus();
+      return;
+    }
+    dispatchAction(CaboEngine.swapCards, [...selectedSwapSlots]);
+  });
+  caboActions.appendChild(drawnCard);
+}
+
+function postDrawStatus(state) {
+  const count = selectedSwapSlots.size;
+  if (count === 1) return "Tippe jetzt die gezogene Karte an, um sie einzutauschen.";
+  if (count > 1) return `${count} Karten gewählt – tippe die gezogene Karte an. Sind sie nicht alle gleich, ist der Zug verloren.`;
+
+  const pick = "Tippe eine oder mehrere gleiche Karten von dir an und dann die gezogene Karte";
+  if (state.drawSource !== "deck") return `${pick} – vom Ablagestapel genommene Karten müssen getauscht werden.`;
+
+  const power = POWER_NAMES[state.drawnCard];
+  return power
+    ? `${pick} – oder tippe auf den Ablagestapel, um sie abzulegen und ${power} zu nutzen.`
+    : `${pick} – oder tippe auf den Ablagestapel, um sie abzulegen.`;
 }
 
 function renderStatusAndActions(state, game, opponent) {
   caboActions.innerHTML = "";
-
-  if (state.lastPeekResult && state.lastPeekResult.person === currentPerson) {
-    caboStatus.textContent = (state.lastPeekResult.type === "own"
-      ? "Das ist deine Karte – tippe sie noch einmal an, um sie wieder umzudrehen."
-      : `Das ist eine Karte von ${opponent || "dem anderen"} – tippe sie noch einmal an.`);
-    return;
-  }
+  caboStatus.classList.remove("nudge");
+  const other = opponent || "der andere";
 
   if (state.roundOver) {
     renderRoundOverInline(state, game, opponent);
@@ -424,41 +559,56 @@ function renderStatusAndActions(state, game, opponent) {
   }
 
   const myTurn = state.turnPerson === currentPerson;
+  const peek = state.lastPeekResult;
 
   if (!myTurn) {
-    caboStatus.textContent = `${opponent || "Der andere"} ist am Zug...`;
+    if (state.turnPhase === "peek-result" && peek) {
+      caboStatus.textContent = peek.type === "own"
+        ? `${opponent} schaut sich eine eigene Karte an...`
+        : `${opponent} schaut sich deine markierte Karte an...`;
+    } else if (state.turnPhase.startsWith("await-")) {
+      caboStatus.textContent = `${opponent} setzt eine Fähigkeit ein...`;
+    } else {
+      caboStatus.textContent = `${opponent || "Der andere"} ist am Zug...`;
+    }
     return;
   }
 
-  if (state.turnPhase === "awaiting-draw") {
-    caboStatus.textContent = "Du bist dran! Zieh eine Karte vom Stapel oder nimm die oberste vom Ablagestapel.";
-    const caboBtn = document.createElement("button");
-    caboBtn.type = "button";
-    caboBtn.className = "btn btn-secondary btn-sm";
-    caboBtn.textContent = "🛑 Cabo rufen!";
-    caboBtn.addEventListener("click", () => dispatchAction(CaboEngine.callCabo));
-    caboActions.appendChild(caboBtn);
-  } else if (state.turnPhase === "post-draw-decision") {
-    caboStatus.textContent = "Tippe auf eine deiner Karten zum Tauschen" +
-      (state.drawSource === "deck" ? ", oder auf die gezogene Karte zum Ablegen." : ".");
-
-    const drawnPreview = document.createElement("button");
-    drawnPreview.type = "button";
-    drawnPreview.className = "cabo-drawn-preview";
-    drawnPreview.innerHTML = `<img src="${cardImg(state.drawnCard)}" alt="Gezogene Karte">`;
-
-    if (state.drawSource === "deck") {
-      drawnPreview.classList.add("clickable");
-      drawnPreview.title = "Ablegen";
-      drawnPreview.addEventListener("click", () => dispatchAction(CaboEngine.discardDrawn));
-    } else {
-      drawnPreview.disabled = true;
+  switch (state.turnPhase) {
+    case "awaiting-draw": {
+      const lastTurn = Boolean(state.caboCalledBy);
+      caboStatus.textContent = (lastTurn ? "Dein letzter Zug! " : "Du bist dran! ") +
+        "Zieh eine Karte vom Stapel oder nimm die oberste vom Ablagestapel.";
+      if (!lastTurn) {
+        const caboBtn = document.createElement("button");
+        caboBtn.type = "button";
+        caboBtn.className = "btn btn-secondary btn-sm";
+        caboBtn.textContent = "🛑 Cabo rufen!";
+        caboBtn.addEventListener("click", () => dispatchAction(CaboEngine.callCabo));
+        caboActions.appendChild(caboBtn);
+      }
+      break;
     }
-    caboActions.appendChild(drawnPreview);
-  } else if (state.turnPhase === "await-peek-own-target") {
-    caboStatus.textContent = "Wähle eine deiner eigenen Karten, um sie anzusehen.";
-  } else if (state.turnPhase === "await-spy-target") {
-    caboStatus.textContent = `Wähle eine Karte von ${opponent || "dem anderen"}, um sie zu spähen.`;
+    case "post-draw-decision":
+      caboStatus.textContent = postDrawStatus(state);
+      renderDrawnCard(state);
+      break;
+    case "await-peek-own-target":
+      caboStatus.textContent = "Peek: Tippe eine deiner Karten an, um sie dir anzusehen.";
+      break;
+    case "await-spy-target":
+      caboStatus.textContent = `Spy: Tippe eine Karte von ${other} an, um sie dir anzusehen.`;
+      break;
+    case "await-swap-target":
+      caboStatus.textContent = selectedPowerOwnSlot === null
+        ? `Swap: Tippe eine deiner Karten an und dann eine von ${other} – sie werden blind getauscht. Ablagestapel antippen = verzichten.`
+        : `Jetzt eine Karte von ${other} antippen, um sie blind zu tauschen.`;
+      break;
+    case "peek-result":
+      caboStatus.textContent = "Merk sie dir – tippe sie nochmal an, um sie umzudrehen und den Zug zu beenden.";
+      break;
+    default:
+      caboStatus.textContent = "";
   }
 }
 
