@@ -35,6 +35,13 @@ let actionInFlight = false;
 let selectedSwapSlots = new Set();
 let selectedPowerOwnSlot = null;
 
+let lastRenderedJson = null;
+let syncGeneration = 0;
+let lastAnimatedMove = { gameId: null, seq: null };
+const flipMemory = new Map();
+let flipScope = "";
+let flipTiming = { base: 0, revealOrder: 0 };
+
 function cardImg(value) {
   return `cabo-cards/Karte-${value}.webp`;
 }
@@ -50,6 +57,7 @@ personButtons.forEach(button => {
     currentPerson = button.dataset.person;
     localStorage.setItem("pw_person", currentPerson);
     personModal.classList.add("hidden");
+    lastRenderedJson = null;
     syncFromServer();
   });
 });
@@ -220,6 +228,7 @@ leaveGameBtn.addEventListener("click", () => {
 
 function renderLobbyNoGame(note) {
   disarmLeaveButton();
+  CaboAnim.revealAll();
   caboBoard.classList.add("hidden");
   caboLobby.classList.remove("hidden");
   caboLobby.innerHTML = `
@@ -276,6 +285,12 @@ function renderBoard(game) {
   opponentLabel.classList.toggle("active-turn", state.turnPerson === opponent && !state.roundOver);
   ownLabel.classList.toggle("active-turn", state.turnPerson === currentPerson && !state.roundOver);
 
+  const layoutBefore = captureLayout(opponent);
+  const move = takeUnseenMove(game);
+  flipScope = `${game.id}-${state.round}`;
+  flipTiming = { base: flipDelayFor(move, state), revealOrder: 0 };
+  if (move) hideMovingCards(move, state);
+
   dropStaleSelections(state);
   renderScoreStrip(state, opponent);
   renderHand(opponentHand, state, opponent, false);
@@ -284,6 +299,208 @@ function renderBoard(game) {
   renderEvent(state);
   renderStatusAndActions(state, game, opponent);
   renderLeaveButton(state);
+
+  if (move) animateMove(move, state, layoutBefore, opponent);
+}
+
+/* ---------- animations ---------- */
+
+const FLY_MS = 520;
+const DEAL_STEP_MS = 90;
+const DEAL_FLY_MS = 420;
+const REVEAL_STAGGER_MS = 110;
+
+const handKey = (person, index) => `hand-${person}-${index}`;
+const handElement = person => (person === currentPerson ? ownHand : opponentHand);
+
+function handRects(person) {
+  return [...handElement(person).children].map(CaboAnim.rectOf);
+}
+
+/* Where a player "holds" a drawn card: my drawn card is shown face-up; the other's sits over their hand. */
+function holdingRect(person, layout) {
+  if (person === currentPerson && layout.drawnCard) return layout.drawnCard;
+  const hand = CaboAnim.rectOf(handElement(person));
+  const card = (layout.hands[person] || []).find(Boolean) || layout.drawPile;
+  if (!hand || !card) return null;
+  return {
+    left: hand.left + (hand.width - card.width) / 2,
+    top: hand.top + (hand.height - card.height) / 2,
+    width: card.width,
+    height: card.height
+  };
+}
+
+function captureLayout(opponent) {
+  const layout = {
+    drawPile: CaboAnim.rectOf(drawPile),
+    discardPile: CaboAnim.rectOf(discardPile),
+    drawnCard: CaboAnim.rectOf(document.querySelector(".cabo-drawn-preview")),
+    hands: {}
+  };
+  if (currentPerson) layout.hands[currentPerson] = handRects(currentPerson);
+  if (opponent) layout.hands[opponent] = handRects(opponent);
+  return layout;
+}
+
+/* Each move is animated once per device; after a reload only a fresh deal is replayed. */
+function takeUnseenMove(game) {
+  const state = game.state;
+  const sameGame = lastAnimatedMove.gameId === game.id;
+  const unseen = !sameGame || (state.moveSeq || 0) > (lastAnimatedMove.seq || 0);
+  if (unseen) lastAnimatedMove = { gameId: game.id, seq: state.moveSeq };
+
+  const move = state.lastMove;
+  if (!move || !unseen || !CaboAnim.enabled()) return null;
+  if (!sameGame && move.type !== "deal") return null;
+  return move;
+}
+
+function flipDelayFor(move, state) {
+  if (!move) return 0;
+  if (move.type === "deal") return (state.players.length * CaboEngine.HAND_SIZE + 1) * DEAL_STEP_MS + DEAL_FLY_MS;
+  return state.revealHands ? FLY_MS + 150 : 0;
+}
+
+function hideMovingCards(move, state) {
+  switch (move.type) {
+    case "deal":
+      state.players.forEach(person => state.hands[person].forEach((_, index) => CaboAnim.hide(handKey(person, index))));
+      CaboAnim.hide("discard-top");
+      break;
+    case "draw":
+      if (move.person === currentPerson) CaboAnim.hide("drawn");
+      break;
+    case "discard":
+    case "swap-failed":
+      CaboAnim.hide("discard-top");
+      break;
+    case "swap":
+      CaboAnim.hide(handKey(move.person, move.slots[0]));
+      CaboAnim.hide("discard-top");
+      break;
+    case "blind-swap":
+      CaboAnim.hide(handKey(move.person, move.ownIndex));
+      CaboAnim.hide(handKey(move.targetPerson, move.opponentIndex));
+      break;
+    default:
+      break;
+  }
+}
+
+function animateMove(move, state, before, opponent) {
+  const now = captureLayout(opponent);
+  const mine = move.person === currentPerson;
+  const jobs = [];
+  const flyThenReveal = (options, key) => jobs.push(CaboAnim.fly(options).then(() => key && CaboAnim.reveal(key)));
+
+  switch (move.type) {
+    case "deal": {
+      let step = 0;
+      for (let index = 0; index < CaboEngine.HAND_SIZE; index++) {
+        state.players.forEach(person => {
+          flyThenReveal({
+            from: now.drawPile,
+            to: (now.hands[person] || [])[index],
+            delay: step++ * DEAL_STEP_MS,
+            duration: DEAL_FLY_MS
+          }, handKey(person, index));
+        });
+      }
+      flyThenReveal({
+        from: now.drawPile,
+        to: now.discardPile,
+        front: cardImg(state.discard[state.discard.length - 1]),
+        endFaceUp: true,
+        delay: step * DEAL_STEP_MS,
+        duration: DEAL_FLY_MS
+      }, "discard-top");
+      break;
+    }
+
+    case "draw": {
+      const fromDiscard = move.from === "discard";
+      flyThenReveal({
+        from: fromDiscard ? now.discardPile : now.drawPile,
+        to: mine ? now.drawnCard : holdingRect(move.person, now),
+        front: cardImg(move.card),
+        startFaceUp: fromDiscard,
+        endFaceUp: mine || fromDiscard,
+        fade: !mine
+      }, mine ? "drawn" : null);
+      break;
+    }
+
+    case "discard":
+      flyThenReveal({
+        from: holdingRect(move.person, before),
+        to: now.discardPile,
+        front: cardImg(move.card),
+        startFaceUp: mine,
+        endFaceUp: true
+      }, "discard-top");
+      break;
+
+    case "swap": {
+      const oldSlots = before.hands[move.person] || [];
+      move.slots.forEach((slotIndex, k) => {
+        const isLast = k === move.slots.length - 1;
+        flyThenReveal({
+          from: oldSlots[slotIndex],
+          to: now.discardPile,
+          front: cardImg(move.discarded[k]),
+          endFaceUp: true,
+          delay: k * 120
+        }, isLast ? "discard-top" : null);
+      });
+
+      flyThenReveal({
+        from: holdingRect(move.person, before),
+        to: (now.hands[move.person] || [])[move.slots[0]],
+        front: cardImg(move.card),
+        startFaceUp: mine || move.drawSource === "discard",
+        endFaceUp: false,
+        delay: 160
+      }, handKey(move.person, move.slots[0]));
+
+      /* after a multi-swap the remaining cards close the gaps */
+      if (move.slots.length > 1) {
+        const removed = new Set(move.slots.slice(1));
+        const survivors = oldSlots.map((_, index) => index).filter(index => !removed.has(index));
+        [...handElement(move.person).children].forEach((el, newIndex) => {
+          if (newIndex !== move.slots[0]) CaboAnim.slideFrom(el, oldSlots[survivors[newIndex]]);
+        });
+      }
+      break;
+    }
+
+    case "swap-failed":
+      move.slots.forEach(index => CaboAnim.shake(handElement(move.person).children[index]));
+      flyThenReveal({
+        from: holdingRect(move.person, before),
+        to: now.discardPile,
+        front: cardImg(move.card),
+        startFaceUp: mine || move.drawSource === "discard",
+        endFaceUp: true,
+        delay: 300
+      }, "discard-top");
+      break;
+
+    case "blind-swap": {
+      const ownSlot = (now.hands[move.person] || [])[move.ownIndex];
+      const targetSlot = (now.hands[move.targetPerson] || [])[move.opponentIndex];
+      flyThenReveal({ from: ownSlot, to: targetSlot, arc: 40 }, handKey(move.targetPerson, move.opponentIndex));
+      flyThenReveal({ from: targetSlot, to: ownSlot, arc: -40 }, handKey(move.person, move.ownIndex));
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  /* safety net: never leave a card invisible if something interrupts an animation */
+  const safety = setTimeout(CaboAnim.revealAll, 4000);
+  Promise.all(jobs).then(() => clearTimeout(safety));
 }
 
 function rerenderCurrent() {
@@ -407,6 +624,25 @@ function slotClickHandler(state, isOwn, index, peekState, previewingInitial) {
   }
 }
 
+/* The hand is rebuilt on every update, so a card that changes sides is created in its old
+   position and turned over afterwards - otherwise the CSS flip would never be visible. */
+function applyFlip(slot, memoryKey, flipped, roundReveal) {
+  const wasFlipped = flipMemory.get(memoryKey) === true;
+  flipMemory.set(memoryKey, flipped);
+
+  if (wasFlipped === flipped || !CaboAnim.enabled()) {
+    slot.classList.toggle("flipped", flipped);
+    return;
+  }
+
+  slot.classList.toggle("flipped", wasFlipped);
+  const stagger = roundReveal && flipped ? flipTiming.revealOrder++ * REVEAL_STAGGER_MS : 0;
+  setTimeout(() => {
+    void slot.offsetWidth;
+    slot.classList.toggle("flipped", flipped);
+  }, flipTiming.base + stagger + 20);
+}
+
 function renderHand(container, state, person, isOwn) {
   container.innerHTML = "";
   if (!person || !state.hands[person]) return;
@@ -439,7 +675,8 @@ function renderHand(container, state, person, isOwn) {
     inner.appendChild(front);
     slot.appendChild(inner);
 
-    slot.classList.toggle("flipped", flipped);
+    CaboAnim.tag(slot, handKey(person, index));
+    applyFlip(slot, `${flipScope}:${person}:${index}`, flipped, state.revealHands);
     if (previewingInitial && !state.revealHands) {
       slot.classList.add("known");
     }
@@ -488,6 +725,7 @@ function renderPiles(state) {
     const top = document.createElement("div");
     top.className = "cabo-pile-top";
     top.innerHTML = `<img src="${cardImg(topDiscard)}" alt="Ablagestapel: ${topDiscard}">`;
+    CaboAnim.tag(top, "discard-top");
     discardPile.appendChild(top);
   } else {
     discardPile.innerHTML = `<span class="cabo-pile-empty">leer</span>`;
@@ -517,6 +755,7 @@ function renderDrawnCard(state) {
   drawnCard.className = "cabo-drawn-preview";
   drawnCard.classList.toggle("clickable", count > 0);
   drawnCard.innerHTML = `<img src="${cardImg(state.drawnCard)}" alt="Gezogene Karte">`;
+  CaboAnim.tag(drawnCard, "drawn");
   drawnCard.addEventListener("click", () => {
     if (selectedSwapSlots.size === 0) {
       nudgeStatus();
@@ -648,7 +887,14 @@ function renderRoundOverInline(state, game, opponent) {
 /* ---------- sync loop ---------- */
 
 async function syncFromServer() {
+  const generation = ++syncGeneration;
   const game = await fetchCurrentGame();
+  if (generation !== syncGeneration) return;
+
+  /* re-rendering an unchanged game would restart running card animations */
+  const json = JSON.stringify(game);
+  if (json === lastRenderedJson) return;
+  lastRenderedJson = json;
   currentGame = game;
 
   if (!game) {

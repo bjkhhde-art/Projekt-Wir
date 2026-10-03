@@ -26,7 +26,13 @@ function otherPerson(state, person) {
   return state.players.find(p => p !== person);
 }
 
-function dealRound(players, startingPerson, scores, round) {
+/* Every visible card movement gets a sequence number so each device can animate it exactly once. */
+function recordMove(state, move) {
+  state.moveSeq = (state.moveSeq || 0) + 1;
+  state.lastMove = { ...move, seq: state.moveSeq };
+}
+
+function dealRound(players, startingPerson, scores, round, previousMoveSeq) {
   let deck = shuffle(buildDeck());
 
   const hands = {};
@@ -35,8 +41,11 @@ function dealRound(players, startingPerson, scores, round) {
   });
 
   const discard = [deck.shift()];
+  const moveSeq = (previousMoveSeq || 0) + 1;
 
   return {
+    moveSeq,
+    lastMove: { type: "deal", seq: moveSeq },
     players,
     hands,
     deck,
@@ -161,6 +170,7 @@ function drawFromDeck(state, person) {
   next.drawSource = "deck";
   next.turnPhase = "post-draw-decision";
   next.lastEvent = null;
+  recordMove(next, { type: "draw", from: "deck", person, card: next.drawnCard });
   return next;
 }
 
@@ -174,6 +184,7 @@ function drawFromDiscard(state, person) {
   next.drawSource = "discard";
   next.turnPhase = "post-draw-decision";
   next.lastEvent = null;
+  recordMove(next, { type: "draw", from: "discard", person, card: next.drawnCard });
   return next;
 }
 
@@ -205,15 +216,18 @@ function swapCards(state, person, slotIndices) {
   const hand = next.hands[person];
   const chosen = slots.map(index => hand[index]);
   const allEqual = chosen.every(value => value === chosen[0]);
+  const move = { person, slots, card: next.drawnCard, drawSource: next.drawSource };
 
   if (allEqual) {
     next.discard.push(...chosen);
     hand[slots[0]] = next.drawnCard;
     for (let k = slots.length - 1; k >= 1; k--) hand.splice(slots[k], 1);
     next.lastEvent = slots.length > 1 ? { type: "multi-swap", person, count: slots.length } : null;
+    recordMove(next, { ...move, type: "swap", discarded: chosen });
   } else {
     next.discard.push(next.drawnCard);
     next.lastEvent = { type: "multi-swap-failed", person, count: slots.length };
+    recordMove(next, { ...move, type: "swap-failed" });
   }
 
   advanceTurn(next, person);
@@ -230,6 +244,7 @@ function discardDrawn(state, person) {
   next.discard.push(card);
   next.drawnCard = null;
   next.drawSource = null;
+  recordMove(next, { type: "discard", person, card });
 
   if (card === 7 || card === 8) {
     next.turnPhase = "await-peek-own-target";
@@ -296,6 +311,7 @@ function swapWithOpponent(state, person, ownIndex, opponentIndex) {
   next.hands[person][ownIndex] = next.hands[target][opponentIndex];
   next.hands[target][opponentIndex] = ownCard;
   next.lastEvent = { type: "blind-swap", person, targetPerson: target, ownIndex, opponentIndex };
+  recordMove(next, { type: "blind-swap", person, targetPerson: target, ownIndex, opponentIndex });
   advanceTurn(next, person);
   return next;
 }
@@ -316,7 +332,7 @@ function startNextRound(state) {
   const previousStarter = state.round % 2 === 1 ? state.players[0] : state.players[1];
   const nextStarter = otherPerson(state, previousStarter) || state.players[0];
 
-  return dealRound(state.players, nextStarter, state.scores, state.round + 1);
+  return dealRound(state.players, nextStarter, state.scores, state.round + 1, state.moveSeq);
 }
 
 const CaboEngine = {
