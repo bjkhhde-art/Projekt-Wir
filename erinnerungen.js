@@ -82,7 +82,7 @@ function buildMemoryCard(memory) {
       <button class="icon-action delete-memory-btn" title="Löschen">×</button>
     </div>
     ${memory.cover_url
-      ? `<img src="${memory.cover_url}" alt="${escapeHtml(memory.title)}" onerror="window.handleBrokenCover(this)">`
+      ? `<img src="${memory.cover_url}" alt="${escapeHtml(memory.title)}" loading="lazy" decoding="async" onerror="window.handleBrokenCover(this)">`
       : `<div class="memory-cover-placeholder">📷</div>`}
     <div class="memory-content">
       <h2>${escapeHtml(memory.title)}</h2>
@@ -410,7 +410,7 @@ function renderImages() {
 
     card.innerHTML = `
       <button class="delete-image-btn icon-action" title="Löschen">×</button>
-      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}">
+      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async">
       <div class="image-caption-row">
         <p class="image-caption ${image.caption ? "" : "empty"}">${escapeHtml(image.caption || "Beschriftung hinzufügen…")}</p>
         <button class="edit-caption-btn icon-action" title="Beschriftung bearbeiten">✏️</button>
@@ -501,7 +501,7 @@ function renderUploadQueue() {
     const thumb = document.createElement("div");
     thumb.className = "upload-thumb";
     thumb.innerHTML = `
-      <img src="${url}" alt="${file.name}">
+      <img src="${url}" alt="${escapeHtml(file.name)}">
       <button class="remove-thumb-btn" title="Entfernen">×</button>
     `;
 
@@ -564,14 +564,15 @@ async function uploadQueuedImages() {
   await loadImages();
 }
 
-async function uploadFile(file, folder) {
+async function uploadFile(originalFile, folder) {
+  const file = await shrinkImageForUpload(originalFile);
   const fileExt = file.name.split(".").pop();
   const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
   const { error } = await supabaseClient
     .storage
     .from("trip-images")
-    .upload(fileName, file);
+    .upload(fileName, file, { contentType: file.type, cacheControl: "31536000" });
 
   if (error) {
     console.error("Fehler beim Upload:", error);

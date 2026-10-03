@@ -43,6 +43,31 @@ window.timeAgo = function (dateString) {
   return formatDate(dateString);
 };
 
+/* ---------- image uploads ---------- */
+
+/* phone photos are often 3–10 MB; scale them to at most 1600 px as JPEG before upload.
+   Falls back to the original when the browser cannot decode it or shrinking would not help. */
+window.shrinkImageForUpload = async function (file) {
+  if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
+
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch (error) {
+    console.warn("Bild konnte nicht verkleinert werden, lade Original hoch:", error);
+    return file;
+  }
+};
+
 /* ---------- push notifications ---------- */
 
 window.VAPID_PUBLIC_KEY = "BK5VB6dUwUk95sMOfJ2lz7j29h_piCc8UuvP13_8jMhDaVH_X3qrCtICq6WrYtOhiJnjUK-s-mvYhaWLL71M5j4";
