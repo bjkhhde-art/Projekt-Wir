@@ -18,11 +18,14 @@ const drawPileCount = document.getElementById("drawPileCount");
 const discardPile = document.getElementById("discardPile");
 const caboStatus = document.getElementById("caboStatus");
 const caboActions = document.getElementById("caboActions");
+const leaveGameBtn = document.getElementById("leaveGameBtn");
 
 const INITIAL_PEEK_SLOTS = [0, 1];
+const LEAVE_CONFIRM_MS = 4000;
 
 let currentPerson = localStorage.getItem("pw_person");
 let currentGame = null;
+let leaveArmedTimer = null;
 
 function cardImg(value) {
   return `cabo-cards/Karte-${value}.webp`;
@@ -147,14 +150,69 @@ async function dispatchAction(actionFn, ...args) {
   await syncFromServer();
 }
 
+async function leaveGame() {
+  if (!requirePerson()) return;
+
+  const fresh = await fetchCurrentGame();
+  if (!fresh || (fresh.status !== "active" && fresh.status !== "finished")) {
+    await syncFromServer();
+    return;
+  }
+
+  const state = { ...fresh.state, closedBy: currentPerson };
+  const { error } = await supabaseClient
+    .from("cabo_games")
+    .update({ status: "closed", state, updated_at: new Date().toISOString() })
+    .eq("id", fresh.id);
+
+  if (error) {
+    console.error("Fehler beim Beenden:", error);
+    showToast("Spiel konnte nicht beendet werden.", "error");
+    return;
+  }
+
+  await syncFromServer();
+}
+
+function disarmLeaveButton() {
+  clearTimeout(leaveArmedTimer);
+  leaveArmedTimer = null;
+  leaveGameBtn.classList.remove("armed");
+}
+
+function renderLeaveButton(state) {
+  const gameDone = state.gameOver;
+  if (leaveArmedTimer && !gameDone) return;
+  disarmLeaveButton();
+  leaveGameBtn.textContent = gameDone ? "Zurück zur Übersicht" : "Spiel beenden";
+}
+
+leaveGameBtn.addEventListener("click", () => {
+  const gameDone = currentGame && currentGame.state && currentGame.state.gameOver;
+  if (gameDone || leaveArmedTimer) {
+    disarmLeaveButton();
+    leaveGame();
+    return;
+  }
+
+  leaveGameBtn.classList.add("armed");
+  leaveGameBtn.textContent = "Wirklich beenden? Nochmal tippen";
+  leaveArmedTimer = setTimeout(() => {
+    disarmLeaveButton();
+    leaveGameBtn.textContent = "Spiel beenden";
+  }, LEAVE_CONFIRM_MS);
+});
+
 /* ---------- rendering: lobby ---------- */
 
-function renderLobbyNoGame() {
+function renderLobbyNoGame(note) {
+  disarmLeaveButton();
   caboBoard.classList.add("hidden");
   caboLobby.classList.remove("hidden");
   caboLobby.innerHTML = `
     <div class="cabo-lobby-card card">
       <div class="cabo-lobby-icon">🦄</div>
+      ${note ? `<p class="cabo-lobby-note">${escapeHtml(note)}</p>` : ""}
       <h2>Noch keine Runde</h2>
       <p>Startet eine neue Cabo-Runde &ndash; der andere kann direkt beitreten.</p>
       <button id="startGameBtn" class="btn btn-block">Neue Runde starten</button>
@@ -210,6 +268,7 @@ function renderBoard(game) {
   renderHand(ownHand, state, currentPerson, true);
   renderPiles(state);
   renderStatusAndActions(state, game, opponent);
+  renderLeaveButton(state);
 }
 
 function renderScoreStrip(state, opponent) {
@@ -445,6 +504,16 @@ async function syncFromServer() {
 
   if (!game) {
     renderLobbyNoGame();
+    return;
+  }
+
+  if (game.status === "closed") {
+    const closedBy = game.state && game.state.closedBy;
+    const endedEarly = !(game.state && game.state.gameOver);
+    const note = closedBy && closedBy !== currentPerson && endedEarly
+      ? `${closedBy} hat das letzte Spiel beendet.`
+      : "";
+    renderLobbyNoGame(note);
     return;
   }
 
