@@ -28,6 +28,8 @@
 
     <section class="hub-panel" data-panel="watchlist">
 
+      <input id="watchlistSearchInput" type="search" class="watchlist-search" placeholder="🔍 Suchen...">
+
       <div class="watchlist-filter">
         <button class="watchlist-filter-btn active" data-filter="alle">Alle</button>
         <button class="watchlist-filter-btn" data-filter="film">🎬 Filme</button>
@@ -78,7 +80,7 @@
 
   <div id="watchlistModal" class="modal hidden">
     <div class="modal-box">
-      <h2>Neuer Eintrag</h2>
+      <h2 id="watchlistModalTitle">Neuer Eintrag</h2>
 
       <label>Titel</label>
       <input id="watchlistTitleInput" type="text" placeholder="z. B. Dune">

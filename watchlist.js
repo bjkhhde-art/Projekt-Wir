@@ -5,9 +5,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const watchlistList = document.getElementById("watchlistList");
 const watchlistFilterButtons = document.querySelectorAll(".watchlist-filter-btn");
+const watchlistSearchInput = document.getElementById("watchlistSearchInput");
 
 const openWatchlistModal = document.getElementById("openWatchlistModal");
 const watchlistModal = document.getElementById("watchlistModal");
+const watchlistModalTitle = document.getElementById("watchlistModalTitle");
 const closeWatchlistModal = document.getElementById("closeWatchlistModal");
 const saveWatchlistBtn = document.getElementById("saveWatchlistBtn");
 const watchlistTitleInput = document.getElementById("watchlistTitleInput");
@@ -16,9 +18,12 @@ const watchlistPlatformInput = document.getElementById("watchlistPlatformInput")
 const watchlistAddedByInput = document.getElementById("watchlistAddedByInput");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
+const LONG_PRESS_MS = 500;
 
 let watchlistEntries = [];
 let currentFilter = "alle";
+let currentSearch = "";
+let editingWatchlistId = null;
 
 async function loadWatchlist() {
   const { data, error } = await supabaseClient
@@ -53,10 +58,44 @@ function buildRatingHearts(entry) {
   return container;
 }
 
+function attachLongPressToEdit(card, entry) {
+  let pressTimer = null;
+  let longPressFired = false;
+
+  function start(event) {
+    if (event.target.closest("button")) return;
+    longPressFired = false;
+    card.classList.add("long-pressing");
+    pressTimer = setTimeout(() => {
+      longPressFired = true;
+      card.classList.remove("long-pressing");
+      if (navigator.vibrate) navigator.vibrate(15);
+      openEditModal(entry);
+    }, LONG_PRESS_MS);
+  }
+
+  function cancel() {
+    clearTimeout(pressTimer);
+    card.classList.remove("long-pressing");
+  }
+
+  card.addEventListener("pointerdown", start);
+  card.addEventListener("pointerup", cancel);
+  card.addEventListener("pointerleave", cancel);
+  card.addEventListener("pointercancel", cancel);
+  card.addEventListener("click", event => {
+    if (longPressFired) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+}
+
 function buildWatchlistCard(entry) {
   const card = document.createElement("div");
   card.className = "watchlist-card card" + (entry.watched ? " watched" : "");
   card.setAttribute("data-reveal", "");
+  attachLongPressToEdit(card, entry);
 
   const head = document.createElement("div");
   head.className = "watchlist-card-head";
@@ -113,12 +152,20 @@ function buildWatchlistCard(entry) {
 function renderWatchlist() {
   watchlistList.innerHTML = "";
 
+  const search = currentSearch.trim().toLowerCase();
+
   const filtered = watchlistEntries.filter(entry => {
-    return currentFilter === "alle" || entry.media_type === currentFilter;
+    const matchesFilter = currentFilter === "alle" || entry.media_type === currentFilter;
+    const matchesSearch = !search ||
+      entry.title.toLowerCase().includes(search) ||
+      (entry.platform && entry.platform.toLowerCase().includes(search));
+    return matchesFilter && matchesSearch;
   });
 
   if (filtered.length === 0) {
-    watchlistList.innerHTML = `
+    watchlistList.innerHTML = search || currentFilter !== "alle"
+      ? `<div class="watchlist-empty"><p>Nichts gefunden.</p></div>`
+      : `
       <div class="watchlist-empty">
         <p>Noch nichts auf der Watchlist.<br>Tippt unten rechts auf + und tragt euren ersten Film oder eure erste Serie ein.</p>
       </div>
@@ -148,6 +195,11 @@ watchlistFilterButtons.forEach(btn => {
     watchlistFilterButtons.forEach(b => b.classList.toggle("active", b === btn));
     renderWatchlist();
   });
+});
+
+watchlistSearchInput.addEventListener("input", () => {
+  currentSearch = watchlistSearchInput.value;
+  renderWatchlist();
 });
 
 async function toggleWatched(entry) {
@@ -213,14 +265,31 @@ async function deleteEntry(entry) {
 }
 
 openWatchlistModal.addEventListener("click", () => {
+  editingWatchlistId = null;
+  watchlistModalTitle.textContent = "Neuer Eintrag";
+  saveWatchlistBtn.textContent = "Hinzufügen";
   watchlistTitleInput.value = "";
   watchlistTypeInput.value = "film";
   watchlistPlatformInput.value = "";
+  watchlistAddedByInput.value = "Isi";
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
 });
 
+function openEditModal(entry) {
+  editingWatchlistId = entry.id;
+  watchlistModalTitle.textContent = "Eintrag bearbeiten";
+  saveWatchlistBtn.textContent = "Speichern";
+  watchlistTitleInput.value = entry.title;
+  watchlistTypeInput.value = entry.media_type;
+  watchlistPlatformInput.value = entry.platform || "";
+  watchlistAddedByInput.value = entry.added_by || "Isi";
+  watchlistModal.classList.remove("hidden");
+  watchlistTitleInput.focus();
+}
+
 closeWatchlistModal.addEventListener("click", () => {
+  editingWatchlistId = null;
   watchlistModal.classList.add("hidden");
 });
 
@@ -232,14 +301,16 @@ async function saveWatchlistEntry() {
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("watchlist")
-    .insert({
-      title,
-      media_type: watchlistTypeInput.value,
-      platform: watchlistPlatformInput.value.trim() || null,
-      added_by: watchlistAddedByInput.value
-    });
+  const payload = {
+    title,
+    media_type: watchlistTypeInput.value,
+    platform: watchlistPlatformInput.value.trim() || null,
+    added_by: watchlistAddedByInput.value
+  };
+
+  const { error } = editingWatchlistId
+    ? await supabaseClient.from("watchlist").update(payload).eq("id", editingWatchlistId)
+    : await supabaseClient.from("watchlist").insert(payload);
 
   if (error) {
     console.error("Fehler beim Speichern:", error);
@@ -247,7 +318,8 @@ async function saveWatchlistEntry() {
     return;
   }
 
-  showToast("Zur Watchlist hinzugefügt ✨", "success");
+  showToast(editingWatchlistId ? "Eintrag aktualisiert 💾" : "Zur Watchlist hinzugefügt ✨", "success");
+  editingWatchlistId = null;
   watchlistModal.classList.add("hidden");
   await loadWatchlist();
 }

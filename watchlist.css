@@ -1,3 +1,21 @@
+.watchlist-search {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+}
+
+.watchlist-search::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
 .watchlist-filter {
   display: flex;
   gap: 8px;
@@ -43,10 +61,17 @@
 
 .watchlist-card {
   padding: 18px 20px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .watchlist-card.watched {
   opacity: 0.82;
+}
+
+.watchlist-card.long-pressing {
+  transform: scale(0.97) !important;
 }
 
 .watchlist-card-head {
