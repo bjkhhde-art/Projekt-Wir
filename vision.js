@@ -1,7 +1,8 @@
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* shares ziele.html with the Couple Quest (app.js), so its client gets its own name */
+const visionDb = supabase.createClient(
+  "https://lrzgcqoqcwicpuuuhaoj.supabase.co",
+  "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK"
+);
 
 const visionTimeline = document.getElementById("visionTimeline");
 
@@ -155,7 +156,7 @@ function renderTimeline() {
 /* ---------- data ---------- */
 
 async function loadVisions() {
-  const { data, error } = await supabaseClient
+  const { data, error } = await visionDb
     .from("visions")
     .select("*")
     .order("created_at", { ascending: true });
@@ -175,7 +176,7 @@ async function uploadCover(originalFile) {
   const fileExt = file.name.split(".").pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-  const { error } = await supabaseClient
+  const { error } = await visionDb
     .storage
     .from("vision-images")
     .upload(fileName, file, { contentType: file.type, cacheControl: "31536000" });
@@ -185,7 +186,7 @@ async function uploadCover(originalFile) {
     throw error;
   }
 
-  const { data } = supabaseClient
+  const { data } = visionDb
     .storage
     .from("vision-images")
     .getPublicUrl(fileName);
@@ -196,7 +197,7 @@ async function uploadCover(originalFile) {
 async function toggleAchieved(vision) {
   const achieved = !vision.achieved;
 
-  const { error } = await supabaseClient
+  const { error } = await visionDb
     .from("visions")
     .update({ achieved })
     .eq("id", vision.id);
@@ -215,7 +216,7 @@ async function deleteVision(id) {
   const confirmed = await confirmDialog("Dieses Ziel wird endgültig gelöscht.");
   if (!confirmed) return;
 
-  const { error } = await supabaseClient
+  const { error } = await visionDb
     .from("visions")
     .delete()
     .eq("id", id);
@@ -296,7 +297,7 @@ async function saveVision() {
       const update = { title, description, target_year: targetYear };
       if (imageUrl) update.image_url = imageUrl;
 
-      const { error } = await supabaseClient
+      const { error } = await visionDb
         .from("visions")
         .update(update)
         .eq("id", editingVisionId);
@@ -305,7 +306,7 @@ async function saveVision() {
 
       showToast("Ziel aktualisiert 💗", "success");
     } else {
-      const { error } = await supabaseClient
+      const { error } = await visionDb
         .from("visions")
         .insert({
           title,
@@ -350,7 +351,7 @@ saveVisionBtn.addEventListener("click", saveVision);
 
 /* ---------- realtime + init ---------- */
 
-supabaseClient
+visionDb
   .channel("visions_changes")
   .on("postgres_changes", { event: "*", schema: "public", table: "visions" }, () => {
     loadVisions();

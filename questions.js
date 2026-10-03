@@ -1,3 +1,8 @@
+const supabaseClient = supabase.createClient(
+  "https://lrzgcqoqcwicpuuuhaoj.supabase.co",
+  "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK"
+);
+
 const QUESTION_GROUPS = {
   easy: {
     label: "🧊 Easy Talk",

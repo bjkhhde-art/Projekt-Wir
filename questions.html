@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>I + B | Weitergeleitet</title>
+  <title>I + B | Fragen</title>
+
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,16 +14,55 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Projekt Wir">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
   <link rel="stylesheet" href="shared.css">
-  <script>
-    localStorage.setItem("pw_hub_tab_wir", "fragen");
-    location.replace("wir.html");
-  </script>
+  <link rel="stylesheet" href="questions.css">
+  <script src="pin-lock.js"></script>
 </head>
-<body>
-  <main class="page page-fill" style="text-align:center;">
-    <p class="page-subtitle">Questions ist jetzt Teil von „Wir“ &ndash; du wirst weitergeleitet&hellip;</p>
-    <p><a class="btn" href="wir.html">Weiter zu wir.html</a></p>
+<body data-nav="games.html">
+
+  <main class="page">
+    <h1 class="page-title">Fragen 💬</h1>
+    <p class="page-subtitle">Gesprächsstoff für uns zwei &ndash; von Easy Talk bis Sexy Time</p>
+
+    <section class="category-section">
+      <button class="category-btn active" data-group="easy">🧊 Easy Talk</button>
+      <button class="category-btn" data-group="deep">💗 Deep Talk</button>
+      <button class="category-btn" data-group="relationship">💑 Beziehung</button>
+      <button class="category-btn sexy" data-group="sexy">🔥 Sexy Time</button>
+    </section>
+
+    <div class="question-wrapper">
+      <div class="question-card card">
+        <div id="questionGroupLabel" class="question-group-label chip">🧊 Easy Talk</div>
+        <div id="questionRealCategory" class="question-real-category"></div>
+
+        <p id="questionText" class="question-text">
+          Lade Fragen...
+        </p>
+
+        <div class="question-actions">
+          <button id="resetSeenBtn" class="btn btn-secondary">← Vorherige</button>
+          <button id="newQuestionBtn" class="btn">Nächste Frage →</button>
+        </div>
+      </div>
+
+      <p id="questionCounter" class="question-counter"></p>
+    </div>
   </main>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="questions.js"></script>
 </body>
 </html>
