@@ -164,8 +164,7 @@
   transform: scale(1.08);
 }
 
-.delete-memory-btn,
-.delete-image-btn {
+.delete-memory-btn {
   font-size: 20px;
   background: rgba(239, 68, 68, 0.85);
 }
@@ -211,37 +210,16 @@
   color: var(--text-muted);
 }
 
-/* ---------- dropzone ---------- */
+/* ---------- add photos by dragging onto the open trip (computer) ---------- */
 
-.dropzone {
-  text-align: center;
-  padding: 32px 20px;
-  margin-bottom: 16px;
-  cursor: pointer;
-  border: 2px dashed var(--surface-border);
-  transition: border-color 0.2s ease, background 0.2s ease;
+#galleryView {
+  border-radius: var(--radius-lg);
+  transition: box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.dropzone.dragover {
-  border-color: var(--pink);
-  background: rgba(255, 92, 138, 0.08);
-}
-
-.dropzone-icon {
-  font-size: 36px;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.dropzone-text {
-  margin: 0;
-  font-size: 15px;
-}
-
-.dropzone-hint {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--text-faint);
+#galleryView.dragover {
+  background: rgba(255, 92, 138, 0.06);
+  box-shadow: 0 0 0 2px var(--pink) inset;
 }
 
 .upload-queue {
@@ -299,6 +277,35 @@
 .image-card {
   overflow: hidden;
   position: relative;
+  cursor: zoom-in;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.25s ease;
+}
+
+.image-card.pressing {
+  transform: scale(0.96);
+  transition-duration: 0.5s;
+}
+
+.image-card img {
+  -webkit-user-drag: none;
+}
+
+.image-grid .empty-state {
+  grid-column: 1 / -1;
+}
+
+.image-hint {
+  margin: -4px 0 12px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.image-hint.hidden {
+  display: none;
 }
 
 .image-card img {
@@ -309,41 +316,13 @@
   cursor: zoom-in;
 }
 
-.image-caption-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-}
-
 .image-caption {
   margin: 0;
+  padding: 10px 12px;
   font-size: 13.5px;
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.image-caption.empty {
-  color: var(--text-faint);
-  font-style: italic;
-}
-
-.edit-caption-btn,
-.save-caption-btn {
-  width: 28px;
-  height: 28px;
-  font-size: 13px;
-  background: rgba(139, 92, 246, 0.14);
-  color: var(--purple-deep);
-  flex: none;
-}
-
-.caption-edit-input {
-  flex: 1;
-  padding: 8px 10px;
-  font-size: 13.5px;
 }
 
 /* ---------- skeletons ---------- */
@@ -439,5 +418,144 @@
 
   .gallery-header-text h2 {
     font-size: 22px;
+  }
+}
+
+
+/* ---------- long-press menu for a photo ---------- */
+
+.sheet-modal {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.sheet-box {
+  width: min(100%, 480px);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--surface-solid);
+  color: var(--text);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  box-shadow: var(--shadow-lift);
+  animation: sheet-up 0.28s cubic-bezier(.2, .9, .3, 1.1);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheet-preview {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+
+.sheet-actions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sheet-actions.hidden,
+.sheet-caption.hidden,
+.sheet-btn.hidden {
+  display: none;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheet-btn:active {
+  transform: scale(0.98);
+}
+
+.sheet-btn-danger {
+  color: var(--danger);
+}
+
+.sheet-caption {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+@media (min-width: 760px) {
+  .sheet-modal {
+    align-items: center;
+    padding: 16px;
+  }
+
+  .sheet-box {
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* ---------- countdown for upcoming trips ---------- */
+
+.trip-countdown {
+  margin: 0 0 12px;
+}
+
+.trip-countdown.hidden {
+  display: none;
+}
+
+.trip-countdown-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pink);
+}
+
+.trip-countdown-boxes {
+  display: flex;
+  gap: 8px;
+}
+
+.trip-countdown-box {
+  min-width: 54px;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(255, 92, 138, 0.16), rgba(139, 92, 246, 0.16));
+  border: 1px solid rgba(255, 92, 138, 0.25);
+  text-align: center;
+}
+
+.trip-countdown-value {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.trip-countdown-unit {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 520px) {
+  .trip-countdown-boxes {
+    justify-content: center;
   }
 }

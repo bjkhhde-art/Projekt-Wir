@@ -124,16 +124,12 @@
           <div class="gallery-header-text">
             <h2 id="galleryTitle"></h2>
             <p id="galleryInfo"></p>
+            <div id="tripCountdown" class="trip-countdown hidden" aria-live="polite"></div>
             <button id="editTripBtn" class="btn btn-sm btn-secondary">✏️ Trip bearbeiten</button>
           </div>
         </div>
 
-        <div id="dropzone" class="dropzone card">
-          <input id="imageInput" type="file" accept="image/*" multiple hidden>
-          <span class="dropzone-icon">📤</span>
-          <p class="dropzone-text"><strong>Bilder hierher ziehen</strong> oder klicken zum Auswählen</p>
-          <p class="dropzone-hint">Mehrere Bilder gleichzeitig möglich</p>
-        </div>
+        <input id="imageInput" type="file" accept="image/*" multiple hidden>
 
         <div id="uploadQueue" class="upload-queue hidden">
           <div id="uploadPreviewList" class="upload-preview-list"></div>
@@ -145,6 +141,7 @@
           </div>
         </div>
 
+        <p id="imageHint" class="image-hint hidden">Tipp: Bild lange gedrückt halten zum Bearbeiten</p>
         <div id="imageGrid" class="image-grid"></div>
       </section>
 
@@ -184,6 +181,23 @@
         <button id="saveMemoryBtn" class="btn">Erinnerung erstellen</button>
         <button id="closeMemoryModal" class="btn btn-secondary">Abbrechen</button>
       </div>
+    </div>
+  </div>
+
+  <div id="imageSheet" class="modal sheet-modal hidden">
+    <div class="sheet-box" role="dialog" aria-label="Bild bearbeiten">
+      <img id="imageSheetPreview" class="sheet-preview" src="" alt="">
+      <div id="imageSheetActions" class="sheet-actions">
+        <button id="sheetEditCaption" class="sheet-btn" type="button">✏️ Beschriftung bearbeiten</button>
+        <button id="sheetSetCover" class="sheet-btn" type="button">🖼️ Als Titelbild verwenden</button>
+        <button id="sheetDelete" class="sheet-btn sheet-btn-danger" type="button">🗑️ Bild löschen</button>
+      </div>
+      <div id="imageSheetCaption" class="sheet-caption hidden">
+        <label for="sheetCaptionInput">Beschriftung</label>
+        <input id="sheetCaptionInput" type="text" maxlength="120" placeholder="z. B. Sonnenuntergang am Strand">
+        <button id="sheetSaveCaption" class="btn btn-block" type="button">Speichern</button>
+      </div>
+      <button id="sheetCancel" class="btn btn-secondary btn-block" type="button">Abbrechen</button>
     </div>
   </div>
 

@@ -209,6 +209,20 @@
         from(table) { return makeQueryBuilder(table); },
         channel(name, options) { return makeChannel(name, options); },
         removeChannel(chan) { if (chan && chan.unsubscribe) chan.unsubscribe(); },
+        /* uploads are only recorded; the public URL points at a picture the test site serves */
+        storage: {
+          from(bucket) {
+            return {
+              async upload(name, file, options) {
+                (window.__mockUploads = window.__mockUploads || []).push({ bucket, name, size: file.size, type: file.type, options });
+                return { data: { path: name }, error: null };
+              },
+              getPublicUrl(name) {
+                return { data: { publicUrl: "/icons/icon-512.png?upload=" + encodeURIComponent(name) } };
+              }
+            };
+          }
+        },
         functions: {
           async invoke(name, options) {
             (window.__mockInvocations = window.__mockInvocations || []).push({ name, body: options && options.body });

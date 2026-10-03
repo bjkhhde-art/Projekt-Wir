@@ -365,6 +365,7 @@ a {
 
 @media (min-width: 760px) {
   .fab {
+    z-index: 110;
     bottom: 32px;
     right: calc((100vw - min(94vw, var(--content-max))) / 2 + 4px);
   }

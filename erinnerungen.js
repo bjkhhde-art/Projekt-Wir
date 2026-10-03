@@ -25,13 +25,26 @@ const galleryInfo = document.getElementById("galleryInfo");
 const galleryCoverImg = document.getElementById("galleryCoverImg");
 const editTripBtn = document.getElementById("editTripBtn");
 
-const dropzone = document.getElementById("dropzone");
 const imageInput = document.getElementById("imageInput");
 const uploadQueue = document.getElementById("uploadQueue");
 const uploadPreviewList = document.getElementById("uploadPreviewList");
 const captionInput = document.getElementById("captionInput");
 const uploadImageBtn = document.getElementById("uploadImageBtn");
 const clearQueueBtn = document.getElementById("clearQueueBtn");
+
+const imageHint = document.getElementById("imageHint");
+const tripCountdown = document.getElementById("tripCountdown");
+
+const imageSheet = document.getElementById("imageSheet");
+const imageSheetPreview = document.getElementById("imageSheetPreview");
+const imageSheetActions = document.getElementById("imageSheetActions");
+const imageSheetCaption = document.getElementById("imageSheetCaption");
+const sheetCaptionInput = document.getElementById("sheetCaptionInput");
+const sheetEditCaption = document.getElementById("sheetEditCaption");
+const sheetSetCover = document.getElementById("sheetSetCover");
+const sheetDelete = document.getElementById("sheetDelete");
+const sheetSaveCaption = document.getElementById("sheetSaveCaption");
+const sheetCancel = document.getElementById("sheetCancel");
 
 const imageLightbox = document.getElementById("imageLightbox");
 const lightboxImage = document.getElementById("lightboxImage");
@@ -45,6 +58,11 @@ let editingTripId = null;
 let pendingFiles = [];
 let tripsMapInstance = null;
 let tripMarkersLayer = null;
+let sheetImage = null;
+let countdownTimer = null;
+
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
 
 async function loadMemories() {
   memoryGrid.innerHTML = `<div class="skeleton memory-skeleton"></div><div class="skeleton memory-skeleton"></div><div class="skeleton memory-skeleton"></div>`;
@@ -76,7 +94,7 @@ function buildMemoryCard(memory) {
   card.className = "memory-card card card-hover";
 
   card.innerHTML = `
-    ${isFutureMemory(memory.start_date) ? `<span class="future-badge chip">Geplant</span>` : ""}
+    ${isFutureMemory(memory.start_date) ? `<span class="future-badge chip">${escapeHtml(countdownLabel(memory.start_date))}</span>` : ""}
     <div class="memory-card-actions">
       <button class="icon-action edit-memory-btn" title="Bearbeiten">✏️</button>
       <button class="icon-action delete-memory-btn" title="Löschen">×</button>
@@ -355,6 +373,64 @@ function renderGalleryHeader() {
   } else {
     galleryCoverImg.style.display = "none";
   }
+
+  startTripCountdown();
+}
+
+/* ---------- countdown for upcoming trips ---------- */
+
+function tripStartTime(startDate) {
+  const [y, m, d] = startDate.split("-").map(Number);
+  return new Date(y, m - 1, d).getTime();
+}
+
+function countdownLabel(startDate) {
+  const days = daysBetween(new Date(), startDate);
+  if (days === 1) return "⏳ Morgen geht's los!";
+  return `⏳ in ${days} Tagen`;
+}
+
+function renderTripCountdown() {
+  const remaining = currentMemory && currentMemory.start_date ? tripStartTime(currentMemory.start_date) - Date.now() : 0;
+
+  if (remaining <= 0) {
+    stopTripCountdown();
+    return;
+  }
+
+  const totalSeconds = Math.floor(remaining / 1000);
+  const parts = [
+    [Math.floor(totalSeconds / 86400), "Tage"],
+    [Math.floor(totalSeconds / 3600) % 24, "Std"],
+    [Math.floor(totalSeconds / 60) % 60, "Min"],
+    [totalSeconds % 60, "Sek"]
+  ];
+
+  tripCountdown.innerHTML = `
+    <span class="trip-countdown-label">✈️ Noch bis zur Abreise</span>
+    <div class="trip-countdown-boxes">
+      ${parts.map(([value, unit]) => `
+        <div class="trip-countdown-box">
+          <span class="trip-countdown-value">${String(value).padStart(2, "0")}</span>
+          <span class="trip-countdown-unit">${unit}</span>
+        </div>`).join("")}
+    </div>
+  `;
+  tripCountdown.classList.remove("hidden");
+}
+
+function startTripCountdown() {
+  stopTripCountdown();
+  if (!currentMemory || !isFutureMemory(currentMemory.start_date)) return;
+  renderTripCountdown();
+  countdownTimer = setInterval(renderTripCountdown, 1000);
+}
+
+function stopTripCountdown() {
+  clearInterval(countdownTimer);
+  countdownTimer = null;
+  tripCountdown.classList.add("hidden");
+  tripCountdown.innerHTML = "";
 }
 
 async function openGallery(memory) {
@@ -362,7 +438,7 @@ async function openGallery(memory) {
 
   memoryOverview.classList.add("hidden");
   galleryView.classList.remove("hidden");
-  openMemoryModal.classList.add("hidden");
+  setFabMode("images");
 
   renderGalleryHeader();
   clearUploadQueue();
@@ -393,12 +469,13 @@ async function loadImages() {
 
 function renderImages() {
   imageGrid.innerHTML = "";
+  imageHint.classList.toggle("hidden", images.length === 0);
 
   if (images.length === 0) {
     imageGrid.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">🖼️</span>
-        <p>Noch keine Bilder in diesem Trip.<br>Wir ziehen welche in das Feld oben.</p>
+        <p>Noch keine Bilder in diesem Trip.<br>Wir tippen unten rechts auf + und fügen die ersten hinzu.</p>
       </div>
     `;
     return;
@@ -409,55 +486,124 @@ function renderImages() {
     card.className = "image-card card";
 
     card.innerHTML = `
-      <button class="delete-image-btn icon-action" title="Löschen">×</button>
-      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async">
-      <div class="image-caption-row">
-        <p class="image-caption ${image.caption ? "" : "empty"}">${escapeHtml(image.caption || "Beschriftung hinzufügen…")}</p>
-        <button class="edit-caption-btn icon-action" title="Beschriftung bearbeiten">✏️</button>
-      </div>
+      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async" draggable="false">
+      ${image.caption ? `<p class="image-caption">${escapeHtml(image.caption)}</p>` : ""}
     `;
 
-    card.querySelector(".delete-image-btn").addEventListener("click", event => {
-      event.stopPropagation();
-      deleteImage(image.id);
-    });
-
-    card.querySelector("img").addEventListener("click", event => {
-      event.stopPropagation();
-      openLightbox(image.image_url, image.caption);
-    });
-
-    card.querySelector(".edit-caption-btn").addEventListener("click", event => {
-      event.stopPropagation();
-      startCaptionEdit(card, image);
-    });
-
+    attachLongPress(card, () => openImageSheet(image), () => openLightbox(image.image_url, image.caption));
     imageGrid.appendChild(card);
   });
 }
 
-function startCaptionEdit(card, image) {
-  const row = card.querySelector(".image-caption-row");
-  const currentText = image.caption || "";
+/* tap opens the photo, holding it (or right-click on a computer) opens the edit menu */
+function attachLongPress(el, onLongPress, onTap) {
+  let timer = null;
+  let start = null;
+  let fired = false;
 
-  row.innerHTML = `
-    <input type="text" class="caption-edit-input" value="${currentText.replace(/"/g, "&quot;")}" placeholder="Beschriftung...">
-    <button class="save-caption-btn icon-action" title="Speichern">✓</button>
-  `;
-
-  const input = row.querySelector(".caption-edit-input");
-  input.focus();
-  input.select();
-
-  function save() {
-    updateCaption(image.id, input.value.trim());
+  function cancel() {
+    clearTimeout(timer);
+    timer = null;
+    el.classList.remove("pressing");
   }
 
-  row.querySelector(".save-caption-btn").addEventListener("click", save);
-  input.addEventListener("keydown", event => {
-    if (event.key === "Enter") save();
-    if (event.key === "Escape") renderImages();
+  el.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    fired = false;
+    start = { x: event.clientX, y: event.clientY };
+    el.classList.add("pressing");
+    timer = setTimeout(() => {
+      fired = true;
+      cancel();
+      if (navigator.vibrate) navigator.vibrate(15);
+      onLongPress();
+    }, LONG_PRESS_MS);
   });
+
+  el.addEventListener("pointermove", event => {
+    if (!timer || !start) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > LONG_PRESS_MOVE_TOLERANCE) cancel();
+  });
+
+  ["pointerup", "pointerleave", "pointercancel"].forEach(name => el.addEventListener(name, cancel));
+
+  el.addEventListener("click", event => {
+    event.stopPropagation();
+    if (fired) {
+      fired = false;
+      return;
+    }
+    onTap();
+  });
+
+  el.addEventListener("contextmenu", event => {
+    event.preventDefault();
+    if (fired) return;
+    fired = true;
+    cancel();
+    onLongPress();
+  });
+}
+
+function openImageSheet(image) {
+  sheetImage = image;
+  imageSheetPreview.src = image.image_url;
+  imageSheetPreview.alt = image.caption || "Erinnerungsbild";
+  imageSheetActions.classList.remove("hidden");
+  imageSheetCaption.classList.add("hidden");
+  sheetSetCover.classList.toggle("hidden", !!currentMemory && currentMemory.cover_url === image.image_url);
+  imageSheet.classList.remove("hidden");
+}
+
+function closeImageSheet() {
+  imageSheet.classList.add("hidden");
+  sheetImage = null;
+}
+
+function showCaptionEditor() {
+  if (!sheetImage) return;
+  imageSheetActions.classList.add("hidden");
+  imageSheetCaption.classList.remove("hidden");
+  sheetCaptionInput.value = sheetImage.caption || "";
+  sheetCaptionInput.focus();
+  sheetCaptionInput.select();
+}
+
+async function saveSheetCaption() {
+  if (!sheetImage) return;
+  const imageId = sheetImage.id;
+  closeImageSheet();
+  await updateCaption(imageId, sheetCaptionInput.value.trim());
+}
+
+async function setImageAsCover() {
+  if (!sheetImage || !currentMemory) return;
+  const imageUrl = sheetImage.image_url;
+  closeImageSheet();
+
+  const { error } = await supabaseClient
+    .from("trips")
+    .update({ cover_url: imageUrl })
+    .eq("id", currentMemory.id);
+
+  if (error) {
+    console.error("Fehler beim Setzen des Titelbilds:", error);
+    showToast("Titelbild konnte nicht gesetzt werden.", "error");
+    return;
+  }
+
+  currentMemory.cover_url = imageUrl;
+  const listed = memories.find(memory => memory.id === currentMemory.id);
+  if (listed) listed.cover_url = imageUrl;
+  renderGalleryHeader();
+  showToast("Neues Titelbild gesetzt 🖼️", "success");
+}
+
+async function deleteSheetImage() {
+  if (!sheetImage) return;
+  const imageId = sheetImage.id;
+  closeImageSheet();
+  await deleteImage(imageId);
 }
 
 async function updateCaption(imageId, caption) {
@@ -656,7 +802,21 @@ function formatDateRange(start, end) {
 
 /* ---------- event wiring ---------- */
 
-openMemoryModal.addEventListener("click", openCreateModal);
+/* one "+" button: new trip in the overview, add photos inside a trip */
+function setFabMode(mode) {
+  openMemoryModal.dataset.mode = mode;
+  const label = mode === "images" ? "Bilder hinzufügen" : "Neue Erinnerung";
+  openMemoryModal.title = label;
+  openMemoryModal.setAttribute("aria-label", label);
+}
+
+openMemoryModal.addEventListener("click", () => {
+  if (openMemoryModal.dataset.mode === "images" && currentMemory) {
+    imageInput.click();
+  } else {
+    openCreateModal();
+  }
+});
 
 closeMemoryModal.addEventListener("click", () => {
   memoryModal.classList.add("hidden");
@@ -672,31 +832,34 @@ backToMemories.addEventListener("click", () => {
   currentMemory = null;
   galleryView.classList.add("hidden");
   memoryOverview.classList.remove("hidden");
-  openMemoryModal.classList.remove("hidden");
+  setFabMode("trip");
+  stopTripCountdown();
+  closeImageSheet();
+  renderMemories();
 });
-
-dropzone.addEventListener("click", () => imageInput.click());
 
 imageInput.addEventListener("change", () => {
   addFilesToQueue(imageInput.files);
   imageInput.value = "";
 });
 
+/* on a computer photos can still be dragged anywhere onto the open trip */
 ["dragenter", "dragover"].forEach(eventName => {
-  dropzone.addEventListener(eventName, event => {
+  galleryView.addEventListener(eventName, event => {
     event.preventDefault();
-    dropzone.classList.add("dragover");
+    galleryView.classList.add("dragover");
   });
 });
 
 ["dragleave", "drop"].forEach(eventName => {
-  dropzone.addEventListener(eventName, event => {
+  galleryView.addEventListener(eventName, event => {
+    if (eventName === "dragleave" && galleryView.contains(event.relatedTarget)) return;
     event.preventDefault();
-    dropzone.classList.remove("dragover");
+    galleryView.classList.remove("dragover");
   });
 });
 
-dropzone.addEventListener("drop", event => {
+galleryView.addEventListener("drop", event => {
   if (event.dataTransfer.files.length) {
     addFilesToQueue(event.dataTransfer.files);
   }
@@ -706,6 +869,19 @@ uploadImageBtn.addEventListener("click", uploadQueuedImages);
 clearQueueBtn.addEventListener("click", clearUploadQueue);
 
 closeLightbox.addEventListener("click", closeImageLightbox);
+
+sheetEditCaption.addEventListener("click", showCaptionEditor);
+sheetSetCover.addEventListener("click", setImageAsCover);
+sheetDelete.addEventListener("click", deleteSheetImage);
+sheetSaveCaption.addEventListener("click", saveSheetCaption);
+sheetCancel.addEventListener("click", closeImageSheet);
+sheetCaptionInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") saveSheetCaption();
+  if (event.key === "Escape") closeImageSheet();
+});
+imageSheet.addEventListener("click", event => {
+  if (event.target === imageSheet) closeImageSheet();
+});
 
 imageLightbox.addEventListener("click", event => {
   if (event.target === imageLightbox) {

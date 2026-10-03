@@ -140,7 +140,8 @@ function renderNewsList(container, items) {
   }
 
   container.innerHTML = items
-    .map(item => `<a class="news-item" href="${item.link}" target="_blank" rel="noopener">${item.title}</a>`)
+    .filter(item => /^https?:\/\//i.test(item.link || ""))
+    .map(item => `<a class="news-item" href="${escapeHtml(item.link)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>`)
     .join("");
 }
 
@@ -150,8 +151,8 @@ async function loadNews() {
 
   const { data, error } = await supabaseClient.functions.invoke("city-news", { body: {} });
 
-  if (error) {
-    console.error("Fehler beim Laden der Nachrichten:", error);
+  if (error || !data) {
+    console.error("Fehler beim Laden der Nachrichten:", error || "keine Daten");
     newsDe.innerHTML = `<p class="news-empty">Nachrichten konnten nicht geladen werden.</p>`;
     newsEs.innerHTML = `<p class="news-empty">Nachrichten konnten nicht geladen werden.</p>`;
     return;
