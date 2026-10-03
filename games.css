@@ -1,0 +1,41 @@
+.games-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.game-tile {
+  text-decoration: none;
+  color: var(--text);
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.game-tile-icon {
+  font-size: 40px;
+  flex: none;
+}
+
+.game-tile-text h2 {
+  font-size: 19px;
+  margin: 0 0 4px;
+}
+
+.game-tile-text p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.game-tile-soon {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.game-tile-badge {
+  margin-left: auto;
+  flex: none;
+}

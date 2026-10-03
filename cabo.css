@@ -1,0 +1,267 @@
+/* ---------- lobby ---------- */
+
+.cabo-lobby {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.cabo-lobby-card {
+  padding: 32px 24px;
+}
+
+.cabo-lobby-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+.cabo-lobby-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.cabo-lobby-card p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+.cabo-lobby-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.cabo-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-border);
+  border-top-color: var(--pink-deep);
+  animation: cabo-spin 0.8s linear infinite;
+}
+
+@keyframes cabo-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- score strip ---------- */
+
+.cabo-score-strip {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 auto 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.cabo-score-strip strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+/* ---------- hands ---------- */
+
+.cabo-side {
+  max-width: 360px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.cabo-player-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.cabo-player-label.active-turn {
+  color: var(--pink-deep);
+}
+
+.cabo-hand {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.cabo-card-slot {
+  position: relative;
+  aspect-ratio: 300 / 420;
+  border-radius: 10px;
+  overflow: hidden;
+  border: none;
+  padding: 0;
+  cursor: default;
+  background: var(--surface-border);
+  box-shadow: var(--shadow-soft);
+}
+
+.cabo-card-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cabo-card-slot.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cabo-card-slot.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+
+.cabo-card-slot.known::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2.5px solid var(--pink-deep);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.cabo-card-slot-empty {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ---------- table: draw/discard piles ---------- */
+
+.cabo-table {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  margin: 20px auto;
+}
+
+.cabo-pile {
+  position: relative;
+  width: 84px;
+  aspect-ratio: 300 / 420;
+  border-radius: 10px;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  cursor: default;
+}
+
+.cabo-pile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cabo-pile.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cabo-pile.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+
+.cabo-pile-count {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.cabo-pile-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* ---------- status + actions ---------- */
+
+.cabo-status {
+  text-align: center;
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0 0 14px;
+  min-height: 20px;
+}
+
+.cabo-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+/* ---------- peek overlays ---------- */
+
+.cabo-peek-box {
+  text-align: center;
+}
+
+.cabo-peek-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.cabo-peek-cards img {
+  width: 90px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-lift);
+}
+
+/* ---------- round-over summary ---------- */
+
+.cabo-scoreboard {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 18px;
+}
+
+.cabo-scoreboard th,
+.cabo-scoreboard td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--surface-border);
+  font-size: 13.5px;
+}
+
+.cabo-scoreboard th {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.cabo-scoreboard td.total-row {
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.cabo-winner-banner {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--pink-deep);
+}
