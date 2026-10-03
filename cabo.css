@@ -285,7 +285,11 @@
   margin: 0 auto 10px;
   border-radius: 10px;
   overflow: hidden;
+  border: none;
+  padding: 0;
+  background: none;
   box-shadow: var(--shadow-lift);
+  cursor: default;
 }
 
 .cabo-drawn-preview img {
@@ -293,6 +297,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.cabo-drawn-preview.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cabo-drawn-preview.clickable:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-lift);
 }
 
 /* ---------- status + actions ---------- */
@@ -316,6 +330,7 @@
 /* ---------- round-over summary ---------- */
 
 .cabo-scoreboard {
+  flex: 1 1 100%;
   width: 100%;
   border-collapse: collapse;
   margin: 10px 0 18px;
@@ -339,10 +354,3 @@
   font-family: var(--font-heading);
 }
 
-.cabo-winner-banner {
-  text-align: center;
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0 0 12px;
-  color: var(--pink-deep);
-}
