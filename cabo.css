@@ -96,38 +96,77 @@
   position: relative;
   aspect-ratio: 300 / 420;
   border-radius: 10px;
-  overflow: hidden;
   border: none;
   padding: 0;
   cursor: default;
-  background: var(--surface-border);
-  box-shadow: var(--shadow-soft);
+  background: none;
+  box-shadow: none;
+  perspective: 700px;
 }
 
-.cabo-card-slot img {
+.cabo-card-slot.clickable {
+  cursor: pointer;
+}
+
+.cabo-card-slot.clickable:hover .cabo-flip-inner {
+  transform: translateY(-3px);
+}
+
+.cabo-card-slot.clickable.flipped:hover .cabo-flip-inner {
+  transform: rotateY(180deg) translateY(-3px);
+}
+
+.cabo-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.15, 0.2, 1), box-shadow 0.15s ease;
+}
+
+.cabo-card-slot.flipped .cabo-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.cabo-flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cabo-flip-face img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.cabo-card-slot.clickable {
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+.cabo-flip-face-front {
+  transform: rotateY(180deg);
 }
 
-.cabo-card-slot.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lift);
-}
-
-.cabo-card-slot.known::after {
+.cabo-card-slot.known .cabo-flip-face-front::after {
   content: "";
   position: absolute;
   inset: 0;
   border: 2.5px solid var(--pink-deep);
   border-radius: 10px;
   pointer-events: none;
+}
+
+.cabo-card-slot.peeking .cabo-flip-face-front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2.5px solid var(--warning);
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
 }
 
 .cabo-card-slot-empty {
@@ -195,6 +234,22 @@
   color: var(--text-faint);
 }
 
+.cabo-drawn-preview {
+  width: 70px;
+  aspect-ratio: 300 / 420;
+  margin: 0 auto 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+}
+
+.cabo-drawn-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* ---------- status + actions ---------- */
 
 .cabo-status {
@@ -211,25 +266,6 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 22px;
-}
-
-/* ---------- peek overlays ---------- */
-
-.cabo-peek-box {
-  text-align: center;
-}
-
-.cabo-peek-cards {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.cabo-peek-cards img {
-  width: 90px;
-  border-radius: 10px;
-  box-shadow: var(--shadow-lift);
 }
 
 /* ---------- round-over summary ---------- */
