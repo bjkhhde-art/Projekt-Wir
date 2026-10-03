@@ -1,0 +1,377 @@
+/* Versus mode on the questions page */
+
+.mode-switch {
+  margin-bottom: 22px;
+}
+
+.vs-intro {
+  max-width: 460px;
+  margin: -6px auto 18px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.vs-board {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ---------- score ---------- */
+
+.vs-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.vs-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.vs-player.me {
+  border-color: rgba(255, 92, 138, 0.45);
+  background: linear-gradient(135deg, rgba(255, 92, 138, 0.14), rgba(139, 92, 246, 0.12));
+}
+
+.vs-player-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.vs-player-points {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.vs-round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.vs-round span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+/* ---------- answering / guessing ---------- */
+
+.vs-stage-title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  text-align: center;
+}
+
+.vs-stage-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.vs-question {
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.vs-question.done {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.vs-q-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.vs-q-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pink-deep);
+}
+
+.vs-q-lead {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.vs-q-text {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.vs-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.vs-choice,
+.vs-rank-item,
+.vs-dot {
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.vs-choice {
+  padding: 12px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vs-choice:active,
+.vs-rank-item:active,
+.vs-dot:active {
+  transform: scale(0.96);
+}
+
+.vs-choice.selected,
+.vs-dot.selected,
+.vs-rank-item.ranked {
+  border-color: var(--pink);
+  background: linear-gradient(135deg, rgba(255, 92, 138, 0.18), rgba(139, 92, 246, 0.16));
+}
+
+.vs-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.vs-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.vs-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.vs-scale-labels span:last-child {
+  text-align: right;
+}
+
+.vs-rank {
+  display: grid;
+  gap: 8px;
+}
+
+.vs-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.vs-rank-place {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px dashed var(--surface-border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.vs-rank-item.ranked .vs-rank-place {
+  border: none;
+  background: var(--gradient-brand);
+  color: #fff;
+}
+
+.vs-rank-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.vs-submit {
+  margin-top: 6px;
+}
+
+.vs-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.vs-wait {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.vs-wait-icon {
+  font-size: 42px;
+  margin-bottom: 6px;
+}
+
+.vs-wait h3 {
+  margin: 0 0 8px;
+}
+
+.vs-wait p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+/* ---------- reveal ---------- */
+
+.vs-headline {
+  padding: 18px;
+  margin-bottom: 18px;
+  text-align: center;
+  animation: vs-pop 0.5s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+.vs-headline-score {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.vs-headline-vs {
+  color: var(--pink);
+}
+
+.vs-headline p {
+  margin: 6px 0 0;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.vs-section-title {
+  margin: 18px 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.vs-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.vs-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  animation: vs-flip-in 0.45s both cubic-bezier(.2, .9, .3, 1.2);
+}
+
+.vs-result.hit {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.vs-result.close {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.vs-result-mark {
+  font-size: 20px;
+  flex: none;
+}
+
+.vs-result-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.vs-result-q {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.vs-result-line {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.vs-result-line.guess {
+  color: var(--text-faint);
+}
+
+.vs-result-points {
+  flex: none;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--pink-deep);
+}
+
+@keyframes vs-pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes vs-flip-in {
+  from { transform: perspective(500px) rotateX(-70deg); opacity: 0; }
+  to { transform: perspective(500px) rotateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-headline,
+  .vs-result {
+    animation: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .vs-dot {
+    width: 42px;
+    height: 42px;
+  }
+}
