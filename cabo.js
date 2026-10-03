@@ -19,11 +19,6 @@ const discardPile = document.getElementById("discardPile");
 const caboStatus = document.getElementById("caboStatus");
 const caboActions = document.getElementById("caboActions");
 
-const roundOverOverlay = document.getElementById("roundOverOverlay");
-const roundOverTitle = document.getElementById("roundOverTitle");
-const roundOverBody = document.getElementById("roundOverBody");
-const roundOverActionBtn = document.getElementById("roundOverActionBtn");
-
 const INITIAL_PEEK_SLOTS = [0, 1];
 
 let currentPerson = localStorage.getItem("pw_person");
@@ -58,7 +53,6 @@ async function fetchCurrentGame() {
   const { data, error } = await supabaseClient
     .from("cabo_games")
     .select("*")
-    .neq("status", "finished")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -215,8 +209,7 @@ function renderBoard(game) {
   renderHand(opponentHand, state, opponent, false);
   renderHand(ownHand, state, currentPerson, true);
   renderPiles(state);
-  renderStatusAndActions(state, opponent);
-  renderRoundOverOverlay(state, game, opponent);
+  renderStatusAndActions(state, game, opponent);
 }
 
 function renderScoreStrip(state, opponent) {
@@ -278,18 +271,28 @@ function renderHand(container, state, person, isOwn) {
     }
 
     let clickable = false;
-    if (myTurn) {
+    let onClick = null;
+
+    if (peeking) {
+      clickable = true;
+      onClick = () => dismissPeekResult();
+    } else if (previewingInitial) {
+      clickable = true;
+      onClick = () => dispatchAction(CaboEngine.performInitialPeek);
+    } else if (myTurn) {
       if (isOwn && state.turnPhase === "post-draw-decision") {
         clickable = true;
-        slot.addEventListener("click", () => dispatchAction(CaboEngine.swapCard, index));
+        onClick = () => dispatchAction(CaboEngine.swapCard, index);
       } else if (isOwn && state.turnPhase === "await-peek-own-target") {
         clickable = true;
-        slot.addEventListener("click", () => dispatchAction(CaboEngine.choosePeekOwnTarget, index));
+        onClick = () => dispatchAction(CaboEngine.choosePeekOwnTarget, index);
       } else if (!isOwn && state.turnPhase === "await-spy-target") {
         clickable = true;
-        slot.addEventListener("click", () => dispatchAction(CaboEngine.chooseSpyTarget, index));
+        onClick = () => dispatchAction(CaboEngine.chooseSpyTarget, index);
       }
     }
+
+    if (clickable) slot.addEventListener("click", onClick);
     slot.classList.toggle("clickable", clickable);
     if (!clickable) slot.disabled = true;
 
@@ -340,40 +343,25 @@ async function dismissPeekResult() {
   await syncFromServer();
 }
 
-function renderStatusAndActions(state, opponent) {
+function renderStatusAndActions(state, game, opponent) {
   caboActions.innerHTML = "";
 
   if (state.lastPeekResult && state.lastPeekResult.person === currentPerson) {
-    caboStatus.textContent = state.lastPeekResult.type === "own"
-      ? "Das ist deine Karte – schau sie dir gut an."
-      : `Das ist eine Karte von ${opponent || "dem anderen"}.`;
-
-    const dismissBtn = document.createElement("button");
-    dismissBtn.type = "button";
-    dismissBtn.className = "btn btn-sm";
-    dismissBtn.textContent = "Verdecken, weiter";
-    dismissBtn.addEventListener("click", dismissPeekResult);
-    caboActions.appendChild(dismissBtn);
+    caboStatus.textContent = (state.lastPeekResult.type === "own"
+      ? "Das ist deine Karte – tippe sie noch einmal an, um sie wieder umzudrehen."
+      : `Das ist eine Karte von ${opponent || "dem anderen"} – tippe sie noch einmal an.`);
     return;
   }
 
   if (state.roundOver) {
-    caboStatus.textContent = "Die Runde ist vorbei.";
+    renderRoundOverInline(state, game, opponent);
     return;
   }
 
   if (state.turnPhase === "initial-peek") {
-    if (!state.initialPeekDone[currentPerson]) {
-      caboStatus.textContent = "Schau dir deine beiden linken Karten an und merk sie dir gut.";
-      const doneBtn = document.createElement("button");
-      doneBtn.type = "button";
-      doneBtn.className = "btn btn-block";
-      doneBtn.textContent = "Gemerkt, los geht's!";
-      doneBtn.addEventListener("click", () => dispatchAction(CaboEngine.performInitialPeek));
-      caboActions.appendChild(doneBtn);
-    } else {
-      caboStatus.textContent = `Warte, bis ${opponent || "der andere"} auch bereit ist...`;
-    }
+    caboStatus.textContent = state.initialPeekDone[currentPerson]
+      ? `Warte, bis ${opponent || "der andere"} auch bereit ist...`
+      : "Schau dir deine beiden linken Karten an und tippe eine davon an, wenn du bereit bist.";
     return;
   }
 
@@ -394,21 +382,21 @@ function renderStatusAndActions(state, opponent) {
     caboActions.appendChild(caboBtn);
   } else if (state.turnPhase === "post-draw-decision") {
     caboStatus.textContent = "Tippe auf eine deiner Karten zum Tauschen" +
-      (state.drawSource === "deck" ? ", oder lege die gezogene Karte ab." : ".");
+      (state.drawSource === "deck" ? ", oder auf die gezogene Karte zum Ablegen." : ".");
 
-    const drawnPreview = document.createElement("div");
+    const drawnPreview = document.createElement("button");
+    drawnPreview.type = "button";
     drawnPreview.className = "cabo-drawn-preview";
     drawnPreview.innerHTML = `<img src="${cardImg(state.drawnCard)}" alt="Gezogene Karte">`;
-    caboActions.appendChild(drawnPreview);
 
     if (state.drawSource === "deck") {
-      const discardBtn = document.createElement("button");
-      discardBtn.type = "button";
-      discardBtn.className = "btn btn-sm";
-      discardBtn.textContent = "🗑️ Ablegen";
-      discardBtn.addEventListener("click", () => dispatchAction(CaboEngine.discardDrawn));
-      caboActions.appendChild(discardBtn);
+      drawnPreview.classList.add("clickable");
+      drawnPreview.title = "Ablegen";
+      drawnPreview.addEventListener("click", () => dispatchAction(CaboEngine.discardDrawn));
+    } else {
+      drawnPreview.disabled = true;
     }
+    caboActions.appendChild(drawnPreview);
   } else if (state.turnPhase === "await-peek-own-target") {
     caboStatus.textContent = "Wähle eine deiner eigenen Karten, um sie anzusehen.";
   } else if (state.turnPhase === "await-spy-target") {
@@ -416,40 +404,37 @@ function renderStatusAndActions(state, opponent) {
   }
 }
 
-function renderRoundOverOverlay(state, game, opponent) {
-  if (!state.roundOver) {
-    roundOverOverlay.classList.add("hidden");
-    return;
-  }
-
-  roundOverOverlay.classList.remove("hidden");
-
+function renderRoundOverInline(state, game, opponent) {
   const ownTotal = (state.scores[currentPerson] || []).reduce((a, b) => a + b, 0);
   const oppTotal = (state.scores[opponent] || []).reduce((a, b) => a + b, 0);
 
   let winnerBanner = "";
   if (state.gameOver) {
     const iWon = state.winner === currentPerson;
-    winnerBanner = `<p class="cabo-winner-banner">${iWon ? "🏆 Du hast gewonnen!" : `🏆 ${escapeHtml(state.winner)} hat gewonnen!`}</p>`;
+    winnerBanner = iWon ? "🏆 Du hast gewonnen! " : `🏆 ${state.winner} hat gewonnen! `;
   }
 
-  roundOverTitle.textContent = state.gameOver ? "Spiel vorbei!" : `Runde ${state.round} vorbei!`;
+  caboStatus.textContent = winnerBanner + (state.gameOver ? "" : `Runde ${state.round} vorbei.`);
 
-  roundOverBody.innerHTML = `
-    ${winnerBanner}
-    <table class="cabo-scoreboard">
-      <thead><tr><th></th><th>Du</th><th>${escapeHtml(opponent || "Gegner")}</th></tr></thead>
-      <tbody>
-        <tr><td>Diese Runde</td><td>${state.roundScores[currentPerson]}</td><td>${state.roundScores[opponent]}</td></tr>
-        <tr><td class="total-row">Gesamt</td><td class="total-row">${ownTotal}</td><td class="total-row">${oppTotal}</td></tr>
-      </tbody>
-    </table>
+  const table = document.createElement("table");
+  table.className = "cabo-scoreboard";
+  table.innerHTML = `
+    <thead><tr><th></th><th>Du</th><th>${escapeHtml(opponent || "Gegner")}</th></tr></thead>
+    <tbody>
+      <tr><td>Diese Runde</td><td>${state.roundScores[currentPerson]}</td><td>${state.roundScores[opponent]}</td></tr>
+      <tr><td class="total-row">Gesamt</td><td class="total-row">${ownTotal}</td><td class="total-row">${oppTotal}</td></tr>
+    </tbody>
   `;
+  caboActions.appendChild(table);
 
-  roundOverActionBtn.textContent = state.gameOver ? "Neues Spiel" : "Nächste Runde";
-  roundOverActionBtn.onclick = state.gameOver
-    ? () => { roundOverOverlay.classList.add("hidden"); createGame(); }
-    : () => dispatchAction(CaboEngine.startNextRound);
+  const actionBtn = document.createElement("button");
+  actionBtn.type = "button";
+  actionBtn.className = "btn btn-block";
+  actionBtn.textContent = state.gameOver ? "Neues Spiel" : "Nächste Runde";
+  actionBtn.addEventListener("click", state.gameOver
+    ? () => createGame()
+    : () => dispatchAction(CaboEngine.startNextRound));
+  caboActions.appendChild(actionBtn);
 }
 
 /* ---------- sync loop ---------- */
@@ -472,7 +457,7 @@ async function syncFromServer() {
     return;
   }
 
-  if (game.status === "active") {
+  if (game.status === "active" || game.status === "finished") {
     renderBoard(game);
   }
 }
