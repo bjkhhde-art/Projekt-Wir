@@ -15,9 +15,13 @@
   <meta name="apple-mobile-web-app-title" content="Projekt Wir">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
+  <script>
+    /* the questions moved to the Games tab; old links still find them */
+    if (new URLSearchParams(location.search).get("tab") === "fragen") location.replace("questions.html");
+  </script>
+
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="watchlist.css">
-  <link rel="stylesheet" href="questions.css">
   <link rel="stylesheet" href="liebesbriefe.css">
   <script src="pin-lock.js"></script>
 </head>
@@ -25,11 +29,10 @@
 
   <main class="page">
     <h1 class="page-title">Wir 💬</h1>
-    <p class="page-subtitle">Watchlist, Gesprächsthemen und kleine Nachrichten füreinander</p>
+    <p class="page-subtitle">Watchlist und kleine Nachrichten füreinander</p>
 
     <div class="hub-tabs" role="tablist">
       <button class="hub-tab" data-tab="watchlist" role="tab">🎬 Watchlist</button>
-      <button class="hub-tab" data-tab="fragen" role="tab">💬 Fragen</button>
       <button class="hub-tab" data-tab="briefe" role="tab">💌 Briefe</button>
     </div>
 
@@ -44,35 +47,6 @@
       </div>
 
       <div id="watchlistList" class="watchlist-list"></div>
-
-    </section>
-
-    <section class="hub-panel" data-panel="fragen" hidden>
-
-      <section class="category-section">
-        <button class="category-btn active" data-group="easy">🧊 Easy Talk</button>
-        <button class="category-btn" data-group="deep">💗 Deep Talk</button>
-        <button class="category-btn" data-group="relationship">💑 Beziehung</button>
-        <button class="category-btn sexy" data-group="sexy">🔥 Sexy Time</button>
-      </section>
-
-      <div class="question-wrapper">
-        <div class="question-card card">
-          <div id="questionGroupLabel" class="question-group-label chip">🧊 Easy Talk</div>
-          <div id="questionRealCategory" class="question-real-category"></div>
-
-          <p id="questionText" class="question-text">
-            Lade Fragen...
-          </p>
-
-          <div class="question-actions">
-            <button id="resetSeenBtn" class="btn btn-secondary">← Vorherige</button>
-            <button id="newQuestionBtn" class="btn">Nächste Frage →</button>
-          </div>
-        </div>
-
-        <p id="questionCounter" class="question-counter"></p>
-      </div>
 
     </section>
 
@@ -174,7 +148,6 @@
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
   <script src="watchlist.js"></script>
-  <script src="questions.js"></script>
   <script src="liebesbriefe.js"></script>
 </body>
 </html>

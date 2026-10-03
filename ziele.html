@@ -15,25 +15,97 @@
   <meta name="apple-mobile-web-app-title" content="Projekt Wir">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <script>
-    /* Couple Quest moved to the Games tab; old links (e.g. from push notifications) still find it */
-    if (new URLSearchParams(location.search).get("tab") === "quest") location.replace("couple-quest.html");
-  </script>
-
   <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="vision.css">
   <script src="pin-lock.js"></script>
 </head>
-<body>
+<body data-hub="ziele">
 
   <main class="page">
     <h1 class="page-title">Ziele 🎯</h1>
-    <p class="page-subtitle">Unsere langfristige Vision</p>
+    <p class="page-subtitle">Unsere Couple Quest und die langfristige Vision</p>
 
-    <div id="visionTimeline" class="vision-timeline"></div>
+    <div class="hub-tabs" role="tablist">
+      <button class="hub-tab" data-tab="quest" role="tab">🎯 Quest</button>
+      <button class="hub-tab" data-tab="vision" role="tab">🔭 Vision</button>
+    </div>
+
+    <section class="hub-panel" data-panel="quest">
+      <div class="quest-toolbar">
+        <button id="openDeleteMode" class="btn btn-secondary btn-sm">🗑️ Verwalten</button>
+      </div>
+
+      <div id="board"></div>
+    </section>
+
+    <section class="hub-panel" data-panel="vision" hidden>
+      <div id="visionTimeline" class="vision-timeline"></div>
+    </section>
   </main>
 
-  <button id="openVisionModal" class="fab" title="Neues Ziel" aria-label="Neues Ziel">+</button>
+  <button id="openAddModal" class="fab" title="Neues Bingofeld" aria-label="Neues Bingofeld" data-show-for="quest">+</button>
+  <button id="openVisionModal" class="fab" title="Neues Ziel" aria-label="Neues Ziel" data-show-for="vision">+</button>
+
+  <div id="addModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="questModalTitle">Neues Bingofeld</h2>
+
+      <label>Titel</label>
+      <input id="newItemInput" type="text" placeholder="z. B. 6x Wandern">
+
+      <label>Kategorie</label>
+      <select id="categoryInput">
+        <option value="Liebe ❤️">Liebe ❤️</option>
+        <option value="Reisen ✈️">Reisen ✈️</option>
+        <option value="Sport 🏃">Sport 🏃</option>
+        <option value="Lernen 📚">Lernen 📚</option>
+        <option value="Geld 💰">Geld 💰</option>
+        <option value="Sonstiges ⭐">Sonstiges ⭐</option>
+      </select>
+
+      <label>Verfasst von</label>
+      <select id="authorInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <label>Fälligkeitsdatum</label>
+      <input id="dueDateInput" type="date">
+
+      <label>Fortschrittsziel</label>
+      <select id="targetInput">
+        <option value="0">0</option>
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+      </select>
+
+      <div class="modal-buttons">
+        <button id="addBtn" class="btn">Hinzufügen</button>
+        <button id="closeModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deleteBar" class="delete-bar card hidden">
+    <span>Felder zum Löschen auswählen</span>
+
+    <div class="delete-buttons">
+      <button id="confirmDelete" class="btn btn-danger">Löschen bestätigen</button>
+      <button id="cancelDelete" class="btn btn-secondary">Abbrechen</button>
+    </div>
+  </div>
+
 
   <div id="visionModal" class="modal hidden">
     <div class="modal-box">
@@ -84,6 +156,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
+  <script src="hub-tabs.js"></script>
+  <script src="app.js"></script>
   <script src="vision.js"></script>
 </body>
 </html>
