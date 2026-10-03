@@ -283,6 +283,21 @@
   box-shadow: var(--shadow-lift);
 }
 
+.cabo-pile.is-empty .cabo-pile-top {
+  background: transparent;
+  box-shadow: none;
+  outline: 2px dashed var(--surface-border);
+  outline-offset: -2px;
+}
+
+.cabo-pile.is-empty .cabo-pile-top img {
+  opacity: 0;
+}
+
+.cabo-pile.is-empty.clickable .cabo-pile-top {
+  outline-color: var(--pink-deep);
+}
+
 .cabo-pile.drop-target .cabo-pile-top {
   box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-lift);
 }

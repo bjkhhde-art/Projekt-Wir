@@ -309,6 +309,8 @@ const FLY_MS = 520;
 const DEAL_STEP_MS = 90;
 const DEAL_FLY_MS = 420;
 const REVEAL_STAGGER_MS = 110;
+const RESHUFFLE_SHOWN_CARDS = 8;
+const RESHUFFLE_STEP_MS = 70;
 
 const handKey = (person, index) => `hand-${person}-${index}`;
 const handElement = person => (person === currentPerson ? ownHand : opponentHand);
@@ -370,6 +372,7 @@ function hideMovingCards(move, state) {
       break;
     case "draw":
       if (move.person === currentPerson) CaboAnim.hide("drawn");
+      if (move.reshuffled) CaboAnim.hide("draw-pile");
       break;
     case "discard":
     case "swap-failed":
@@ -420,13 +423,35 @@ function animateMove(move, state, before, opponent) {
 
     case "draw": {
       const fromDiscard = move.from === "discard";
+      let drawDelay = 0;
+
+      /* empty deck: the discard pile is gathered face-down onto the deck and shuffled first */
+      if (move.reshuffled) {
+        const shown = state.deck.slice(0, Math.min(move.reshuffled, RESHUFFLE_SHOWN_CARDS));
+        shown.forEach((value, i) => {
+          flyThenReveal({
+            from: before.discardPile || now.discardPile,
+            to: now.drawPile,
+            front: cardImg(value),
+            startFaceUp: true,
+            endFaceUp: false,
+            delay: i * RESHUFFLE_STEP_MS,
+            duration: DEAL_FLY_MS
+          }, i === 0 ? "draw-pile" : null);
+        });
+        const gathered = (shown.length - 1) * RESHUFFLE_STEP_MS + DEAL_FLY_MS;
+        CaboAnim.shuffle(drawPile, gathered);
+        drawDelay = gathered + 560;
+      }
+
       flyThenReveal({
         from: fromDiscard ? now.discardPile : now.drawPile,
         to: mine ? now.drawnCard : holdingRect(move.person, now),
         front: cardImg(move.card),
         startFaceUp: fromDiscard,
         endFaceUp: mine || fromDiscard,
-        fade: !mine
+        fade: !mine,
+        delay: drawDelay
       }, mine ? "drawn" : null);
       break;
     }
@@ -561,6 +586,8 @@ function describeEvent(event) {
       return mine
         ? `Du hast deine ${event.ownIndex + 1}. Karte mit der ${event.opponentIndex + 1}. von ${event.targetPerson} getauscht.`
         : `${event.person} hat deine ${event.opponentIndex + 1}. Karte mit der eigenen ${event.ownIndex + 1}. getauscht.`;
+    case "reshuffle":
+      return `Der Nachziehstapel war leer – der Ablagestapel wurde neu gemischt (${event.count} Karten).`;
     default:
       return "";
   }
@@ -708,8 +735,11 @@ function stackDepth(count) {
 }
 
 function renderPiles(state) {
-  drawPileCount.textContent = String(state.deck.length);
+  const deckEmpty = state.deck.length === 0;
+  drawPileCount.textContent = deckEmpty ? "leer" : String(state.deck.length);
   drawPile.dataset.stack = stackDepth(state.deck.length);
+  drawPile.classList.toggle("is-empty", deckEmpty);
+  CaboAnim.tag(drawPile, "draw-pile");
 
   const myTurn = state.turnPerson === currentPerson && !state.roundOver;
   const canDraw = myTurn && state.turnPhase === "awaiting-draw";
@@ -816,8 +846,9 @@ function renderStatusAndActions(state, game, opponent) {
   switch (state.turnPhase) {
     case "awaiting-draw": {
       const lastTurn = Boolean(state.caboCalledBy);
-      caboStatus.textContent = (lastTurn ? "Dein letzter Zug! " : "Du bist dran! ") +
-        "Zieh eine Karte vom Stapel oder nimm die oberste vom Ablagestapel.";
+      caboStatus.textContent = (lastTurn ? "Dein letzter Zug! " : "Du bist dran! ") + (state.deck.length === 0
+        ? "Der Nachziehstapel ist leer – tippe ihn an, dann wird der Ablagestapel neu gemischt. Oder nimm die oberste Ablagekarte."
+        : "Zieh eine Karte vom Stapel oder nimm die oberste vom Ablagestapel.");
       if (!lastTurn) {
         const caboBtn = document.createElement("button");
         caboBtn.type = "button";

@@ -53,13 +53,14 @@ const CaboAnim = (() => {
   }
 
   /* Flies a card copy from one screen rect to another, optionally turning it over on the way. */
-  function fly({ from, to, front, startFaceUp = false, endFaceUp = false, delay = 0, duration = 520, fade = false, arc = 30 }) {
-    return new Promise(resolve => {
-      if (!enabled() || !from || !to) {
-        resolve();
-        return;
-      }
+  function fly({ delay = 0, ...options }) {
+    if (!enabled() || !options.from || !options.to) return Promise.resolve();
+    /* a waiting card must not sit visibly at its start point (e.g. on an empty pile) */
+    return new Promise(resolve => setTimeout(() => flyNow(options).then(resolve), delay));
+  }
 
+  function flyNow({ from, to, front, startFaceUp = false, endFaceUp = false, duration = 520, fade = false, arc = 30 }) {
+    return new Promise(resolve => {
       const ghost = document.createElement("div");
       ghost.className = "cabo-ghost";
       Object.assign(ghost.style, {
@@ -81,7 +82,7 @@ const CaboAnim = (() => {
       const sx = to.width / from.width;
       const sy = to.height / from.height;
       const lift = 1.1;
-      const timing = { duration, delay, easing: "cubic-bezier(.3,.7,.2,1)", fill: "both" };
+      const timing = { duration, easing: "cubic-bezier(.3,.7,.2,1)", fill: "both" };
 
       const flight = ghost.animate([
         { transform: "translate(0px, 0px) scale(1, 1)", opacity: 1 },
@@ -137,5 +138,20 @@ const CaboAnim = (() => {
     );
   }
 
-  return { enabled, rectOf, tag, hide, reveal, revealAll, fly, slideFrom, shake };
+  function shuffle(el, delay = 0) {
+    if (!enabled() || !el) return;
+    el.animate(
+      [
+        { transform: "translate(0, 0) rotate(0deg)" },
+        { transform: "translate(-7px, -3px) rotate(-7deg)" },
+        { transform: "translate(7px, -2px) rotate(6deg)" },
+        { transform: "translate(-5px, -1px) rotate(-4deg)" },
+        { transform: "translate(4px, 0) rotate(3deg)" },
+        { transform: "translate(0, 0) rotate(0deg)" }
+      ],
+      { duration: 520, delay, easing: "ease-in-out" }
+    );
+  }
+
+  return { enabled, rectOf, tag, hide, reveal, revealAll, fly, slideFrom, shake, shuffle };
 })();
