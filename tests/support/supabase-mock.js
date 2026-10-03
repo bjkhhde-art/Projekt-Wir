@@ -43,6 +43,12 @@
         return builder;
       },
 
+      /* settings-style writes are only recorded so tests can inspect them */
+      async upsert(payload) {
+        (window.__mockUpserts = window.__mockUpserts || []).push({ table, payload });
+        return { data: null, error: null };
+      },
+
       then(resolve, reject) {
         const run = async () => {
           if (pendingOp && pendingOp.type === "update") {
@@ -96,7 +102,12 @@
           };
           return chan;
         },
-        functions: { async invoke() { return { data: null, error: null }; } }
+        functions: {
+          async invoke(name, options) {
+            (window.__mockInvocations = window.__mockInvocations || []).push({ name, body: options && options.body });
+            return { data: null, error: null };
+          }
+        }
       };
     }
   };
