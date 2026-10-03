@@ -227,7 +227,6 @@ function choosePeekOwnTarget(state, person, slotIndex) {
   if (slotIndex < 0 || slotIndex >= HAND_SIZE) throw new Error("Ungültiger Platz.");
 
   const next = cloneState(state);
-  next.knownToOwner[person][slotIndex] = true;
   next.lastPeekResult = { person, type: "own", slot: slotIndex, value: next.hands[person][slotIndex] };
   advanceTurn(next, person);
   return next;
