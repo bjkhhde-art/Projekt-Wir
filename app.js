@@ -207,7 +207,7 @@ async function saveItem() {
       body: `${authorInput.value} hat "${title}" hinzugefügt.`,
       excludePerson: person,
       category: "quest",
-      url: "ziele.html?tab=quest"
+      url: "couple-quest.html"
     });
   }
 
