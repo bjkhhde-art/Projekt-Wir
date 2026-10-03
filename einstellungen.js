@@ -10,10 +10,6 @@ const pushStatusText = document.getElementById("pushStatusText");
 const enablePushBtn = document.getElementById("enablePushBtn");
 
 const switches = document.querySelectorAll(".settings-switch");
-const dailyTimeRow = document.getElementById("dailyTimeRow");
-const weeklyTimeRow = document.getElementById("weeklyTimeRow");
-const dailyReminderTime = document.getElementById("dailyReminderTime");
-const weeklyReminderTime = document.getElementById("weeklyReminderTime");
 
 const alicanteStartInput = document.getElementById("alicanteStartInput");
 const alicanteEndInput = document.getElementById("alicanteEndInput");
@@ -22,11 +18,7 @@ const DEFAULT_SETTINGS = {
   letters_enabled: true,
   quest_enabled: true,
   battery_enabled: true,
-  mochi_enabled: true,
-  daily_reflection_enabled: true,
-  weekly_reflection_enabled: true,
-  daily_reminder_time: "18:00",
-  weekly_reminder_time: "18:00"
+  mochi_enabled: true
 };
 
 let currentPerson = localStorage.getItem("pw_person");
@@ -52,30 +44,7 @@ if (!currentPerson) {
   personModal.classList.remove("hidden");
 }
 
-/* ---------- time select options ---------- */
-
-function populateTimeSelect(select) {
-  select.innerHTML = "";
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      const value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = value;
-      select.appendChild(option);
-    }
-  }
-}
-
-populateTimeSelect(dailyReminderTime);
-populateTimeSelect(weeklyReminderTime);
-
 /* ---------- settings load + render ---------- */
-
-function normalizeTime(value) {
-  if (!value) return "18:00";
-  return value.slice(0, 5);
-}
 
 function renderSettings() {
   switches.forEach(btn => {
@@ -84,12 +53,6 @@ function renderSettings() {
     btn.classList.toggle("on", on);
     btn.setAttribute("aria-checked", String(on));
   });
-
-  dailyReminderTime.value = normalizeTime(currentSettings.daily_reminder_time);
-  weeklyReminderTime.value = normalizeTime(currentSettings.weekly_reminder_time);
-
-  dailyTimeRow.classList.toggle("hidden", currentSettings.daily_reflection_enabled === false);
-  weeklyTimeRow.classList.toggle("hidden", currentSettings.weekly_reflection_enabled === false);
 }
 
 async function loadSettings() {
@@ -141,34 +104,13 @@ switches.forEach(btn => {
     btn.classList.toggle("on", nextValue);
     btn.setAttribute("aria-checked", String(nextValue));
 
-    if (field === "daily_reflection_enabled") {
-      dailyTimeRow.classList.toggle("hidden", !nextValue);
-    }
-    if (field === "weekly_reflection_enabled") {
-      weeklyTimeRow.classList.toggle("hidden", !nextValue);
-    }
-
     const success = await saveSettings({ [field]: nextValue });
 
     if (!success) {
       btn.classList.toggle("on", !nextValue);
       btn.setAttribute("aria-checked", String(!nextValue));
-      if (field === "daily_reflection_enabled") {
-        dailyTimeRow.classList.toggle("hidden", nextValue);
-      }
-      if (field === "weekly_reflection_enabled") {
-        weeklyTimeRow.classList.toggle("hidden", nextValue);
-      }
     }
   });
-});
-
-dailyReminderTime.addEventListener("change", () => {
-  saveSettings({ daily_reminder_time: dailyReminderTime.value });
-});
-
-weeklyReminderTime.addEventListener("change", () => {
-  saveSettings({ weekly_reminder_time: weeklyReminderTime.value });
 });
 
 /* ---------- Alicante-Zeitraum (geteilt) ---------- */
