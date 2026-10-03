@@ -135,8 +135,8 @@ function performInitialPeek(state, person) {
 
   const next = cloneState(state);
   next.initialPeekDone[person] = true;
-  next.knownToOwner[person][2] = true;
-  next.knownToOwner[person][3] = true;
+  next.knownToOwner[person][0] = true;
+  next.knownToOwner[person][1] = true;
 
   if (next.players.every(p => next.initialPeekDone[p])) {
     next.turnPhase = "awaiting-draw";

@@ -19,23 +19,15 @@ const discardPile = document.getElementById("discardPile");
 const caboStatus = document.getElementById("caboStatus");
 const caboActions = document.getElementById("caboActions");
 
-const initialPeekOverlay = document.getElementById("initialPeekOverlay");
-const initialPeekCards = document.getElementById("initialPeekCards");
-const initialPeekDoneBtn = document.getElementById("initialPeekDoneBtn");
-
-const peekResultOverlay = document.getElementById("peekResultOverlay");
-const peekResultTitle = document.getElementById("peekResultTitle");
-const peekResultCard = document.getElementById("peekResultCard");
-const peekResultDoneBtn = document.getElementById("peekResultDoneBtn");
-
 const roundOverOverlay = document.getElementById("roundOverOverlay");
 const roundOverTitle = document.getElementById("roundOverTitle");
 const roundOverBody = document.getElementById("roundOverBody");
 const roundOverActionBtn = document.getElementById("roundOverActionBtn");
 
+const INITIAL_PEEK_SLOTS = [0, 1];
+
 let currentPerson = localStorage.getItem("pw_person");
 let currentGame = null;
-let peekOverlayShownForTurn = null;
 
 function cardImg(value) {
   return `cabo-cards/Karte-${value}.webp`;
@@ -224,8 +216,6 @@ function renderBoard(game) {
   renderHand(ownHand, state, currentPerson, true);
   renderPiles(state);
   renderStatusAndActions(state, opponent);
-  renderInitialPeekOverlay(state);
-  renderPeekResultOverlay(state);
   renderRoundOverOverlay(state, game, opponent);
 }
 
@@ -238,27 +228,53 @@ function renderScoreStrip(state, opponent) {
   `;
 }
 
+function isTransientPeekSlot(state, person, isOwn, index) {
+  const result = state.lastPeekResult;
+  if (!result || result.person !== currentPerson) return false;
+  if (isOwn && result.type === "own" && person === currentPerson) return result.slot === index;
+  if (!isOwn && result.type === "spy") return result.slot === index;
+  return false;
+}
+
 function renderHand(container, state, person, isOwn) {
   container.innerHTML = "";
   if (!person || !state.hands[person]) return;
 
   const hand = state.hands[person];
   const myTurn = state.turnPerson === currentPerson && !state.roundOver;
+  const showingInitialPeek = isOwn && state.turnPhase === "initial-peek" && !state.initialPeekDone[currentPerson];
 
   hand.forEach((value, index) => {
     const slot = document.createElement("button");
     slot.type = "button";
     slot.className = "cabo-card-slot";
 
-    const reveal = state.revealHands || (isOwn && state.knownToOwner[currentPerson][index]);
+    const peeking = isTransientPeekSlot(state, person, isOwn, index);
+    const knownPersistently = isOwn && state.knownToOwner[currentPerson][index];
+    const previewingInitial = showingInitialPeek && INITIAL_PEEK_SLOTS.includes(index);
+    const flipped = state.revealHands || knownPersistently || previewingInitial || peeking;
 
-    const img = document.createElement("img");
-    img.src = reveal ? cardImg(value) : "cabo-cards/Cover.webp";
-    img.alt = reveal ? `Karte ${value}` : "Verdeckte Karte";
-    slot.appendChild(img);
+    const inner = document.createElement("div");
+    inner.className = "cabo-flip-inner";
 
-    if (reveal && isOwn && !state.revealHands) {
+    const back = document.createElement("div");
+    back.className = "cabo-flip-face cabo-flip-face-back";
+    back.innerHTML = `<img src="cabo-cards/Cover.webp" alt="Verdeckte Karte">`;
+
+    const front = document.createElement("div");
+    front.className = "cabo-flip-face cabo-flip-face-front";
+    front.innerHTML = `<img src="${cardImg(value)}" alt="Karte ${value}">`;
+
+    inner.appendChild(back);
+    inner.appendChild(front);
+    slot.appendChild(inner);
+
+    slot.classList.toggle("flipped", flipped);
+    if ((knownPersistently || previewingInitial) && !state.revealHands) {
       slot.classList.add("known");
+    }
+    if (peeking && !state.revealHands) {
+      slot.classList.add("peeking");
     }
 
     let clickable = false;
@@ -308,8 +324,30 @@ function renderPiles(state) {
   discardPile.onclick = canTakeDiscard ? () => dispatchAction(CaboEngine.drawFromDiscard) : null;
 }
 
+async function dismissPeekResult() {
+  const fresh = await fetchCurrentGame();
+  if (!fresh || fresh.status !== "active") return;
+  const nextState = CaboEngine.clearPeekResult(fresh.state);
+  await supabaseClient.from("cabo_games").update({ state: nextState, updated_at: new Date().toISOString() }).eq("id", fresh.id);
+  await syncFromServer();
+}
+
 function renderStatusAndActions(state, opponent) {
   caboActions.innerHTML = "";
+
+  if (state.lastPeekResult && state.lastPeekResult.person === currentPerson) {
+    caboStatus.textContent = state.lastPeekResult.type === "own"
+      ? "Das ist deine Karte – schau sie dir gut an."
+      : `Das ist eine Karte von ${opponent || "dem anderen"}.`;
+
+    const dismissBtn = document.createElement("button");
+    dismissBtn.type = "button";
+    dismissBtn.className = "btn btn-sm";
+    dismissBtn.textContent = "Verdecken, weiter";
+    dismissBtn.addEventListener("click", dismissPeekResult);
+    caboActions.appendChild(dismissBtn);
+    return;
+  }
 
   if (state.roundOver) {
     caboStatus.textContent = "Die Runde ist vorbei.";
@@ -317,9 +355,17 @@ function renderStatusAndActions(state, opponent) {
   }
 
   if (state.turnPhase === "initial-peek") {
-    caboStatus.textContent = state.initialPeekDone[currentPerson]
-      ? `Warte, bis ${opponent || "der andere"} auch bereit ist...`
-      : "Schau dir deine Karten an.";
+    if (!state.initialPeekDone[currentPerson]) {
+      caboStatus.textContent = "Schau dir deine beiden linken Karten an und merk sie dir gut.";
+      const doneBtn = document.createElement("button");
+      doneBtn.type = "button";
+      doneBtn.className = "btn btn-block";
+      doneBtn.textContent = "Gemerkt, los geht's!";
+      doneBtn.addEventListener("click", () => dispatchAction(CaboEngine.performInitialPeek));
+      caboActions.appendChild(doneBtn);
+    } else {
+      caboStatus.textContent = `Warte, bis ${opponent || "der andere"} auch bereit ist...`;
+    }
     return;
   }
 
@@ -343,9 +389,7 @@ function renderStatusAndActions(state, opponent) {
       (state.drawSource === "deck" ? ", oder lege die gezogene Karte ab." : ".");
 
     const drawnPreview = document.createElement("div");
-    drawnPreview.className = "cabo-card-slot";
-    drawnPreview.style.width = "70px";
-    drawnPreview.style.margin = "0 auto 10px";
+    drawnPreview.className = "cabo-drawn-preview";
     drawnPreview.innerHTML = `<img src="${cardImg(state.drawnCard)}" alt="Gezogene Karte">`;
     caboActions.appendChild(drawnPreview);
 
@@ -363,44 +407,6 @@ function renderStatusAndActions(state, opponent) {
     caboStatus.textContent = `Wähle eine Karte von ${opponent || "dem anderen"}, um sie zu spähen.`;
   }
 }
-
-/* ---------- overlays ---------- */
-
-function renderInitialPeekOverlay(state) {
-  if (state.turnPhase !== "initial-peek" || state.initialPeekDone[currentPerson]) {
-    initialPeekOverlay.classList.add("hidden");
-    return;
-  }
-
-  initialPeekOverlay.classList.remove("hidden");
-  const hand = state.hands[currentPerson];
-  initialPeekCards.innerHTML = [2, 3].map(index => `<img src="${cardImg(hand[index])}" alt="Karte ${hand[index]}">`).join("");
-}
-
-initialPeekDoneBtn.addEventListener("click", () => {
-  dispatchAction(CaboEngine.performInitialPeek);
-});
-
-function renderPeekResultOverlay(state) {
-  const result = state.lastPeekResult;
-  if (!result || result.person !== currentPerson) {
-    peekResultOverlay.classList.add("hidden");
-    return;
-  }
-
-  peekResultOverlay.classList.remove("hidden");
-  peekResultTitle.textContent = result.type === "own" ? "Deine Karte" : "Gegnerische Karte";
-  peekResultCard.innerHTML = `<img src="${cardImg(result.value)}" alt="Karte ${result.value}">`;
-}
-
-peekResultDoneBtn.addEventListener("click", async () => {
-  if (!currentGame) return;
-  const fresh = await fetchCurrentGame();
-  if (!fresh || fresh.status !== "active") return;
-  const nextState = CaboEngine.clearPeekResult(fresh.state);
-  await supabaseClient.from("cabo_games").update({ state: nextState, updated_at: new Date().toISOString() }).eq("id", fresh.id);
-  await syncFromServer();
-});
 
 function renderRoundOverOverlay(state, game, opponent) {
   if (!state.roundOver) {
