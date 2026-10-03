@@ -380,6 +380,56 @@
   margin-bottom: 22px;
 }
 
+/* ---------- card animations ---------- */
+
+.anim-hidden {
+  visibility: hidden;
+}
+
+.cabo-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  perspective: 700px;
+  transform-origin: top left;
+  will-change: transform, opacity;
+}
+
+.cabo-ghost-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  transform-style: preserve-3d;
+  box-shadow: var(--shadow-lift);
+}
+
+.cabo-ghost-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.cabo-ghost-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cabo-ghost-front {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabo-flip-inner {
+    transition: none;
+  }
+}
+
 /* ---------- leave game ---------- */
 
 .cabo-leave {
