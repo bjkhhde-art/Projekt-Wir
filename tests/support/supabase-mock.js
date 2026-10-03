@@ -1,26 +1,59 @@
 (function () {
   const API = "http://localhost:8991";
+  /* game tables keep their original, simpler semantics (maybeSingle = newest row) */
+  const isGameTable = table => table.endsWith("_games");
+
+  function matches(row, filters) {
+    return filters.every(([op, field, value]) => {
+      if (op === "eq") return row[field] === value;
+      if (op === "neq") return row[field] !== value;
+      if (op === "is") return value === null ? row[field] == null : row[field] === value;
+      if (op === "in") return value.includes(row[field]);
+      return true;
+    });
+  }
 
   function makeQueryBuilder(table) {
     const base = `${API}/t/${table}`;
     let pendingOp = null; // { type: "update"|"delete", payload }
-    const filters = {};
+    const filters = [];
+    let ordering = null;
+    let max = null;
+
+    const idFilter = () => (filters.find(([op, field]) => op === "eq" && field === "id") || [])[2];
+    const versionFilter = () => (filters.find(([op, field]) => op === "eq" && field === "version") || [])[2];
+
+    async function selectRows() {
+      const res = await fetch(`${base}/dump`);
+      let rows = (await res.json()).filter(row => matches(row, filters));
+      if (ordering) {
+        const { field, ascending } = ordering;
+        rows.sort((a, b) => (a[field] < b[field] ? -1 : a[field] > b[field] ? 1 : 0) * (ascending ? 1 : -1));
+      }
+      if (max !== null) rows = rows.slice(0, max);
+      return rows;
+    }
 
     const builder = {
       select() { return builder; },
-      neq() { return builder; },
-      order() { return builder; },
-      limit() { return builder; },
+      neq(field, value) { filters.push(["neq", field, value]); return builder; },
+      is(field, value) { filters.push(["is", field, value]); return builder; },
+      in(field, values) { filters.push(["in", field, values]); return builder; },
+      order(field, options) { ordering = { field, ascending: !options || options.ascending !== false }; return builder; },
+      limit(n) { max = n; return builder; },
 
       eq(field, value) {
-        filters[field] = value;
+        filters.push(["eq", field, value]);
         return builder;
       },
 
       async maybeSingle() {
-        const res = await fetch(`${base}/latest`);
-        const data = await res.json();
-        return { data, error: null };
+        if (isGameTable(table)) {
+          const res = await fetch(`${base}/latest`);
+          return { data: await res.json(), error: null };
+        }
+        const rows = await selectRows();
+        return { data: rows[0] || null, error: null };
       },
 
       async insert(payload) {
@@ -52,8 +85,9 @@
       then(resolve, reject) {
         const run = async () => {
           if (pendingOp && pendingOp.type === "update") {
-            const query = filters.version !== undefined ? `?version=${filters.version}` : "";
-            const res = await fetch(`${base}/games/${filters.id}${query}`, {
+            const version = versionFilter();
+            const query = version !== undefined ? `?version=${version}` : "";
+            const res = await fetch(`${base}/games/${encodeURIComponent(idFilter())}${query}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(pendingOp.payload)
@@ -62,10 +96,11 @@
             return { data, error: null };
           }
           if (pendingOp && pendingOp.type === "delete") {
-            await fetch(`${base}/games/${filters.id}`, { method: "DELETE" });
+            await fetch(`${base}/games/${encodeURIComponent(idFilter())}`, { method: "DELETE" });
             return { data: null, error: null };
           }
-          return { data: [], error: null };
+          if (isGameTable(table)) return { data: [], error: null };
+          return { data: await selectRows(), error: null };
         };
         return run().then(resolve, reject);
       }
@@ -73,35 +108,107 @@
     return builder;
   }
 
+  /* realtime: postgres changes are emulated by polling the newest row; presence and broadcast
+     go through the fake backend so two browser contexts can see each other */
+  function makeChannel(name, options) {
+    const presenceKey = options && options.config && options.config.presence && options.config.presence.key;
+    const handlers = { postgres: [], presence: [], broadcast: {} };
+    let presenceState = {};
+    let lastBroadcastId = 0;
+    let tracked = null;
+    const timers = [];
+
+    const chan = {
+      on(type, opts, callback) {
+        if (type === "postgres_changes") handlers.postgres.push({ table: opts.table, callback, lastSeen: null });
+        if (type === "presence") handlers.presence.push(callback);
+        if (type === "broadcast") (handlers.broadcast[opts.event] = handlers.broadcast[opts.event] || []).push(callback);
+        return chan;
+      },
+
+      subscribe(statusCallback) {
+        handlers.postgres.forEach(h => {
+          timers.push(setInterval(async () => {
+            try {
+              const res = await fetch(`${API}/t/${h.table}/latest`);
+              const row = await res.json();
+              const serialized = JSON.stringify(row);
+              if (serialized !== h.lastSeen) {
+                h.lastSeen = serialized;
+                h.callback({ new: row, eventType: "UPDATE" });
+              }
+            } catch (e) { /* ignore */ }
+          }, 300));
+        });
+
+        if (handlers.presence.length || Object.keys(handlers.broadcast).length) {
+          timers.push(setInterval(async () => {
+            try {
+              if (tracked) {
+                await fetch(`${API}/rt/presence/${name}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ key: presenceKey, meta: tracked })
+                });
+              }
+              const res = await fetch(`${API}/rt/presence/${name}`);
+              const next = await res.json();
+              if (JSON.stringify(next) !== JSON.stringify(presenceState)) {
+                presenceState = next;
+                handlers.presence.forEach(cb => cb());
+              }
+
+              const bRes = await fetch(`${API}/rt/broadcast/${name}?after=${lastBroadcastId}`);
+              const messages = await bRes.json();
+              messages.forEach(msg => {
+                lastBroadcastId = Math.max(lastBroadcastId, msg.id);
+                if (msg.sender === presenceKey) return;
+                (handlers.broadcast[msg.event] || []).forEach(cb => cb({ event: msg.event, payload: msg.payload }));
+              });
+            } catch (e) { /* ignore */ }
+          }, 300));
+
+          /* skip broadcasts that happened before this page subscribed */
+          fetch(`${API}/rt/broadcast/${name}?after=0`).then(r => r.json()).then(all => {
+            all.forEach(msg => { lastBroadcastId = Math.max(lastBroadcastId, msg.id); });
+          }).catch(() => {});
+        }
+
+        if (statusCallback) setTimeout(() => statusCallback("SUBSCRIBED"), 50);
+        return chan;
+      },
+
+      async track(meta) {
+        tracked = meta;
+        return "ok";
+      },
+
+      presenceState() {
+        return presenceState;
+      },
+
+      async send(message) {
+        await fetch(`${API}/rt/broadcast/${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event: message.event, payload: message.payload, sender: presenceKey })
+        });
+        return "ok";
+      },
+
+      unsubscribe() {
+        timers.forEach(clearInterval);
+      }
+    };
+    return chan;
+  }
+
   window.supabase = {
     createClient() {
       return {
         from(table) { return makeQueryBuilder(table); },
-        channel() {
-          let table = null;
-          let lastSeen = null;
-          const chan = {
-            on(_event, opts, callback) {
-              table = opts.table;
-              chan._callback = callback;
-              return chan;
-            },
-            subscribe() {
-              setInterval(async () => {
-                try {
-                  const res = await fetch(`${API}/t/${table}/latest`);
-                  const serialized = JSON.stringify(await res.json());
-                  if (serialized !== lastSeen) {
-                    lastSeen = serialized;
-                    if (chan._callback) chan._callback();
-                  }
-                } catch (e) { /* ignore */ }
-              }, 300);
-              return chan;
-            }
-          };
-          return chan;
-        },
+        channel(name, options) { return makeChannel(name, options); },
+        removeChannel(chan) { if (chan && chan.unsubscribe) chan.unsubscribe(); },
         functions: {
           async invoke(name, options) {
             (window.__mockInvocations = window.__mockInvocations || []).push({ name, body: options && options.body });
