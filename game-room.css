@@ -1,0 +1,118 @@
+/* Lobby, start options and the leave button shared by the live games (game-room.js). */
+
+.gr-lobby-card {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.gr-lobby-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+.gr-lobby-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.gr-lobby-card p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+.gr-lobby-card p.gr-lobby-note {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
+.gr-lobby-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.gr-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-border);
+  border-top-color: var(--pink-deep);
+  animation: gr-spin 0.8s linear infinite;
+}
+
+@keyframes gr-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gr-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: -6px 0 18px;
+  text-align: left;
+}
+
+.gr-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.gr-option.selected {
+  border-color: var(--pink-deep);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.gr-option-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gr-option-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.gr-leave {
+  text-align: center;
+  margin: 24px 0 8px;
+}
+
+.gr-leave-btn {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.gr-leave-btn.armed {
+  color: var(--danger);
+  text-decoration: none;
+  background: rgba(239, 68, 68, 0.1);
+}

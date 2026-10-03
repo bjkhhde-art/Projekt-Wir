@@ -1,0 +1,458 @@
+.qx-board {
+  --qx-red: #e5484d;
+  --qx-yellow: #e2b300;
+  --qx-green: #2f9e5c;
+  --qx-blue: #3a72e8;
+  --qx-red-soft: #fde4e4;
+  --qx-yellow-soft: #fff4c4;
+  --qx-green-soft: #ddf3e5;
+  --qx-blue-soft: #e0e9fd;
+  --qx-ink: #262033;
+}
+
+.qx-red { --c: var(--qx-red); --c-soft: var(--qx-red-soft); }
+.qx-yellow { --c: var(--qx-yellow); --c-soft: var(--qx-yellow-soft); }
+.qx-green { --c: var(--qx-green); --c-soft: var(--qx-green-soft); }
+.qx-blue { --c: var(--qx-blue); --c-soft: var(--qx-blue-soft); }
+
+/* ---------- score line ---------- */
+
+.qx-score {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 auto 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.qx-score strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+/* ---------- opponent ---------- */
+
+.qx-opp {
+  max-width: 330px;
+  margin: 0 auto 12px;
+}
+
+.qx-opp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.qx-opp-name {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.qx-opp-name.active {
+  color: var(--pink-deep);
+}
+
+.qx-opp-penalties {
+  color: var(--danger);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.qx-opp-total {
+  margin-left: auto;
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.qx-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qx-mini-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+}
+
+.qx-mini-cell {
+  position: relative;
+  height: 17px;
+  border-radius: 4px;
+  background: var(--c-soft);
+  color: var(--c);
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qx-mini-cell.skipped {
+  opacity: 0.35;
+}
+
+.qx-mini-row.locked .qx-mini-cell {
+  opacity: 0.45;
+}
+
+/* ---------- crosses ---------- */
+
+.qx-cell.crossed::after,
+.qx-mini-cell.crossed::after,
+.qx-penalty.crossed::after,
+.qx-lock.crossed::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--qx-ink);
+  font-weight: 900;
+  font-size: 1.45em;
+  line-height: 1;
+}
+
+.qx-mini-cell.crossed::after {
+  font-size: 13px;
+}
+
+.just-crossed::after {
+  animation: qx-cross-in 0.45s cubic-bezier(0.3, 0.7, 0.2, 1.3);
+}
+
+@keyframes qx-cross-in {
+  from {
+    transform: scale(2.2) rotate(-20deg);
+    opacity: 0;
+  }
+}
+
+/* ---------- dice ---------- */
+
+.qx-dice {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto 10px;
+  padding: 10px 6px;
+  border: none;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  cursor: default;
+}
+
+.qx-dice.can-roll {
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--pink-deep), var(--shadow-soft);
+  animation: qx-invite 1.6s ease-in-out infinite;
+}
+
+@keyframes qx-invite {
+  50% { box-shadow: 0 0 0 6px rgba(236, 72, 153, 0.35), var(--shadow-soft); }
+}
+
+.qx-die {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.qx-die.qx-red,
+.qx-die.qx-yellow,
+.qx-die.qx-green,
+.qx-die.qx-blue {
+  background: var(--c);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.qx-pip {
+  width: 7px;
+  height: 7px;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--qx-ink);
+}
+
+.qx-die.qx-red .qx-pip,
+.qx-die.qx-green .qx-pip,
+.qx-die.qx-blue .qx-pip {
+  background: #fff;
+}
+
+.qx-die.blank .qx-pip {
+  opacity: 0;
+}
+
+.qx-die.used {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 3px var(--pink-deep), 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.qx-die.removed {
+  opacity: 0.22;
+}
+
+.qx-die.removed::after {
+  content: "🔒";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.qx-dice.rolling .qx-die:not(.removed) {
+  animation: qx-tumble 0.65s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.qx-dice.rolling .qx-die:nth-child(2n) {
+  animation-duration: 0.75s;
+}
+
+@keyframes qx-tumble {
+  0% { transform: translateY(-26px) rotate(-200deg) scale(0.7); }
+  60% { transform: translateY(3px) rotate(15deg) scale(1.05); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+.qx-die-gap {
+  width: 6px;
+}
+
+/* ---------- status ---------- */
+
+.qx-event {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+  margin: 0 0 4px;
+}
+
+.qx-event:empty {
+  display: none;
+}
+
+.qx-status {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  min-height: 20px;
+}
+
+.qx-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.qx-actions:empty {
+  display: none;
+}
+
+/* ---------- own sheet ---------- */
+
+.qx-own {
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.qx-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.qx-row {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr) 1.1fr;
+  gap: 3px;
+}
+
+.qx-cell,
+.qx-lock {
+  position: relative;
+  height: 36px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent);
+  background: var(--c-soft);
+  color: var(--c);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: default;
+}
+
+.qx-cell:disabled {
+  opacity: 1;
+}
+
+.qx-cell.skipped {
+  opacity: 0.32;
+}
+
+.qx-cell.qx-last {
+  border-width: 2.5px;
+}
+
+.qx-cell.option {
+  cursor: pointer;
+  border-color: var(--pink-deep);
+  box-shadow: 0 0 0 2px var(--pink-deep);
+  animation: qx-option 1.3s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes qx-option {
+  50% { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.45); }
+}
+
+.qx-lock {
+  background: var(--c);
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qx-lock.crossed::after {
+  color: #fff;
+}
+
+.qx-row.locked .qx-cell {
+  opacity: 0.4;
+}
+
+.qx-row.locked .qx-lock {
+  box-shadow: 0 0 0 2px var(--qx-ink);
+}
+
+.qx-row.just-locked {
+  animation: qx-lock-flash 0.9s ease;
+}
+
+@keyframes qx-lock-flash {
+  30% { transform: scale(1.03); filter: brightness(1.15); }
+}
+
+.qx-sheet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.qx-penalties {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qx-penalty {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--surface-border);
+  font-size: 13px;
+}
+
+.qx-penalty.crossed::after {
+  color: var(--danger);
+}
+
+.qx-penalty.just-crossed {
+  animation: qx-penalty-shake 0.5s ease;
+}
+
+@keyframes qx-penalty-shake {
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.qx-points strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: 15px;
+}
+
+/* ---------- result ---------- */
+
+.qx-result {
+  flex: 1 1 100%;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 14px;
+}
+
+.qx-result th,
+.qx-result td {
+  padding: 7px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--surface-border);
+  font-size: 13.5px;
+}
+
+.qx-result th {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.qx-result td.total {
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.qx-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+  vertical-align: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qx-dice.rolling .qx-die,
+  .qx-dice.can-roll,
+  .qx-cell.option,
+  .just-crossed::after,
+  .qx-row.just-locked,
+  .qx-penalty.just-crossed {
+    animation: none;
+  }
+}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Qwixx</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="game-room.css">
+  <link rel="stylesheet" href="qwixx.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body>
+
+  <main class="page">
+    <h1 class="page-title">Qwixx 🎲</h1>
+    <p class="page-subtitle">Würfeln, ankreuzen, abschließen</p>
+
+    <div id="qxLobby"></div>
+
+    <div id="qxBoard" class="qx-board hidden">
+
+      <div class="qx-score" id="qxScore"></div>
+
+      <section class="qx-opp" aria-label="Block der anderen Person">
+        <div class="qx-opp-head">
+          <span class="qx-opp-name" id="qxOppName">Gegner</span>
+          <span class="qx-opp-penalties" id="qxOppPenalties"></span>
+          <span class="qx-opp-total" id="qxOppTotal"></span>
+        </div>
+        <div class="qx-mini" id="qxOppSheet"></div>
+      </section>
+
+      <button type="button" class="qx-dice" id="qxDice" aria-label="Würfel"></button>
+
+      <p class="qx-event" id="qxEvent"></p>
+      <p class="qx-status" id="qxStatus"></p>
+      <div class="qx-actions" id="qxActions"></div>
+
+      <section class="qx-own" aria-label="Dein Block">
+        <div class="qx-sheet" id="qxSheet"></div>
+        <div class="qx-sheet-foot">
+          <div class="qx-penalties" id="qxPenalties"></div>
+          <div class="qx-points" id="qxPoints"></div>
+        </div>
+      </section>
+
+      <div class="gr-leave">
+        <button type="button" id="qxLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wessen Block welcher ist.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="qwixx-engine.js"></script>
+  <script src="game-room.js"></script>
+  <script src="qwixx.js"></script>
+</body>
+</html>
