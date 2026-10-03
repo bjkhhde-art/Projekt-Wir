@@ -1,0 +1,491 @@
+/* ---------- lobby ---------- */
+
+.nm-lobby {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.nm-lobby-card {
+  padding: 32px 24px;
+}
+
+.nm-lobby-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+.nm-lobby-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.nm-lobby-card p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+.nm-lobby-card p.nm-lobby-note {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
+.nm-lobby-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.nm-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-border);
+  border-top-color: var(--pink-deep);
+  animation: nm-spin 0.8s linear infinite;
+}
+
+@keyframes nm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- cards ---------- */
+
+.nm-card {
+  --nm-bg: #f1e9ff;
+  --nm-ink: #7c4dcc;
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 5 / 7;
+  border-radius: 9px;
+  background: var(--nm-bg);
+  color: var(--nm-ink);
+  border: 1.5px solid rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  font-family: var(--font-heading);
+  user-select: none;
+}
+
+.nm-b2 { --nm-bg: #ddeeff; --nm-ink: #2f7fd0; }
+.nm-b3 { --nm-bg: #fff1bf; --nm-ink: #c58500; }
+.nm-b5 { --nm-bg: #ffdfe4; --nm-ink: #d3304d; }
+.nm-b7 { --nm-bg: #f9d6f2; --nm-ink: #a1137f; }
+
+.nm-card-bulls {
+  position: absolute;
+  top: 7%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1cqw;
+}
+
+.nm-bull {
+  width: 26cqw;
+  height: 26cqw;
+}
+
+.nm-b5 .nm-bull,
+.nm-b7 .nm-bull {
+  width: 21cqw;
+  height: 21cqw;
+}
+
+.nm-card-num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  text-align: center;
+  font-size: 40cqw;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.nm-card-back {
+  background: linear-gradient(140deg, #ff8fbf, #9b6cf7);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nm-card-back .nm-bull {
+  width: 52cqw;
+  height: 52cqw;
+}
+
+/* ---------- score + players ---------- */
+
+.nm-score {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 auto 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.nm-score strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+.nm-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+  margin: 0 auto;
+  font-size: 13px;
+}
+
+.nm-player-name {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.nm-player-name.active {
+  color: var(--pink-deep);
+}
+
+.nm-player-hand {
+  color: var(--text-muted);
+}
+
+.nm-pile {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nm-pile .nm-bull {
+  width: 16px;
+  height: 16px;
+  color: var(--pink-deep);
+}
+
+.nm-player-own {
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+/* ---------- played cards ---------- */
+
+.nm-spots {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin: 8px auto;
+}
+
+.nm-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.nm-spot-card {
+  width: 48px;
+  aspect-ratio: 5 / 7;
+  border-radius: 9px;
+  border: 1.5px dashed var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+  perspective: 600px;
+}
+
+.nm-spot-card.filled {
+  border: none;
+}
+
+.nm-spot-card > .nm-flip,
+.nm-spot-card > .nm-card {
+  width: 100%;
+  height: 100%;
+}
+
+.nm-spot-card.clickable {
+  cursor: pointer;
+}
+
+.nm-spot-card.pending .nm-card {
+  box-shadow: 0 0 0 3px var(--warning), var(--shadow-soft);
+}
+
+.nm-spot-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* a card that turns over in place */
+.nm-flip {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0.15, 0.2, 1);
+}
+
+.nm-flip.face-up {
+  transform: rotateY(180deg);
+}
+
+.nm-flip > .nm-card {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.nm-flip > .nm-card:not(.nm-card-back) {
+  transform: rotateY(180deg);
+}
+
+/* ---------- table rows ---------- */
+
+.nm-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 310px;
+  margin: 4px auto 10px;
+}
+
+.nm-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) 30px;
+  gap: 4px;
+  align-items: center;
+  padding: 3px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.nm-row.pickable {
+  cursor: pointer;
+  border-color: var(--pink-deep);
+  background: rgba(236, 72, 153, 0.06);
+}
+
+.nm-cell {
+  aspect-ratio: 5 / 7;
+  border-radius: 9px;
+  border: 1.5px dashed var(--surface-border);
+}
+
+.nm-cell.filled {
+  border: none;
+}
+
+.nm-cell > .nm-card {
+  width: 100%;
+  height: 100%;
+}
+
+.nm-row-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.nm-row-info .nm-bull {
+  width: 14px;
+  height: 14px;
+}
+
+.nm-row.full .nm-row-info {
+  color: var(--danger);
+}
+
+/* ---------- hand ---------- */
+
+.nm-hand {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.nm-hand-card {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: default;
+  font: inherit;
+  transition: transform 0.18s ease;
+}
+
+.nm-hand-card > .nm-card {
+  width: 100%;
+}
+
+.nm-hand-card.clickable {
+  cursor: pointer;
+}
+
+.nm-hand-card.clickable:hover {
+  transform: translateY(-4px);
+}
+
+.nm-hand-card:disabled .nm-card {
+  opacity: 0.85;
+}
+
+/* ---------- status / result ---------- */
+
+.nm-event {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+  margin: 0 0 6px;
+}
+
+.nm-event:empty {
+  display: none;
+}
+
+.nm-status {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  min-height: 20px;
+}
+
+.nm-status.nudge {
+  animation: nm-nudge 0.4s ease;
+}
+
+@keyframes nm-nudge {
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.nm-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.nm-result {
+  flex: 1 1 100%;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 14px;
+}
+
+.nm-result th,
+.nm-result td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--surface-border);
+  font-size: 13.5px;
+}
+
+.nm-result th {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.nm-result td.total {
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+/* ---------- deal-in ---------- */
+
+.nm-dealing .nm-cell > .nm-card,
+.nm-dealing .nm-hand-card > .nm-card {
+  animation: nm-deal-in 0.45s cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
+  animation-delay: var(--deal-delay, 0ms);
+}
+
+@keyframes nm-deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.6) rotate(-8deg);
+  }
+}
+
+.nm-drop-in {
+  animation: nm-drop-in 0.4s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+@keyframes nm-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nm-flip {
+    transition: none;
+  }
+  .nm-dealing .nm-cell > .nm-card,
+  .nm-dealing .nm-hand-card > .nm-card,
+  .nm-drop-in {
+    animation: none;
+  }
+}
+
+/* ---------- leave ---------- */
+
+.nm-leave {
+  text-align: center;
+  margin: 24px 0 8px;
+}
+
+.nm-leave-btn {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nm-leave-btn.armed {
+  color: var(--danger);
+  text-decoration: none;
+  background: rgba(239, 68, 68, 0.1);
+}

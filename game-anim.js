@@ -1,6 +1,6 @@
-/* Cabo – Kartenanimationen: fliegende Karten zwischen Stapeln und Händen. */
+/* Kartenanimationen für die Games: fliegende Karten zwischen Stapeln, Reihen und Händen. */
 
-const CaboAnim = (() => {
+const GameAnim = (() => {
   const COVER = "cabo-cards/Cover.webp";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const hiddenKeys = new Set();
@@ -42,27 +42,34 @@ const CaboAnim = (() => {
     [...hiddenKeys].forEach(reveal);
   }
 
-  function face(className, src) {
+  function face(className, content) {
     const div = document.createElement("div");
-    div.className = `cabo-ghost-face ${className}`;
-    const img = document.createElement("img");
-    img.src = src;
-    img.alt = "";
-    div.appendChild(img);
+    div.className = `ga-ghost-face ${className}`;
+    if (typeof content === "string") {
+      const img = document.createElement("img");
+      img.src = content;
+      img.alt = "";
+      div.appendChild(img);
+    } else {
+      div.appendChild(content);
+    }
     return div;
   }
 
-  /* Flies a card copy from one screen rect to another, optionally turning it over on the way. */
-  function fly({ delay = 0, ...options }) {
+  /* Flies a card copy from one screen rect to another, optionally turning it over.
+     front/back: an image URL or a DOM node. hold: the copy already sits at its start
+     during the delay (e.g. cards still lying in a row). turnFirst: turn over in place, then fly. */
+  function fly({ delay = 0, hold = false, ...options }) {
     if (!enabled() || !options.from || !options.to) return Promise.resolve();
+    if (hold) return flyNow({ ...options, delay });
     /* a waiting card must not sit visibly at its start point (e.g. on an empty pile) */
     return new Promise(resolve => setTimeout(() => flyNow(options).then(resolve), delay));
   }
 
-  function flyNow({ from, to, front, startFaceUp = false, endFaceUp = false, duration = 520, fade = false, arc = 30 }) {
+  function flyNow({ from, to, front, back, startFaceUp = false, endFaceUp = false, duration = 520, delay = 0, fade = false, arc = 30, turnFirst = false }) {
     return new Promise(resolve => {
       const ghost = document.createElement("div");
-      ghost.className = "cabo-ghost";
+      ghost.className = "ga-ghost";
       Object.assign(ghost.style, {
         left: `${from.left}px`,
         top: `${from.top}px`,
@@ -71,33 +78,34 @@ const CaboAnim = (() => {
       });
 
       const inner = document.createElement("div");
-      inner.className = "cabo-ghost-inner";
-      inner.appendChild(face("cabo-ghost-back", COVER));
-      inner.appendChild(face("cabo-ghost-front", front || COVER));
+      inner.className = "ga-ghost-inner";
+      inner.appendChild(face("ga-ghost-back", back || COVER));
+      inner.appendChild(face("ga-ghost-front", front || COVER));
       ghost.appendChild(inner);
       document.body.appendChild(ghost);
 
+      const turns = startFaceUp !== endFaceUp;
+      const turnTime = turns && turnFirst ? 380 : 0;
       const dx = to.left - from.left;
       const dy = to.top - from.top;
       const sx = to.width / from.width;
       const sy = to.height / from.height;
       const lift = 1.1;
-      const timing = { duration, easing: "cubic-bezier(.3,.7,.2,1)", fill: "both" };
 
       const flight = ghost.animate([
         { transform: "translate(0px, 0px) scale(1, 1)", opacity: 1 },
         { transform: `translate(${dx / 2}px, ${dy / 2 - arc}px) scale(${(1 + sx) / 2 * lift}, ${(1 + sy) / 2 * lift})`, opacity: 1, offset: 0.5 },
         { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: fade ? 0 : 1 }
-      ], timing);
+      ], { duration, delay: delay + turnTime, easing: "cubic-bezier(.3,.7,.2,1)", fill: "both" });
 
       const startTurn = startFaceUp ? 180 : 0;
       const endTurn = endFaceUp ? 180 : 0;
-      if (startTurn === endTurn) {
+      if (!turns) {
         inner.style.transform = `rotateY(${startTurn}deg)`;
       } else {
         inner.animate(
           [{ transform: `rotateY(${startTurn}deg)` }, { transform: `rotateY(${endTurn}deg)` }],
-          { ...timing, easing: "ease-in-out" }
+          { duration: turnFirst ? turnTime : duration, delay, easing: "ease-in-out", fill: "both" }
         );
       }
 
