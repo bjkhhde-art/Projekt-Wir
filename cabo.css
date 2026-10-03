@@ -26,6 +26,13 @@
   font-size: 14.5px;
 }
 
+.cabo-lobby-card p.cabo-lobby-note {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
 .cabo-lobby-waiting {
   display: flex;
   align-items: center;
@@ -325,6 +332,34 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 22px;
+}
+
+/* ---------- leave game ---------- */
+
+.cabo-leave {
+  text-align: center;
+  margin: 26px 0 8px;
+}
+
+.cabo-leave-btn {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cabo-leave-btn.armed {
+  color: var(--danger);
+  text-decoration: none;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* ---------- round-over summary ---------- */
