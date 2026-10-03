@@ -76,6 +76,52 @@ const shopItemsOutfit = document.getElementById("shopItemsOutfit");
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
 
+const Core = window.MochiCore;
+
+const petSvg = document.querySelector(".pet-svg");
+const petEyes = [
+  { el: document.getElementById("petEyeLeft"), cx: 78, cy: 152 },
+  { el: document.getElementById("petEyeRight"), cx: 122, cy: 152 }
+];
+const mochiSpeech = document.getElementById("mochiSpeech");
+const togetherBanner = document.getElementById("togetherBanner");
+const mailEnvelope = document.getElementById("mailEnvelope");
+const mailCount = document.getElementById("mailCount");
+
+const streakPill = document.getElementById("streakPill");
+const streakCount = document.getElementById("streakCount");
+const chestBtn = document.getElementById("chestBtn");
+const chestModal = document.getElementById("chestModal");
+const chestText = document.getElementById("chestText");
+const chestOpenBtn = document.getElementById("chestOpenBtn");
+const chestResult = document.getElementById("chestResult");
+const closeChest = document.getElementById("closeChest");
+
+const wishList = document.getElementById("wishList");
+const wishProgress = document.getElementById("wishProgress");
+const wishBonusHint = document.getElementById("wishBonusHint");
+const streakLine = document.getElementById("streakLine");
+
+const messengerBtn = document.getElementById("messengerBtn");
+const messengerModal = document.getElementById("messengerModal");
+const messengerIntro = document.getElementById("messengerIntro");
+const messengerKinds = document.querySelectorAll(".messenger-kind");
+const messengerNoteWrap = document.getElementById("messengerNoteWrap");
+const messengerNote = document.getElementById("messengerNote");
+const messengerNoteCount = document.getElementById("messengerNoteCount");
+const cancelMessenger = document.getElementById("cancelMessenger");
+const sendMessenger = document.getElementById("sendMessenger");
+const messengerHistory = document.getElementById("messengerHistory");
+
+const deliveryModal = document.getElementById("deliveryModal");
+const deliveryBurst = document.getElementById("deliveryBurst");
+const deliveryEmoji = document.getElementById("deliveryEmoji");
+const deliveryTitle = document.getElementById("deliveryTitle");
+const deliveryNote = document.getElementById("deliveryNote");
+const deliveryTime = document.getElementById("deliveryTime");
+const replyDelivery = document.getElementById("replyDelivery");
+const closeDelivery = document.getElementById("closeDelivery");
+
 const foodModal = document.getElementById("foodModal");
 const foodButtons = document.querySelectorAll(".food-btn");
 const closeFoodModal = document.getElementById("closeFoodModal");
@@ -121,6 +167,8 @@ const DISCO_RISE_DURATION_MS = 1400;
 const SLEEP_DURATION_MS = 2 * 60 * 1000;
 const SUNRISE_DURATION_MS = 1400;
 const DEFAULT_STAT = 70;
+const SURPRISE_COIN_CHANCE = 0.06;
+const SURPRISE_COINS = 3;
 
 const COFFEE_STEPS = [
   { label: "Schritt 1 von 5: Bohnen einfüllen", hint: "Wir wischen die Bohnen von der Dose in die Mühle" },
@@ -207,7 +255,16 @@ const ACHIEVEMENTS = [
   { id: "coins_500", icon: "👑", name: "Großer Schatz", desc: "500 Münzen insgesamt verdient", check: s => (s.total_coins_earned || 0) >= 500 },
   { id: "collector_5", icon: "🛍️", name: "Sammler", desc: "5 Gegenstände besessen", check: s => ((s.owned_items) || []).length >= 5 },
   { id: "collector_12", icon: "🏆", name: "Großsammler", desc: "12 Gegenstände besessen", check: s => ((s.owned_items) || []).length >= 12 },
-  { id: "room_full", icon: "🏠", name: "Eingerichtet", desc: "Zimmer komplett möbliert (4 Deko-Objekte)", check: s => ((s.room_decor) || []).length >= 4 }
+  { id: "room_full", icon: "🏠", name: "Eingerichtet", desc: "Zimmer komplett möbliert (4 Deko-Objekte)", check: s => ((s.room_decor) || []).length >= 4 },
+  { id: "message_1", icon: "💌", name: "Liebesbote", desc: "Die erste Botschaft über Mochi geschickt", check: s => (s.messages_sent || 0) >= 1 },
+  { id: "message_25", icon: "📮", name: "Postkutsche", desc: "25 Botschaften über Mochi geschickt", check: s => (s.messages_sent || 0) >= 25 },
+  { id: "wishes_10", icon: "🌠", name: "Wunscherfüller", desc: "10 Wünsche von Mochi erfüllt", check: s => (s.wishes_fulfilled || 0) >= 10 },
+  { id: "wishes_50", icon: "🧚", name: "Glücksfee", desc: "50 Wünsche von Mochi erfüllt", check: s => (s.wishes_fulfilled || 0) >= 50 },
+  { id: "streak_3", icon: "🔥", name: "Dreamteam", desc: "3 Tage in Folge waren beide bei Mochi", check: s => (s.best_streak || 0) >= 3 },
+  { id: "streak_7", icon: "🗓️", name: "Eine Woche Wir", desc: "7 Tage in Folge waren beide bei Mochi", check: s => (s.best_streak || 0) >= 7 },
+  { id: "streak_30", icon: "🌙", name: "Ein Monat Wir", desc: "30 Tage in Folge waren beide bei Mochi", check: s => (s.best_streak || 0) >= 30 },
+  { id: "double_1", icon: "💞", name: "Doppelknuddler", desc: "Mochi gleichzeitig geknuddelt", check: s => (s.double_cuddles || 0) >= 1 },
+  { id: "double_10", icon: "🫂", name: "Kuschelsandwich", desc: "10x gleichzeitig geknuddelt", check: s => (s.double_cuddles || 0) >= 10 }
 ];
 
 function announceNewAchievements(oldState, newState) {
@@ -263,6 +320,9 @@ personButtons.forEach(button => {
     localStorage.setItem("pw_person", currentPerson);
     personModal.classList.add("hidden");
     showToast(`Hey ${currentPerson}! Mochi freut sich auf dich 💗`, "success");
+    render();
+    loadInbox();
+    joinTogether();
   });
 });
 
@@ -276,13 +336,13 @@ function decayRate(base) {
   return clamp(base - (batteryAvg / 100) * (base - base * 0.17), base * 0.17, base);
 }
 
-function decayedStats() {
-  const lastUpdate = petState && petState.updated_at ? new Date(petState.updated_at).getTime() : Date.now();
+function decayedStats(state = petState) {
+  const lastUpdate = state && state.updated_at ? new Date(state.updated_at).getTime() : Date.now();
   const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / 3600000);
   const result = {};
 
   for (const key of Object.keys(DECAY_BASE)) {
-    const stored = petState && typeof petState[key] === "number" ? petState[key] : DEFAULT_STAT;
+    const stored = state && typeof state[key] === "number" ? state[key] : DEFAULT_STAT;
     result[key] = clamp(Math.round(stored - hoursElapsed * decayRate(DECAY_BASE[key])), 0, 100);
   }
 
@@ -314,39 +374,121 @@ function growthStage(careScore) {
 
 /* ---------- applying care actions (stats + coins + growth) ---------- */
 
-async function applyCare(statDeltas, coinReward, careReward, extraFields) {
-  const stats = decayedStats();
+/* Every write goes through here. The patch is built from the freshest state and written only if
+   nobody else wrote in between ("version"); otherwise we reload and build it again. Stats are
+   always stored decayed, so a write never resets how hungry or tired Mochi is. */
+async function mutatePet(buildPatch) {
+  if (!petState) await loadPetState();
+  if (!petState) return null;
 
-  for (const key in statDeltas) {
-    stats[key] = clamp(stats[key] + statDeltas[key], 0, 100);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const base = petState;
+    const nowIso = new Date().toISOString();
+    const patch = buildPatch(base, nowIso);
+    if (!patch) return null;
+
+    const version = base.version || 0;
+    const payload = {
+      ...decayedStats(base),
+      last_interacted_by: currentPerson,
+      updated_at: nowIso,
+      ...patch,
+      version: version + 1
+    };
+
+    petState = { ...base, ...payload };
+    render();
+
+    const { data, error } = await supabaseClient
+      .from("pet_state")
+      .update(payload)
+      .eq("id", "shared")
+      .eq("version", version)
+      .select();
+
+    if (error) {
+      console.error("Fehler beim Speichern:", error);
+      petState = base;
+      render();
+      showToast("Mochi konnte das gerade nicht speichern.", "error");
+      return null;
+    }
+
+    if (data && data.length) {
+      petState = { ...petState, ...data[0] };
+      render();
+      return { previous: base, next: petState };
+    }
+
+    await loadPetState();
   }
 
-  const nowIso = new Date().toISOString();
-  const resolvedExtra = typeof extraFields === "function" ? extraFields(nowIso) : (extraFields || {});
+  showToast("Mochi war gerade ganz durcheinander, bitte nochmal versuchen 🙈", "error");
+  return null;
+}
 
-  const payload = {
-    ...stats,
-    coins: (petState && petState.coins || 0) + coinReward,
-    care_score: (petState && petState.care_score || 0) + careReward,
-    total_care_actions: ((petState && petState.total_care_actions) || 0) + 1,
-    total_coins_earned: ((petState && petState.total_coins_earned) || 0) + coinReward,
-    last_interacted_by: currentPerson,
-    updated_at: nowIso,
-    ...resolvedExtra
-  };
+/* a care action: stat changes, coins, growth, plus whatever wish it fulfils today.
+   extraFields(nowIso, state) may add fields and { extraCoins }. */
+async function applyCare(statDeltas, coinReward, careReward, extraFields, event) {
+  let outcome = null;
+  const careEvent = event || { type: "none" };
 
-  const previousState = petState;
-  petState = { ...(petState || {}), ...payload };
-  render();
-  announceNewAchievements(previousState, petState);
+  const result = await mutatePet((base, nowIso) => {
+    const stats = decayedStats(base);
+    for (const key in statDeltas) {
+      stats[key] = clamp(stats[key] + statDeltas[key], 0, 100);
+    }
 
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update(payload)
-    .eq("id", "shared");
+    outcome = Core.careOutcome(base, normalizePerson(currentPerson), careEvent, Core.dayKey());
+    const afterWishes = { ...base, ...outcome.patch };
+    const extra = typeof extraFields === "function" ? extraFields(nowIso, afterWishes) : (extraFields || {});
+    const { extraCoins = 0, ...fields } = extra;
+    const earned = coinReward + outcome.coins + extraCoins;
 
-  if (error) console.error("Fehler beim Speichern:", error);
-  return !error;
+    return {
+      ...stats,
+      coins: (base.coins || 0) + earned,
+      care_score: (base.care_score || 0) + careReward,
+      total_care_actions: (base.total_care_actions || 0) + 1,
+      total_coins_earned: (base.total_coins_earned || 0) + earned,
+      ...outcome.patch,
+      ...fields
+    };
+  });
+
+  if (!result) return null;
+
+  announceNewAchievements(result.previous, result.next);
+  announceCareOutcome(outcome);
+  broadcastTogether("care", { person: normalizePerson(currentPerson), type: careEvent.type, food: careEvent.food || null });
+  return result;
+}
+
+function announceCareOutcome(outcome) {
+  if (!outcome) return;
+
+  outcome.fulfilled.forEach((wish, index) => {
+    setTimeout(() => {
+      showToast(`Wunsch erfüllt: ${wish.emoji} +${Core.WISH_REWARD} 🪙`, "success");
+      say(["Juhu, danke! 🥰", `Du hast mir meinen Wunsch erfüllt, ${currentPerson}! 💗`, "Genau das wollte ich! ✨"][Math.floor(Math.random() * 3)]);
+      celebrate(12);
+    }, 700 + index * 900);
+  });
+
+  if (outcome.allDone) {
+    setTimeout(() => {
+      showToast(`Alle Wünsche erfüllt! +${Core.ALL_WISHES_BONUS} 🪙 Bonus 🎉`, "success");
+      say("Ihr habt mir ALLE Wünsche erfüllt!! 🥹💞", 5200);
+      celebrate(36);
+    }, 1800);
+  }
+
+  if (outcome.streakStarted) {
+    setTimeout(() => {
+      showToast(`🔥 Wir-Serie: ${outcome.streakDays} ${outcome.streakDays === 1 ? "Tag" : "Tage"}! Ihr wart heute beide bei Mochi`, "success");
+      celebrate(20);
+    }, 2600);
+  }
 }
 
 /* ---------- rendering ---------- */
@@ -415,6 +557,7 @@ function render() {
 
   renderEquippedLook();
   renderRoomLook();
+  renderDaily();
 
   tearLeft.classList.toggle("hidden", mood !== "verysad");
   tearRight.classList.toggle("hidden", mood !== "verysad");
@@ -425,7 +568,7 @@ function render() {
 
   sleepIcon.textContent = asleep ? "☀️" : "😴";
   sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, openRoomBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, openRoomBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
 }
 
 /* ---------- data loading ---------- */
@@ -505,7 +648,7 @@ async function wakeMochi() {
   sleepSky.classList.remove("waking");
   showToast("Mochi ist aufgewacht 💤➡️😊", "success");
 
-  await applyCare({ energy: energyBoost }, coinReward, 3, { sleep_started_at: null });
+  await applyCare({ energy: energyBoost }, coinReward, 3, { sleep_started_at: null }, { type: "sleep", full: sleptRatio >= 0.8 });
   wakingInProgress = false;
 }
 
@@ -523,7 +666,13 @@ async function triggerPet() {
   spawnHeart(false);
   vibrate([10, 20, 10]);
 
-  await applyCare({ bond: 6 }, 1, 1, nowIso => ({ last_petted_at: nowIso }));
+  const foundCoin = Math.random() < SURPRISE_COIN_CHANCE;
+  const result = await applyCare({ bond: 6 }, 1, 1, nowIso => ({ last_petted_at: nowIso, extraCoins: foundCoin ? SURPRISE_COINS : 0 }), { type: "pet" });
+  if (result && foundCoin) {
+    showToast(`Mochi hat beim Streicheln eine Münze gefunden! +${SURPRISE_COINS} 🪙`, "success");
+    spawnParticle("🪙", { size: 24 });
+    say("Guck mal, was ich gefunden hab! 🪙");
+  }
 }
 
 async function triggerCuddle() {
@@ -538,6 +687,8 @@ async function triggerCuddle() {
   vibrate([15, 40, 15, 40, 25]);
   setTimeout(() => petCreature.classList.remove("hugging"), 900);
 
+  noteOwnCuddle();
+
   const now = Date.now();
   if (now - lastCuddleTrigger < CUDDLE_COOLDOWN_MS) {
     showToast("Mochi ist schon ganz warm gekuschelt, gleich nochmal 💭", "success");
@@ -551,7 +702,7 @@ async function triggerCuddle() {
 
   showToast(`${currentPerson} hat Mochi geknuddelt 🤗`, "success");
 
-  const success = await applyCare({ bond: 28 }, 3, 2, nowIso => ({ last_cuddled_at: nowIso }));
+  const success = await applyCare({ bond: 28 }, 3, 2, nowIso => ({ last_cuddled_at: nowIso }), { type: "cuddle" });
   if (!success) return;
 
   sendAppNotification(supabaseClient, {
@@ -591,9 +742,9 @@ async function performActivity(kind, extraLabel, particleEmojiOverride) {
   const extra = nowIso => ({ last_activity: activityLog });
 
   if (kind === "feed") {
-    await applyCare({ hunger: 45, bond: 5 }, 3, 2, extra);
+    await applyCare({ hunger: 45, bond: 5 }, 3, 2, extra, { type: "feed", food: extraLabel });
   } else {
-    await applyCare({ bond: 12 }, 5, 2, extra);
+    await applyCare({ bond: 12 }, 5, 2, extra, { type: kind });
   }
 
   activityLocked = false;
@@ -613,16 +764,7 @@ async function toggleSleep() {
   vibrate([10, 10, 10]);
   showToast("Gute Nacht, Mochi schläft jetzt ein 😴", "success");
 
-  const nowIso = new Date().toISOString();
-  petState = { ...(petState || {}), sleep_started_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso };
-  render();
-
-  const { error } = await supabaseClient
-    .from("pet_state")
-    .update({ sleep_started_at: nowIso, last_interacted_by: currentPerson, updated_at: nowIso })
-    .eq("id", "shared");
-
-  if (error) console.error("Fehler beim Einschlafen:", error);
+  await mutatePet((base, nowIso) => ({ sleep_started_at: nowIso }));
 }
 
 function spawnShowerBubble() {
@@ -696,7 +838,7 @@ function startShowerLathering() {
   petFoamOverlay.setAttribute("opacity", "0");
   petCreature.classList.add("showering");
   shampooBottle.classList.remove("hidden");
-  [feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
+  [messengerBtn, feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
   showerBtn.classList.add("hidden");
   petHint.textContent = `Tippe die Seifenblasen an, bevor sie zerplatzen! (0/${SHOWER_BUBBLE_COUNT})`;
   showToast("Seifenblasen-Zeit! Fang so viele wie möglich 🫧", "success");
@@ -709,7 +851,7 @@ async function finishShower() {
   document.querySelectorAll(".shower-bubble-target").forEach(el => el.remove());
   shampooBottle.classList.add("hidden");
   petHint.textContent = DEFAULT_PET_HINT;
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
 
   for (let i = 0; i < 6; i++) {
     setTimeout(() => spawnParticle("💧", { falling: true }), i * 100);
@@ -724,7 +866,7 @@ async function finishShower() {
 
   showToast(`Mochi ist frisch geduscht 🚿✨ (${showerBubblesCaught}/${SHOWER_BUBBLE_COUNT} Blasen gefangen)`, "success");
 
-  await applyCare({ cleanliness: cleanlinessGain, bond: 5 }, coinReward, 2, () => ({ last_activity: "shower" }));
+  await applyCare({ cleanliness: cleanlinessGain, bond: 5 }, coinReward, 2, () => ({ last_activity: "shower" }), { type: "shower", caught: showerBubblesCaught });
 }
 
 function danceUpdateHint() {
@@ -790,7 +932,7 @@ async function performDance() {
 
   activityLocked = true;
 
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
 
   petCreature.classList.add("disco-rising");
   vibrate([10, 15, 10]);
@@ -813,13 +955,13 @@ async function performDance() {
   }
 
   petHint.textContent = DEFAULT_PET_HINT;
-  [feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
 
   setTimeout(() => petCreature.classList.remove("party"), DANCE_PARTY_TAIL_MS);
 
   showToast(`Mochi hat getanzt 🎉 (${finalHits}/${DANCE_BEAT_COUNT} im Takt)`, "success");
 
-  await applyCare({ bond: bondGain }, coinReward, 2, () => ({ last_activity: "dance" }));
+  await applyCare({ bond: bondGain }, coinReward, 2, () => ({ last_activity: "dance" }), { type: "dance", hits: finalHits });
 
   activityLocked = false;
   return true;
@@ -1033,7 +1175,7 @@ async function completeCoffee() {
 
   showToast("Kaffee ist fertig ☕ Wohl bekomm's!", "success");
 
-  await applyCare({ bond: 20 }, 8, 3, () => ({ last_activity: "coffee" }));
+  await applyCare({ bond: 20 }, 8, 3, () => ({ last_activity: "coffee" }), { type: "coffee" });
 
   setTimeout(() => exitCoffeeScene(), 2400);
 }
@@ -1209,123 +1351,58 @@ function renderShop() {
 async function handleShopClick(event) {
   const btn = event.target.closest(".shop-item-btn");
   if (!btn || btn.disabled) return;
+  if (!requirePerson()) return;
 
   const action = btn.dataset.action;
   const slot = btn.dataset.slot;
   const id = btn.dataset.id;
-  const nowIso = new Date().toISOString();
-
-  if (slot === "deco") {
-    if (action === "buy") {
-      if (!requirePerson()) return;
-      const price = Number(btn.dataset.price);
-      if (((petState && petState.coins) || 0) < price) return;
-
-      const owned = [...((petState && petState.owned_items) || []), id];
-      const placed = [...((petState && petState.room_decor) || [])];
-      const roomHasSpace = placed.length < MAX_DECOR;
-      if (roomHasSpace) placed.push(id);
-
-      const payload = {
-        coins: petState.coins - price,
-        owned_items: owned,
-        room_decor: placed,
-        last_interacted_by: currentPerson,
-        updated_at: nowIso
-      };
-
-      const previousState = petState;
-      petState = { ...petState, ...payload };
-      render();
-      renderShop();
-      announceNewAchievements(previousState, petState);
-      vibrate([10, 20, 10]);
-      const item = findShopItem(id);
-      const itemName = item ? item.name : "Artikel";
-      showToast(
-        roomHasSpace
-          ? `${itemName} gekauft und aufgestellt 🎉`
-          : `${itemName} gekauft. Zimmer ist voll, räum zuerst etwas ab 📦`,
-        "success"
-      );
-
-      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-      if (error) console.error("Fehler beim Kauf:", error);
-    } else if (action === "equip") {
-      if (!requirePerson()) return;
-      const placed = [...((petState && petState.room_decor) || [])];
-      if (placed.includes(id)) return;
-      if (placed.length >= MAX_DECOR) {
-        showToast("Zimmer ist schon voll, räum zuerst etwas ab 📦", "success");
-        return;
-      }
-      placed.push(id);
-      const payload = { room_decor: placed, last_interacted_by: currentPerson, updated_at: nowIso };
-      petState = { ...petState, ...payload };
-      render();
-      renderShop();
-
-      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-      if (error) console.error("Fehler beim Aufstellen:", error);
-    } else if (action === "unequip") {
-      if (!requirePerson()) return;
-      const placed = ((petState && petState.room_decor) || []).filter(existing => existing !== id);
-      const payload = { room_decor: placed, last_interacted_by: currentPerson, updated_at: nowIso };
-      petState = { ...petState, ...payload };
-      render();
-      renderShop();
-
-      const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-      if (error) console.error("Fehler beim Abräumen:", error);
-    }
-    return;
-  }
-
+  const price = Number(btn.dataset.price);
+  const item = findShopItem(id);
+  const itemName = item ? item.name : "Artikel";
+  const isDeco = slot === "deco";
   const field = SLOT_TO_FIELD[slot];
+  let message = null;
 
-  if (action === "buy") {
-    if (!requirePerson()) return;
-    const price = Number(btn.dataset.price);
-    if (((petState && petState.coins) || 0) < price) return;
+  const result = await mutatePet(base => {
+    const owned = base.owned_items || [];
+    const placed = base.room_decor || [];
+    message = null;
 
-    const owned = [...((petState && petState.owned_items) || []), id];
-    const payload = {
-      coins: petState.coins - price,
-      owned_items: owned,
-      [field]: id,
-      last_interacted_by: currentPerson,
-      updated_at: nowIso
-    };
+    if (action === "buy") {
+      if ((base.coins || 0) < price || owned.includes(id)) return null;
+      const patch = { coins: base.coins - price, owned_items: [...owned, id] };
+      if (isDeco) {
+        const roomHasSpace = placed.length < MAX_DECOR;
+        patch.room_decor = roomHasSpace ? [...placed, id] : placed;
+        message = roomHasSpace ? `${itemName} gekauft und aufgestellt 🎉` : `${itemName} gekauft. Zimmer ist voll, räum zuerst etwas ab 📦`;
+      } else {
+        patch[field] = id;
+        message = `${itemName} gekauft und ausgerüstet 🎉`;
+      }
+      return patch;
+    }
 
-    const previousState = petState;
-    petState = { ...petState, ...payload };
-    render();
-    renderShop();
-    announceNewAchievements(previousState, petState);
+    if (action === "equip") {
+      if (!isDeco) return { [field]: id };
+      if (placed.includes(id)) return null;
+      if (placed.length >= MAX_DECOR) {
+        message = "Zimmer ist schon voll, räum zuerst etwas ab 📦";
+        return null;
+      }
+      return { room_decor: [...placed, id] };
+    }
+
+    if (action === "unequip") {
+      return isDeco ? { room_decor: placed.filter(existing => existing !== id) } : { [field]: null };
+    }
+    return null;
+  });
+
+  renderShop();
+  if (message) showToast(message, "success");
+  if (result && action === "buy") {
     vibrate([10, 20, 10]);
-    const item = findShopItem(id);
-    showToast(`${item ? item.name : "Artikel"} gekauft und ausgerüstet 🎉`, "success");
-
-    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-    if (error) console.error("Fehler beim Kauf:", error);
-  } else if (action === "equip") {
-    if (!requirePerson()) return;
-    const payload = { [field]: id, last_interacted_by: currentPerson, updated_at: nowIso };
-    petState = { ...petState, ...payload };
-    render();
-    renderShop();
-
-    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-    if (error) console.error("Fehler beim Ausrüsten:", error);
-  } else if (action === "unequip") {
-    if (!requirePerson()) return;
-    const payload = { [field]: null, last_interacted_by: currentPerson, updated_at: nowIso };
-    petState = { ...petState, ...payload };
-    render();
-    renderShop();
-
-    const { error } = await supabaseClient.from("pet_state").update(payload).eq("id", "shared");
-    if (error) console.error("Fehler beim Ablegen:", error);
+    announceNewAchievements(result.previous, result.next);
   }
 }
 
@@ -1398,6 +1475,7 @@ petCreature.addEventListener("pointerdown", event => {
   gestureState = {
     startX: event.clientX,
     startY: event.clientY,
+    startedAt: Date.now(),
     mode: "pending",
     tickDistance: 0,
     totalMoved: 0,
@@ -1448,6 +1526,8 @@ function endGesture() {
 
   if (gestureState.mode === "stroking" && gestureState.totalMoved >= STROKE_MIN_DISTANCE) {
     triggerPet();
+  } else if (gestureState.mode === "pending" && Date.now() - gestureState.startedAt < TAP_MAX_MS) {
+    handleTap();
   }
 
   petCreature.classList.remove("stroking");
@@ -1457,13 +1537,628 @@ function endGesture() {
 petCreature.addEventListener("pointerup", endGesture);
 petCreature.addEventListener("pointercancel", endGesture);
 
+/* ---------- personality: speech, eyes, taps, idle moods ---------- */
+
+const SPEECH_MS = 4200;
+const TAP_MAX_MS = 320;
+const TAP_SERIES_MS = 1500;
+const EYE_RANGE = 3.6;
+let speechTimer = null;
+let lookResetTimer = null;
+let tapTimes = [];
+
+function randomOf(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function sceneBusy() {
+  return showerLathering || activityLocked || danceRhythmActive || wakingInProgress || petMainView.classList.contains("hidden");
+}
+
+function say(text, ms = SPEECH_MS) {
+  mochiSpeech.textContent = text;
+  mochiSpeech.classList.remove("hidden", "pop");
+  void mochiSpeech.offsetWidth;
+  mochiSpeech.classList.add("pop");
+  clearTimeout(speechTimer);
+  speechTimer = setTimeout(() => mochiSpeech.classList.add("hidden"), ms);
+}
+
+function chatter() {
+  if (document.hidden || sceneBusy()) return;
+  if (isAsleep()) {
+    say(randomOf(["Zzz… Karotten… 💤", "*schnarch* 😴", "Mmmh… Kuchen… 🎂"]));
+    return;
+  }
+  const stats = decayedStats();
+  say(Core.speechLine({
+    stats,
+    mood: moodTier(overallMood(stats)),
+    hour: Core.hourIn(),
+    person: currentPerson ? normalizePerson(currentPerson) : null
+  }));
+}
+
+function scheduleChatter() {
+  setTimeout(() => {
+    chatter();
+    scheduleChatter();
+  }, 15000 + Math.random() * 12000);
+}
+
+function greet() {
+  if (!currentPerson || isAsleep()) return;
+  const me = normalizePerson(currentPerson);
+  const partner = Core.partnerOf(me);
+  const daily = Core.currentDaily(petState, Core.dayKey());
+  if (inbox.length) {
+    say(`Ich hab Post für dich, ${me}! 💌`, 5200);
+  } else if (daily.visitors.includes(partner) && !daily.visitors.includes(me)) {
+    say(`${partner} war heute schon bei mir 💗 Jetzt du!`, 5200);
+  } else {
+    chatter();
+  }
+}
+
+function setEyeOffset(dx, dy) {
+  petEyes.forEach(eye => {
+    if (eye.el) eye.el.style.transform = dx || dy ? `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px)` : "";
+  });
+}
+
+function lookAt(clientX, clientY) {
+  if (!petSvg || isAsleep()) return;
+  const rect = petSvg.getBoundingClientRect();
+  if (!rect.width) return;
+  const sx = rect.width / 200;
+  const sy = rect.height / 215;
+  const cx = rect.left + 100 * sx;
+  const cy = rect.top + 152 * sy;
+  const dx = clientX - cx;
+  const dy = clientY - cy;
+  const dist = Math.hypot(dx, dy) || 1;
+  const reach = Math.min(1, dist / 90) * EYE_RANGE;
+  setEyeOffset((dx / dist) * reach, (dy / dist) * reach);
+
+  clearTimeout(lookResetTimer);
+  lookResetTimer = setTimeout(() => setEyeOffset(0, 0), 2200);
+}
+
+document.addEventListener("pointermove", event => lookAt(event.clientX, event.clientY), { passive: true });
+document.addEventListener("pointerdown", event => lookAt(event.clientX, event.clientY), { passive: true });
+
+function playOnce(className, ms) {
+  petCreature.classList.remove(className);
+  void petCreature.offsetWidth;
+  petCreature.classList.add(className);
+  setTimeout(() => petCreature.classList.remove(className), ms);
+}
+
+function handleTap() {
+  if (isAsleep()) {
+    say("Zzz… 😴 (Halt mich gedrückt, dann wach ich auf)");
+    return;
+  }
+  if (sceneBusy()) return;
+
+  const now = Date.now();
+  tapTimes = tapTimes.filter(t => now - t < TAP_SERIES_MS);
+  tapTimes.push(now);
+  const reaction = Core.tapReaction(tapTimes.length);
+
+  if (reaction === "dizzy") {
+    tapTimes = [];
+    playOnce("dizzy", 1400);
+    say("Uiii, mir ist ganz schwindelig 😵‍💫");
+    vibrate([20, 30, 20, 30, 20]);
+    return;
+  }
+  if (reaction === "sneeze") {
+    playOnce("sneeze", 900);
+    say("Hatschi! 🤧");
+    ["💨", "✨", "💨"].forEach((emoji, i) => setTimeout(() => spawnParticle(emoji, { size: 16 }), i * 90));
+    vibrate([40]);
+    return;
+  }
+  playOnce("giggle", 500);
+  vibrate(6);
+  if (tapTimes.length === 1 || Math.random() < 0.5) say(randomOf(["Hihi! 😆", "Das kitzelt!", "Hehe 🤭", "Nochmal!", "Pieks! 😄"]), 1800);
+}
+
+function idleMoment() {
+  if (document.hidden || sceneBusy() || isAsleep() || Math.random() > 0.45) return;
+  const stats = decayedStats();
+
+  if (stats.energy < 45 && Math.random() < 0.5) {
+    petMouthPath.setAttribute("d", "M90,174 Q100,194 110,174 Q100,168 90,174 Z");
+    petCreature.classList.add("yawning");
+    say("*gähn* 🥱", 1800);
+    setTimeout(() => {
+      petCreature.classList.remove("yawning");
+      render();
+    }, 1600);
+    return;
+  }
+
+  if (Math.random() < 0.5) {
+    setEyeOffset(-EYE_RANGE, 0);
+    setTimeout(() => setEyeOffset(EYE_RANGE, 0), 700);
+    setTimeout(() => setEyeOffset(0, 0), 1400);
+  } else {
+    playOnce("hop", 700);
+  }
+}
+
+setInterval(idleMoment, 9000);
+
+/* ---------- wishes, streak, chest ---------- */
+
+let renderedWishDone = null;
+
+function renderDaily() {
+  const key = Core.dayKey();
+  const daily = Core.currentDaily(petState, key);
+  const wishes = Core.wishesFor(key);
+  const doneIds = wishes.filter(w => daily.wishes_done[w.id]).map(w => w.id);
+  const doneKey = key + ":" + doneIds.join(",");
+
+  if (doneKey !== renderedWishDone) {
+    const previouslyDone = renderedWishDone && renderedWishDone.startsWith(key) ? renderedWishDone.split(":")[1].split(",") : doneIds;
+    wishList.innerHTML = wishes.map(wish => {
+      const by = daily.wishes_done[wish.id];
+      const fresh = by && !previouslyDone.includes(wish.id);
+      return `
+        <li class="wish-item${by ? " done" : ""}${fresh ? " just-done" : ""}" data-wish="${escapeHtml(wish.id)}">
+          <span class="wish-emoji">${wish.emoji}</span>
+          <span class="wish-text">${escapeHtml(wish.text)}</span>
+          <span class="wish-state">${by ? "✓ " + escapeHtml(by) : "+" + Core.WISH_REWARD + " 🪙"}</span>
+        </li>`;
+    }).join("");
+    renderedWishDone = doneKey;
+  }
+
+  wishProgress.textContent = `${doneIds.length}/${wishes.length}`;
+  wishBonusHint.textContent = daily.bonus_claimed
+    ? "Alle Wünsche erfüllt – Mochi ist überglücklich 🎉"
+    : `Alle erfüllt: +${Core.ALL_WISHES_BONUS} 🪙 Bonus obendrauf`;
+
+  const streak = Core.currentStreak(petState, key);
+  streakCount.textContent = streak;
+  streakPill.classList.toggle("cold", streak === 0);
+  const visitorLine = Core.PERSONS.map(p => `${p} ${daily.visitors.includes(p) ? "✓" : "⏳"}`).join(" · ");
+  const best = (petState && petState.best_streak) || 0;
+  streakLine.textContent = `🔥 Wir-Serie: ${streak} ${streak === 1 ? "Tag" : "Tage"} · heute: ${visitorLine}${best > streak ? ` · Rekord ${best}` : ""}`;
+
+  const me = currentPerson ? normalizePerson(currentPerson) : null;
+  chestBtn.classList.toggle("has-gift", !!me && !Core.chestOpened(petState, me, key));
+}
+
+streakPill.addEventListener("click", () => {
+  const streak = Core.currentStreak(petState, Core.dayKey());
+  showToast(streak
+    ? `🔥 ${streak} ${streak === 1 ? "Tag" : "Tage"} in Folge wart ihr beide bei Mochi. Weiter so!`
+    : "🔥 Kümmert euch heute beide um Mochi, dann startet eure Wir-Serie!", "success");
+});
+
+function renderChestModal() {
+  const me = normalizePerson(currentPerson);
+  const daily = Core.currentDaily(petState, Core.dayKey());
+  const mine = daily.chest[me];
+  const partner = Core.partnerOf(me);
+  const partnerNote = daily.chest[partner] !== undefined ? ` ${partner} hat heute ${daily.chest[partner]} 🪙 gefunden.` : "";
+
+  chestOpenBtn.classList.remove("shaking", "opened");
+  if (mine !== undefined) {
+    chestOpenBtn.textContent = "📭";
+    chestOpenBtn.disabled = true;
+    chestText.textContent = `Heute schon geöffnet – morgen wartet eine neue Truhe!${partnerNote}`;
+    chestResult.textContent = `Deine Beute heute: ${mine} 🪙`;
+  } else {
+    chestOpenBtn.textContent = "🎁";
+    chestOpenBtn.disabled = false;
+    chestText.textContent = `Tippe auf die Truhe! Jeden Tag darf jede:r von euch einmal öffnen.${partnerNote}`;
+    chestResult.textContent = "";
+  }
+}
+
+async function openChest() {
+  if (!requirePerson()) return;
+  const me = normalizePerson(currentPerson);
+  const key = Core.dayKey();
+  if (Core.chestOpened(petState, me, key)) return;
+
+  chestOpenBtn.disabled = true;
+  chestOpenBtn.classList.add("shaking");
+  vibrate([10, 40, 10, 40, 10]);
+  await new Promise(resolve => setTimeout(resolve, 900));
+
+  let roll = null;
+  const result = await mutatePet(base => {
+    roll = Core.openChest(base, me, key);
+    if (!roll) return null;
+    return {
+      ...roll.patch,
+      coins: (base.coins || 0) + roll.coins,
+      total_coins_earned: (base.total_coins_earned || 0) + roll.coins
+    };
+  });
+
+  chestOpenBtn.classList.remove("shaking");
+  if (!result || !roll) {
+    renderChestModal();
+    return;
+  }
+
+  chestOpenBtn.textContent = roll.jackpot ? "💎" : "🪙";
+  chestOpenBtn.classList.add("opened");
+  chestResult.textContent = roll.jackpot ? `JACKPOT! +${roll.coins} 🪙` : `+${roll.coins} 🪙`;
+  chestText.textContent = roll.jackpot ? "Wahnsinn, die ganz große Truhe! 🤩" : "Mochi freut sich mit dir!";
+  celebrate(roll.jackpot ? 40 : 14);
+  vibrate(roll.jackpot ? [30, 40, 30, 40, 60] : [20, 30, 20]);
+  announceNewAchievements(result.previous, result.next);
+}
+
+chestBtn.addEventListener("click", () => {
+  if (!requirePerson()) return;
+  renderChestModal();
+  chestModal.classList.remove("hidden");
+});
+chestOpenBtn.addEventListener("click", openChest);
+closeChest.addEventListener("click", () => chestModal.classList.add("hidden"));
+
+/* ---------- Mochi as messenger ---------- */
+
+let inbox = [];
+let selectedKind = null;
+let openDeliveryMessage = null;
+
+function updateSendButton() {
+  const needsNote = selectedKind === "note";
+  sendMessenger.disabled = !selectedKind || (needsNote && !Core.cleanNote(messengerNote.value));
+}
+
+function selectKind(kind) {
+  selectedKind = kind;
+  messengerKinds.forEach(btn => btn.classList.toggle("selected", btn.dataset.kind === kind));
+  messengerNoteWrap.classList.toggle("hidden", kind !== "note");
+  if (kind === "note") setTimeout(() => messengerNote.focus(), 50);
+  updateSendButton();
+}
+
+async function renderMessengerHistory() {
+  const { data, error } = await supabaseClient
+    .from("mochi_messages")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (error) {
+    console.error("Fehler beim Laden der Botschaften:", error);
+    return;
+  }
+
+  const rows = data || [];
+  messengerHistory.innerHTML = rows.length
+    ? rows.map(msg => {
+      const kind = Core.MESSAGE_KINDS[msg.kind] || Core.MESSAGE_KINDS.heart;
+      const status = msg.delivered_at ? "✓✓ angekommen" : "✈️ unterwegs";
+      return `
+        <li class="messenger-history-item">
+          <span class="messenger-history-emoji">${kind.emoji}</span>
+          <div>
+            <div class="messenger-history-head">${escapeHtml(msg.from_person)} → ${escapeHtml(msg.to_person)} · ${timeAgo(msg.created_at)} · ${status}</div>
+            ${msg.note ? `<div class="messenger-history-note">„${escapeHtml(msg.note)}“</div>` : ""}
+          </div>
+        </li>`;
+    }).join("")
+    : `<li class="messenger-history-empty">Noch keine Post – schick die erste! 💌</li>`;
+}
+
+function openMessenger() {
+  if (sceneBusy()) return;
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+  if (!requirePerson()) return;
+  const partner = Core.partnerOf(normalizePerson(currentPerson));
+  messengerIntro.textContent = `Mochi macht sich auf den Weg zu ${partner} und überbringt deine Botschaft.`;
+  messengerNote.value = "";
+  messengerNoteCount.textContent = `0/${Core.NOTE_MAX_LENGTH}`;
+  selectKind(null);
+  messengerModal.classList.remove("hidden");
+  renderMessengerHistory();
+}
+
+async function sendLoveMessage(kind, rawNote) {
+  if (!requirePerson()) return false;
+  const me = normalizePerson(currentPerson);
+  const partner = Core.partnerOf(me);
+  const note = kind === "note" ? Core.cleanNote(rawNote) : null;
+  if (kind === "note" && !note) return false;
+
+  const { error } = await supabaseClient
+    .from("mochi_messages")
+    .insert({ from_person: me, to_person: partner, kind, note });
+
+  if (error) {
+    console.error("Fehler beim Verschicken:", error);
+    showToast("Mochi konnte nicht losfliegen, bitte nochmal versuchen.", "error");
+    return false;
+  }
+
+  const kindInfo = Core.MESSAGE_KINDS[kind];
+  playOnce("messenger-flight", 1500);
+  const envelope = document.createElement("span");
+  envelope.className = "flying-envelope";
+  envelope.textContent = kind === "note" ? "✉️" : kindInfo.emoji;
+  petHearts.appendChild(envelope);
+  setTimeout(() => envelope.remove(), 1500);
+  vibrate([10, 30, 10]);
+  showToast(`Mochi bringt ${partner} ${kindInfo.phrase} ✈️`, "success");
+  say(`Bin gleich bei ${partner}! ✈️`);
+
+  sendAppNotification(supabaseClient, {
+    title: "Mochi bringt dir Post 💌",
+    body: note ? `${me}: „${note}“` : Core.deliveryText({ from_person: me, kind }),
+    excludePerson: me,
+    category: "mochi",
+    url: "mochi.html"
+  });
+  broadcastTogether("mail", { person: me });
+
+  const key = Core.dayKey();
+  await applyCare({ bond: 8 }, 0, 1, (nowIso, state) => {
+    const reward = Core.messageReward(state, me, key);
+    return { ...reward.patch, messages_sent: (state.messages_sent || 0) + 1, extraCoins: reward.coins };
+  }, { type: "message" });
+  return true;
+}
+
+messengerBtn.addEventListener("click", openMessenger);
+messengerKinds.forEach(btn => btn.addEventListener("click", () => selectKind(btn.dataset.kind)));
+messengerNote.addEventListener("input", () => {
+  messengerNoteCount.textContent = `${messengerNote.value.length}/${Core.NOTE_MAX_LENGTH}`;
+  updateSendButton();
+});
+cancelMessenger.addEventListener("click", () => messengerModal.classList.add("hidden"));
+sendMessenger.addEventListener("click", async () => {
+  if (!selectedKind) return;
+  sendMessenger.disabled = true;
+  const sent = await sendLoveMessage(selectedKind, messengerNote.value);
+  if (sent) messengerModal.classList.add("hidden");
+  else updateSendButton();
+});
+
+async function loadInbox() {
+  if (!currentPerson) return;
+  const { data, error } = await supabaseClient
+    .from("mochi_messages")
+    .select("*")
+    .eq("to_person", normalizePerson(currentPerson))
+    .is("delivered_at", null)
+    .order("created_at", { ascending: true })
+    .limit(20);
+
+  if (error) {
+    console.error("Fehler beim Laden der Post:", error);
+    return;
+  }
+
+  const hadMail = inbox.length;
+  inbox = (data || []).filter(msg => !openDeliveryMessage || msg.id !== openDeliveryMessage.id);
+  renderMailEnvelope();
+  if (inbox.length > hadMail && !sceneBusy()) {
+    playOnce("hop", 700);
+    say(`Ich hab Post für dich, ${normalizePerson(currentPerson)}! 💌`, 5200);
+  }
+}
+
+function renderMailEnvelope() {
+  mailEnvelope.classList.toggle("hidden", inbox.length === 0 || !!openDeliveryMessage);
+  mailCount.classList.toggle("hidden", inbox.length < 2);
+  mailCount.textContent = inbox.length;
+}
+
+function burst(emoji, count) {
+  deliveryBurst.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("span");
+    piece.className = "delivery-piece";
+    piece.textContent = emoji;
+    piece.style.setProperty("--x", Math.round((Math.random() - 0.5) * 260) + "px");
+    piece.style.setProperty("--y", Math.round(-40 - Math.random() * 160) + "px");
+    piece.style.setProperty("--r", Math.round((Math.random() - 0.5) * 120) + "deg");
+    piece.style.animationDelay = (i * 45) + "ms";
+    deliveryBurst.appendChild(piece);
+  }
+}
+
+function openDelivery() {
+  const msg = inbox.shift();
+  if (!msg) return;
+  openDeliveryMessage = msg;
+  renderMailEnvelope();
+
+  const kind = Core.MESSAGE_KINDS[msg.kind] || Core.MESSAGE_KINDS.heart;
+  deliveryModal.querySelector(".delivery-box").dataset.kind = msg.kind;
+  deliveryEmoji.textContent = kind.emoji;
+  deliveryTitle.textContent = Core.deliveryText(msg);
+  deliveryNote.textContent = msg.note ? `„${msg.note}“` : "";
+  deliveryNote.classList.toggle("hidden", !msg.note);
+  deliveryTime.textContent = `abgeschickt ${timeAgo(msg.created_at)}`;
+  replyDelivery.textContent = `💋 Küsschen zurück an ${msg.from_person}`;
+  deliveryModal.classList.remove("hidden");
+
+  burst(msg.kind === "kiss" ? "💋" : msg.kind === "hug" ? "🤗" : msg.kind === "note" ? "💌" : "💗", 14);
+  if (msg.kind === "hug") playOnce("hugging", 900);
+  vibrate(msg.kind === "hug" ? [30, 60, 30, 60, 60] : [15, 30, 15]);
+  celebrate(10);
+}
+
+async function finishDelivery() {
+  const msg = openDeliveryMessage;
+  deliveryModal.classList.add("hidden");
+  openDeliveryMessage = null;
+  renderMailEnvelope();
+  if (!msg) return;
+
+  const { error } = await supabaseClient
+    .from("mochi_messages")
+    .update({ delivered_at: new Date().toISOString() })
+    .eq("id", msg.id);
+  if (error) console.error("Fehler beim Zustellen:", error);
+
+  if (inbox.length) say("Da ist noch mehr Post! 💌");
+}
+
+mailEnvelope.addEventListener("pointerdown", event => event.stopPropagation());
+mailEnvelope.addEventListener("click", event => {
+  event.stopPropagation();
+  openDelivery();
+});
+closeDelivery.addEventListener("click", finishDelivery);
+replyDelivery.addEventListener("click", async () => {
+  await finishDelivery();
+  await sendLoveMessage("kiss");
+});
+
+/* ---------- together: who is here right now, double cuddles ---------- */
+
+const DOUBLE_CUDDLE_WINDOW_MS = 15000;
+const DOUBLE_CUDDLE_COINS = 12;
+let togetherChannel = null;
+let partnerHere = false;
+let partnerCuddleAt = 0;
+let ownCuddleAt = 0;
+
+function broadcastTogether(event, payload) {
+  if (!togetherChannel) return;
+  togetherChannel.send({ type: "broadcast", event, payload }).catch(() => {});
+}
+
+function joinTogether() {
+  if (!currentPerson || togetherChannel) return;
+  const me = normalizePerson(currentPerson);
+
+  togetherChannel = supabaseClient.channel("mochi-together", { config: { presence: { key: me } } });
+  togetherChannel
+    .on("presence", { event: "sync" }, updateTogether)
+    .on("broadcast", { event: "care" }, ({ payload }) => onPartnerCare(payload))
+    .on("broadcast", { event: "cuddle" }, ({ payload }) => onPartnerCuddle(payload))
+    .on("broadcast", { event: "double" }, () => celebrateDoubleCuddle(false))
+    .on("broadcast", { event: "mail" }, () => loadInbox())
+    .subscribe(status => {
+      if (status === "SUBSCRIBED") togetherChannel.track({ person: me, since: new Date().toISOString() });
+    });
+}
+
+function updateTogether() {
+  if (!togetherChannel || !currentPerson) return;
+  const partner = Core.partnerOf(normalizePerson(currentPerson));
+  const here = Object.keys(togetherChannel.presenceState() || {}).includes(partner);
+  if (here === partnerHere) return;
+  partnerHere = here;
+
+  togetherBanner.textContent = `💞 ${partner} ist auch gerade bei Mochi`;
+  togetherBanner.classList.toggle("hidden", !here);
+  petCreature.classList.toggle("together", here);
+  if (here && !sceneBusy()) {
+    say(`Juhu, ${partner} ist auch da! 💞`);
+    playOnce("hop", 700);
+  }
+}
+
+function spawnPartnerParticle(emoji) {
+  const particle = document.createElement("span");
+  particle.className = "pet-heart-particle from-partner";
+  particle.textContent = emoji;
+  particle.style.setProperty("--drift", Math.round(-40 - Math.random() * 40) + "px");
+  particle.style.left = 78 + Math.random() * 12 + "%";
+  petHearts.appendChild(particle);
+  setTimeout(() => particle.remove(), 1200);
+}
+
+const PARTNER_CARE_LINES = {
+  pet: "{p} streichelt mich gerade! 🥰",
+  cuddle: "{p} knuddelt mich! 🤗",
+  feed: "{p} hat mir {food} gegeben 😋",
+  shower: "{p} hat mich gebadet 🫧",
+  dance: "Ich hab mit {p} getanzt! 💃",
+  sport: "{p} macht Sport mit mir 🏃",
+  coffee: "{p} hat mir Kaffee gemacht ☕",
+  message: "Ich soll dir was von {p} bringen 💌",
+  sleep: "{p} hat mich geweckt ☀️"
+};
+
+function onPartnerCare(payload) {
+  if (!payload || !payload.person || payload.type === "cuddle") return;
+  for (let i = 0; i < 3; i++) setTimeout(() => spawnPartnerParticle(randomOf(["💗", "💕", "✨"])), i * 140);
+  const line = PARTNER_CARE_LINES[payload.type];
+  if (line && !sceneBusy()) say(line.replace("{p}", payload.person).replace("{food}", payload.food || "etwas Leckeres"));
+}
+
+function onPartnerCuddle(payload) {
+  partnerCuddleAt = Date.now();
+  for (let i = 0; i < 4; i++) setTimeout(() => spawnPartnerParticle("💞"), i * 120);
+  if (!sceneBusy()) say(`${(payload && payload.person) || "Dein Schatz"} knuddelt mich! Drück mich auch! 🤗`, 5200);
+}
+
+/* called on every long-press: whoever completes the pair within the window books the bonus */
+function noteOwnCuddle() {
+  const me = normalizePerson(currentPerson);
+  ownCuddleAt = Date.now();
+  broadcastTogether("cuddle", { person: me });
+  if (partnerHere && ownCuddleAt - partnerCuddleAt < DOUBLE_CUDDLE_WINDOW_MS) {
+    partnerCuddleAt = 0;
+    completeDoubleCuddle();
+  }
+}
+
+async function completeDoubleCuddle() {
+  const result = await mutatePet(base => ({
+    bond: 100,
+    coins: (base.coins || 0) + DOUBLE_CUDDLE_COINS,
+    total_coins_earned: (base.total_coins_earned || 0) + DOUBLE_CUDDLE_COINS,
+    double_cuddles: (base.double_cuddles || 0) + 1
+  }));
+  if (!result) return;
+  broadcastTogether("double", { person: normalizePerson(currentPerson) });
+  celebrateDoubleCuddle(true);
+  announceNewAchievements(result.previous, result.next);
+}
+
+function celebrateDoubleCuddle() {
+  playOnce("double-hug", 1600);
+  for (let i = 0; i < 10; i++) setTimeout(() => spawnHeart(true), i * 90);
+  for (let i = 0; i < 4; i++) setTimeout(() => spawnPartnerParticle("💞"), i * 150);
+  showToast(`Doppelknuddler! Ihr habt Mochi gleichzeitig gedrückt 💞 +${DOUBLE_CUDDLE_COINS} 🪙`, "success");
+  say("Ich werde von euch BEIDEN geknuddelt!! 🥹💞", 5200);
+  celebrate(30);
+  vibrate([30, 50, 30, 50, 80]);
+}
+
 /* ---------- realtime + init ---------- */
 
 supabaseClient
   .channel("pet_state_changes")
   .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pet_state" }, payload => {
-    petState = payload.new;
+    const row = payload && payload.new;
+    if (!row || !row.id) {
+      loadPetState();
+      return;
+    }
+    if (petState && (row.version || 0) < (petState.version || 0)) return;
+    petState = row;
     render();
+    if (!shopModal.classList.contains("hidden")) renderShop();
+  })
+  .subscribe();
+
+supabaseClient
+  .channel("mochi_messages_changes")
+  .on("postgres_changes", { event: "*", schema: "public", table: "mochi_messages" }, () => {
+    loadInbox();
   })
   .subscribe();
 
@@ -1475,6 +2170,8 @@ supabaseClient
   .subscribe();
 
 render();
-loadPetState();
+loadPetState().then(() => loadInbox()).then(() => setTimeout(greet, 900));
 loadBatteryAvg();
+joinTogether();
+scheduleChatter();
 setInterval(render, 60000);
