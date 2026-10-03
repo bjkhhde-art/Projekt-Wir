@@ -66,10 +66,6 @@
   touch-action: manipulation;
 }
 
-.watchlist-card.watched {
-  opacity: 0.82;
-}
-
 .watchlist-card.long-pressing {
   transform: scale(0.97) !important;
 }
@@ -161,4 +157,138 @@
   text-align: center;
   padding: 30px 10px;
   color: var(--text-muted);
+}
+
+/* ---------- watched: a compact, collapsible list ---------- */
+
+.watched-section {
+  margin-top: 10px;
+}
+
+.watched-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 4px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.watched-count {
+  display: inline-block;
+  min-width: 22px;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--success);
+  font-size: 12px;
+  text-align: center;
+}
+
+.watched-toggle-side {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.watched-chevron {
+  display: inline-block;
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.watched-toggle[aria-expanded="false"] .watched-chevron {
+  transform: rotate(-90deg);
+}
+
+.watched-list {
+  padding: 4px 0;
+}
+
+.watched-list[hidden] {
+  display: none;
+}
+
+.watched-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.watched-row + .watched-row {
+  border-top: 1px solid var(--surface-border);
+}
+
+.watched-row.long-pressing {
+  transform: scale(0.98);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.watched-type {
+  flex: none;
+  font-size: 16px;
+}
+
+.watched-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.watched-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watched-meta {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watchlist-rating-hearts.compact {
+  flex: none;
+  gap: 0;
+  margin: 0;
+}
+
+.watchlist-rating-hearts.compact .watchlist-rating-heart {
+  width: 21px;
+  height: 26px;
+  font-size: 13px;
+}
+
+.watchlist-edit-extras {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--surface-border);
+}
+
+.watchlist-edit-extras.hidden {
+  display: none;
+}
+
+.watchlist-edit-delete {
+  margin-left: auto;
+  color: var(--danger);
 }

@@ -16,8 +16,13 @@ const watchlistTitleInput = document.getElementById("watchlistTitleInput");
 const watchlistTypeInput = document.getElementById("watchlistTypeInput");
 const watchlistPlatformInput = document.getElementById("watchlistPlatformInput");
 const watchlistAddedByInput = document.getElementById("watchlistAddedByInput");
+const watchlistEditExtras = document.getElementById("watchlistEditExtras");
+const watchlistToggleWatchedBtn = document.getElementById("watchlistToggleWatchedBtn");
+const watchlistDeleteBtn = document.getElementById("watchlistDeleteBtn");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
+const MEDIA_ICONS = { film: "🎬", serie: "📺" };
+const SEEN_OPEN_KEY = "pw_watchlist_seen_open";
 const LONG_PRESS_MS = 500;
 
 let watchlistEntries = [];
@@ -41,9 +46,9 @@ async function loadWatchlist() {
   renderWatchlist();
 }
 
-function buildRatingHearts(entry) {
+function buildRatingHearts(entry, compact) {
   const container = document.createElement("div");
-  container.className = "watchlist-rating-hearts";
+  container.className = "watchlist-rating-hearts" + (compact ? " compact" : "");
 
   for (let i = 1; i <= 5; i++) {
     const btn = document.createElement("button");
@@ -93,7 +98,7 @@ function attachLongPressToEdit(card, entry) {
 
 function buildWatchlistCard(entry) {
   const card = document.createElement("div");
-  card.className = "watchlist-card card" + (entry.watched ? " watched" : "");
+  card.className = "watchlist-card card";
   card.setAttribute("data-reveal", "");
   attachLongPressToEdit(card, entry);
 
@@ -117,22 +122,18 @@ function buildWatchlistCard(entry) {
     card.appendChild(addedBy);
   }
 
-  if (entry.watched) {
-    card.appendChild(buildRatingHearts(entry));
-  } else {
-    const hint = document.createElement("p");
-    hint.className = "watchlist-not-watched-hint";
-    hint.textContent = "Noch nicht gesehen – nach dem Schauen gibt's die Bewertung.";
-    card.appendChild(hint);
-  }
+  const hint = document.createElement("p");
+  hint.className = "watchlist-not-watched-hint";
+  hint.textContent = "Noch nicht gesehen – nach dem Schauen gibt's die Bewertung.";
+  card.appendChild(hint);
 
   const actions = document.createElement("div");
   actions.className = "watchlist-actions";
 
   const watchedBtn = document.createElement("button");
   watchedBtn.type = "button";
-  watchedBtn.className = "btn btn-sm" + (entry.watched ? " btn-secondary" : "");
-  watchedBtn.textContent = entry.watched ? "↩️ Als ungesehen markieren" : "✅ Als gesehen markieren";
+  watchedBtn.className = "btn btn-sm";
+  watchedBtn.textContent = "✅ Als gesehen markieren";
   watchedBtn.addEventListener("click", () => toggleWatched(entry));
   actions.appendChild(watchedBtn);
 
@@ -147,6 +148,70 @@ function buildWatchlistCard(entry) {
   card.appendChild(actions);
 
   return card;
+}
+
+/* watched titles: one slim row each – type, title, where/when, rating. Holding the row edits it. */
+function buildWatchedRow(entry) {
+  const row = document.createElement("div");
+  row.className = "watched-row";
+  attachLongPressToEdit(row, entry);
+
+  const meta = [entry.platform, entry.watched_at ? `gesehen ${formatDate(entry.watched_at)}` : null].filter(Boolean).join(" · ");
+  row.innerHTML = `
+    <span class="watched-type" title="${entry.media_type === "serie" ? "Serie" : "Film"}">${MEDIA_ICONS[entry.media_type] || MEDIA_ICONS.film}</span>
+    <div class="watched-main">
+      <span class="watched-title">${escapeHtml(entry.title)}</span>
+      ${meta ? `<span class="watched-meta">${escapeHtml(meta)}</span>` : ""}
+    </div>
+  `;
+  row.appendChild(buildRatingHearts(entry, true));
+  return row;
+}
+
+function seenSectionOpen() {
+  try {
+    return localStorage.getItem(SEEN_OPEN_KEY) !== "false";
+  } catch (error) {
+    return true;
+  }
+}
+
+function buildSeenSection(watched, forceOpen) {
+  const section = document.createElement("section");
+  section.className = "watched-section";
+
+  const open = forceOpen || seenSectionOpen();
+  const rated = watched.filter(entry => entry.rating);
+  const average = rated.length ? (rated.reduce((sum, entry) => sum + entry.rating, 0) / rated.length) : null;
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "watched-toggle";
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.innerHTML = `
+    <span>✅ Schon gesehen <span class="watched-count">${watched.length}</span></span>
+    <span class="watched-toggle-side">${average ? `Ø ${average.toFixed(1).replace(".", ",")} 💗 ` : ""}<span class="watched-chevron">⌄</span></span>
+  `;
+
+  const list = document.createElement("div");
+  list.className = "watched-list card";
+  list.hidden = !open;
+  watched.forEach(entry => list.appendChild(buildWatchedRow(entry)));
+
+  toggle.addEventListener("click", () => {
+    const next = list.hidden;
+    list.hidden = !next;
+    toggle.setAttribute("aria-expanded", String(next));
+    try {
+      localStorage.setItem(SEEN_OPEN_KEY, String(next));
+    } catch (error) {
+      /* only a convenience */
+    }
+  });
+
+  section.appendChild(toggle);
+  section.appendChild(list);
+  return section;
 }
 
 function renderWatchlist() {
@@ -174,18 +239,20 @@ function renderWatchlist() {
   }
 
   const open = filtered.filter(entry => !entry.watched);
-  const watched = filtered.filter(entry => entry.watched);
+  const watched = filtered
+    .filter(entry => entry.watched)
+    .sort((a, b) => (b.watched_at || "").localeCompare(a.watched_at || ""));
 
   if (open.length > 0) {
+    const label = document.createElement("p");
+    label.className = "watchlist-section-label";
+    label.textContent = `🍿 Noch zu schauen · ${open.length}`;
+    watchlistList.appendChild(label);
     open.forEach(entry => watchlistList.appendChild(buildWatchlistCard(entry)));
   }
 
   if (watched.length > 0) {
-    const label = document.createElement("p");
-    label.className = "watchlist-section-label";
-    label.textContent = "Schon gesehen";
-    watchlistList.appendChild(label);
-    watched.forEach(entry => watchlistList.appendChild(buildWatchlistCard(entry)));
+    watchlistList.appendChild(buildSeenSection(watched, !!search));
   }
 }
 
@@ -272,6 +339,7 @@ openWatchlistModal.addEventListener("click", () => {
   watchlistTypeInput.value = "film";
   watchlistPlatformInput.value = "";
   watchlistAddedByInput.value = "Isi";
+  watchlistEditExtras.classList.add("hidden");
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
 });
@@ -284,6 +352,8 @@ function openEditModal(entry) {
   watchlistTypeInput.value = entry.media_type;
   watchlistPlatformInput.value = entry.platform || "";
   watchlistAddedByInput.value = entry.added_by || "Isi";
+  watchlistToggleWatchedBtn.textContent = entry.watched ? "↩️ Doch noch nicht gesehen" : "✅ Als gesehen markieren";
+  watchlistEditExtras.classList.remove("hidden");
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
 }
@@ -325,6 +395,26 @@ async function saveWatchlistEntry() {
 }
 
 saveWatchlistBtn.addEventListener("click", saveWatchlistEntry);
+
+function editingEntry() {
+  return watchlistEntries.find(entry => entry.id === editingWatchlistId);
+}
+
+watchlistToggleWatchedBtn.addEventListener("click", async () => {
+  const entry = editingEntry();
+  if (!entry) return;
+  editingWatchlistId = null;
+  watchlistModal.classList.add("hidden");
+  await toggleWatched(entry);
+});
+
+watchlistDeleteBtn.addEventListener("click", async () => {
+  const entry = editingEntry();
+  if (!entry) return;
+  editingWatchlistId = null;
+  watchlistModal.classList.add("hidden");
+  await deleteEntry(entry);
+});
 
 watchlistTitleInput.addEventListener("keydown", event => {
   if (event.key === "Enter") saveWatchlistEntry();
