@@ -1,13 +1,3 @@
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-const TABLE = "nimmt_games";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const personModal = document.getElementById("personModal");
-const personButtons = document.querySelectorAll(".person-choice-btn");
-
-const lobbyEl = document.getElementById("nmLobby");
 const boardEl = document.getElementById("nmBoard");
 const scoreEl = document.getElementById("nmScore");
 const oppNameEl = document.getElementById("nmOppName");
@@ -23,257 +13,28 @@ const eventEl = document.getElementById("nmEvent");
 const statusEl = document.getElementById("nmStatus");
 const actionsEl = document.getElementById("nmActions");
 const handEl = document.getElementById("nmHand");
-const leaveBtn = document.getElementById("nmLeaveBtn");
 
-const LEAVE_CONFIRM_MS = 4000;
-const MAX_WRITE_ATTEMPTS = 4;
 const PLACE_STEP_MS = 950;
 const FLY_MS = 520;
-const TURN_MS = 380;
 
-let currentPerson = localStorage.getItem("pw_person");
-let currentGame = null;
-let lastRenderedJson = null;
-let syncGeneration = 0;
-let actionInFlight = false;
-let leaveArmedTimer = null;
 let lastAnimatedMove = { gameId: null, seq: null };
 let previousState = null;
 let previousStateGameId = null;
 
 const { bullsFor, sumBulls } = NimmtEngine;
 
-function requirePerson() {
-  if (currentPerson) return true;
-  personModal.classList.remove("hidden");
-  return false;
-}
-
-personButtons.forEach(button => {
-  button.addEventListener("click", () => {
-    currentPerson = button.dataset.person;
-    localStorage.setItem("pw_person", currentPerson);
-    personModal.classList.add("hidden");
-    lastRenderedJson = null;
-    syncFromServer();
-  });
+const room = GameRoom.create({
+  table: "nimmt_games",
+  title: "6 nimmt!",
+  icon: "🐮",
+  url: "nimmt.html",
+  lobbyEl: document.getElementById("nmLobby"),
+  boardEl,
+  leaveBtn: document.getElementById("nmLeaveBtn"),
+  createState: (host, guest) => NimmtEngine.createInitialState(host, guest),
+  isFinished: state => state.phase === "finished",
+  renderBoard
 });
-
-if (!currentPerson) {
-  personModal.classList.remove("hidden");
-}
-
-/* ---------- data access ---------- */
-
-async function fetchCurrentGame() {
-  const { data, error } = await supabaseClient
-    .from(TABLE)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Fehler beim Laden des Spiels:", error);
-    return null;
-  }
-  return data;
-}
-
-async function createGame() {
-  if (!requirePerson()) return;
-
-  const { error } = await supabaseClient
-    .from(TABLE)
-    .insert({ status: "waiting", host_person: currentPerson, guest_person: null, state: {}, version: 0 });
-
-  if (error) {
-    console.error("Fehler beim Erstellen:", error);
-    showToast("Runde konnte nicht erstellt werden.", "error");
-    return;
-  }
-
-  sendAppNotification(supabaseClient, {
-    title: "6 nimmt!-Einladung 🐮",
-    body: `${currentPerson} lädt dich zu einer Runde 6 nimmt! ein.`,
-    excludePerson: normalizePerson(currentPerson),
-    category: "games",
-    url: "nimmt.html"
-  });
-
-  await syncFromServer();
-}
-
-async function cancelWaitingGame(gameId) {
-  const { error } = await supabaseClient.from(TABLE).delete().eq("id", gameId);
-  if (error) {
-    console.error("Fehler beim Abbrechen:", error);
-    showToast("Konnte nicht abgebrochen werden.", "error");
-  }
-  await syncFromServer();
-}
-
-async function joinGame(game) {
-  if (!requirePerson()) return;
-
-  const state = NimmtEngine.createInitialState(game.host_person, currentPerson);
-  const { error } = await supabaseClient
-    .from(TABLE)
-    .update({ guest_person: currentPerson, status: "active", state, version: (game.version || 0) + 1, updated_at: new Date().toISOString() })
-    .eq("id", game.id);
-
-  if (error) {
-    console.error("Fehler beim Beitreten:", error);
-    showToast("Beitreten hat nicht geklappt.", "error");
-    return;
-  }
-  await syncFromServer();
-}
-
-/* Both players act at the same time here, so every write is guarded by the row's version:
-   if the other device saved in between, the move is recomputed on the fresh state. */
-async function dispatchAction(actionFn, ...args) {
-  if (!requirePerson() || actionInFlight) return;
-  actionInFlight = true;
-
-  try {
-    for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
-      const fresh = await fetchCurrentGame();
-      if (!fresh || fresh.status !== "active") {
-        await syncFromServer();
-        return;
-      }
-
-      let nextState;
-      try {
-        nextState = actionFn(fresh.state, currentPerson, ...args);
-      } catch (error) {
-        showToast(error.message, "error");
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from(TABLE)
-        .update({ state: nextState, version: fresh.version + 1, updated_at: new Date().toISOString() })
-        .eq("id", fresh.id)
-        .eq("version", fresh.version)
-        .select();
-
-      if (error) {
-        console.error("Fehler beim Speichern des Spielzugs:", error);
-        showToast("Zug konnte nicht gespeichert werden.", "error");
-        return;
-      }
-      if (data && data.length > 0) {
-        await syncFromServer();
-        return;
-      }
-    }
-    showToast("Gleichzeitiger Zug – bitte nochmal tippen.", "error");
-    await syncFromServer();
-  } finally {
-    actionInFlight = false;
-  }
-}
-
-async function leaveGame() {
-  if (!requirePerson()) return;
-
-  const fresh = await fetchCurrentGame();
-  if (!fresh || fresh.status !== "active") {
-    await syncFromServer();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from(TABLE)
-    .update({ status: "closed", state: { ...fresh.state, closedBy: currentPerson }, version: fresh.version + 1, updated_at: new Date().toISOString() })
-    .eq("id", fresh.id);
-
-  if (error) {
-    console.error("Fehler beim Beenden:", error);
-    showToast("Spiel konnte nicht beendet werden.", "error");
-    return;
-  }
-  await syncFromServer();
-}
-
-/* ---------- leave button (tap twice while a game is running) ---------- */
-
-function disarmLeaveButton() {
-  clearTimeout(leaveArmedTimer);
-  leaveArmedTimer = null;
-  leaveBtn.classList.remove("armed");
-}
-
-function renderLeaveButton(state) {
-  const done = state.phase === "finished";
-  if (leaveArmedTimer && !done) return;
-  disarmLeaveButton();
-  leaveBtn.textContent = done ? "Zurück zur Übersicht" : "Spiel beenden";
-}
-
-leaveBtn.addEventListener("click", () => {
-  const done = currentGame && currentGame.state && currentGame.state.phase === "finished";
-  if (done || leaveArmedTimer) {
-    disarmLeaveButton();
-    leaveGame();
-    return;
-  }
-  leaveBtn.classList.add("armed");
-  leaveBtn.textContent = "Wirklich beenden? Nochmal tippen";
-  leaveArmedTimer = setTimeout(() => {
-    disarmLeaveButton();
-    leaveBtn.textContent = "Spiel beenden";
-  }, LEAVE_CONFIRM_MS);
-});
-
-/* ---------- lobby ---------- */
-
-function showLobby(html) {
-  disarmLeaveButton();
-  GameAnim.revealAll();
-  boardEl.classList.add("hidden");
-  lobbyEl.classList.remove("hidden");
-  lobbyEl.innerHTML = html;
-}
-
-function renderLobbyNoGame(note) {
-  showLobby(`
-    <div class="nm-lobby-card card">
-      <div class="nm-lobby-icon">🐮</div>
-      ${note ? `<p class="nm-lobby-note">${escapeHtml(note)}</p>` : ""}
-      <h2>Noch keine Runde</h2>
-      <p>Startet eine Runde 6 nimmt! &ndash; der andere kann direkt beitreten.</p>
-      <button id="nmStartBtn" class="btn btn-block">Neue Runde starten</button>
-    </div>
-  `);
-  document.getElementById("nmStartBtn").addEventListener("click", createGame);
-}
-
-function renderLobbyWaitingAsHost(game) {
-  showLobby(`
-    <div class="nm-lobby-card card">
-      <div class="nm-lobby-icon">🐮</div>
-      <h2>Warte auf Mitspieler:in</h2>
-      <div class="nm-lobby-waiting"><span class="nm-spinner"></span> Einladung ist raus...</div>
-      <button id="nmCancelBtn" class="btn btn-secondary btn-block">Abbrechen</button>
-    </div>
-  `);
-  document.getElementById("nmCancelBtn").addEventListener("click", () => cancelWaitingGame(game.id));
-}
-
-function renderLobbyWaitingAsGuest(game) {
-  showLobby(`
-    <div class="nm-lobby-card card">
-      <div class="nm-lobby-icon">🐮</div>
-      <h2>${escapeHtml(game.host_person)} lädt dich ein!</h2>
-      <p>Bereit für eine Runde 6 nimmt!?</p>
-      <button id="nmJoinBtn" class="btn btn-block">Beitreten</button>
-    </div>
-  `);
-  document.getElementById("nmJoinBtn").addEventListener("click", () => joinGame(game));
-}
 
 /* ---------- card elements ---------- */
 
@@ -307,17 +68,9 @@ function flipEl(value, faceUp) {
 
 /* ---------- board ---------- */
 
-function opponentOf(game) {
-  return NimmtEngine.otherPerson(game.state, currentPerson) ||
-    (currentPerson === game.host_person ? game.guest_person : game.host_person);
-}
-
 function renderBoard(game) {
-  lobbyEl.classList.add("hidden");
-  boardEl.classList.remove("hidden");
-
   const state = game.state;
-  const opp = opponentOf(game);
+  const opp = room.opponentOf(game);
   if (previousStateGameId !== game.id) {
     previousState = null;
     previousStateGameId = game.id;
@@ -334,7 +87,6 @@ function renderBoard(game) {
   renderHand(state, move);
   renderEvent(state);
   renderStatus(state, opp);
-  renderLeaveButton(state);
 
   if (move) animateMove(move, previousState, state, before, opp);
   previousState = state;
@@ -345,7 +97,7 @@ function renderScore(state, opp) {
   const trickText = state.phase === "finished" ? "vorbei" : `Stich ${state.trick}/10`;
   scoreEl.innerHTML = `
     <span>Partie <strong>${state.gameNo}</strong> · ${trickText}</span>
-    <span>Siege: Du <strong>${wins[currentPerson] || 0}</strong> : <strong>${wins[opp] || 0}</strong> ${escapeHtml(opp || "")}</span>
+    <span>Siege: Du <strong>${wins[room.person] || 0}</strong> : <strong>${wins[opp] || 0}</strong> ${escapeHtml(opp || "")}</span>
   `;
 }
 
@@ -365,8 +117,8 @@ function renderPlayers(state, opp) {
 
   oppPileEl.innerHTML = pileHtml(opp, state);
   oppPileEl.title = `${(state.penalties[opp] || []).length} kassierte Karten`;
-  ownPileEl.innerHTML = pileHtml(currentPerson, state);
-  ownPileEl.title = `${(state.penalties[currentPerson] || []).length} kassierte Karten`;
+  ownPileEl.innerHTML = pileHtml(room.person, state);
+  ownPileEl.title = `${(state.penalties[room.person] || []).length} kassierte Karten`;
 }
 
 function setSpot(spot, content, { key, clickable = false, pending = false, onClick = null } = {}) {
@@ -393,7 +145,7 @@ function renderSpots(state, opp, move) {
     const revealed = state.revealed || [];
     const playOf = person => revealed.find(play => play.person === person);
     const oppPlay = playOf(opp);
-    const ownPlay = playOf(currentPerson);
+    const ownPlay = playOf(room.person);
 
     if (oppPlay) {
       const justRevealed = move && move.type === "reveal" && GameAnim.enabled();
@@ -405,7 +157,7 @@ function renderSpots(state, opp, move) {
     }
 
     if (ownPlay) {
-      setSpot(spotOwnEl, cardEl(ownPlay.card), { key: "spot-own", pending: state.pickPerson === currentPerson });
+      setSpot(spotOwnEl, cardEl(ownPlay.card), { key: "spot-own", pending: state.pickPerson === room.person });
     } else {
       setSpot(spotOwnEl, "", { key: "spot-own" });
     }
@@ -421,12 +173,12 @@ function renderSpots(state, opp, move) {
     setSpot(spotOppEl, state.phase === "choose" ? "wählt…" : "", { key: "spot-opp" });
   }
 
-  const ownChosen = state.chosen[currentPerson];
+  const ownChosen = state.chosen[room.person];
   if (ownChosen !== null && ownChosen !== undefined) {
     setSpot(spotOwnEl, cardEl(ownChosen), {
       key: "spot-own",
       clickable: true,
-      onClick: () => dispatchAction(NimmtEngine.chooseCard, ownChosen)
+      onClick: () => room.dispatch(NimmtEngine.chooseCard, ownChosen)
     });
   } else {
     setSpot(spotOwnEl, state.phase === "choose" ? "Karte antippen" : "", { key: "spot-own" });
@@ -437,7 +189,7 @@ const cellKey = (row, col) => `cell-${row}-${col}`;
 
 function renderRows(state, move) {
   rowsEl.innerHTML = "";
-  const myPick = state.phase === "pick-row" && state.pickPerson === currentPerson;
+  const myPick = state.phase === "pick-row" && state.pickPerson === room.person;
   const dealing = move && move.type === "deal";
 
   state.rows.forEach((row, r) => {
@@ -468,9 +220,9 @@ function renderRows(state, move) {
       rowEl.setAttribute("role", "button");
       rowEl.tabIndex = 0;
       rowEl.setAttribute("aria-label", `Reihe ${r + 1} nehmen (${sumBulls(row)} Hornochsen)`);
-      rowEl.addEventListener("click", () => dispatchAction(NimmtEngine.pickRow, r));
+      rowEl.addEventListener("click", () => room.dispatch(NimmtEngine.pickRow, r));
       rowEl.addEventListener("keydown", event => {
-        if (event.key === "Enter" || event.key === " ") dispatchAction(NimmtEngine.pickRow, r);
+        if (event.key === "Enter" || event.key === " ") room.dispatch(NimmtEngine.pickRow, r);
       });
     }
     rowsEl.appendChild(rowEl);
@@ -484,11 +236,11 @@ function renderRows(state, move) {
 
 function renderHand(state, move) {
   handEl.innerHTML = "";
-  const chosen = state.chosen[currentPerson];
+  const chosen = state.chosen[room.person];
   const canChoose = state.phase === "choose";
   const dealing = move && move.type === "deal";
 
-  (state.hands[currentPerson] || [])
+  (state.hands[room.person] || [])
     .filter(card => card !== chosen)
     .forEach((card, i) => {
       const button = document.createElement("button");
@@ -501,7 +253,7 @@ function renderHand(state, move) {
 
       if (canChoose) {
         button.classList.add("clickable");
-        button.addEventListener("click", () => dispatchAction(NimmtEngine.chooseCard, card));
+        button.addEventListener("click", () => room.dispatch(NimmtEngine.chooseCard, card));
       } else {
         button.disabled = true;
       }
@@ -514,7 +266,7 @@ function describeTakes(state) {
   return state.lastTrick.placements
     .filter(p => p.took)
     .map(p => {
-      const who = p.person === currentPerson ? "Du hast" : `${p.person} hat`;
+      const who = p.person === room.person ? "Du hast" : `${p.person} hat`;
       const what = p.reason === "full" ? "die volle Reihe" : "eine Reihe";
       return `${who} mit der ${p.card} ${what} genommen (+${sumBulls(p.took)} 🐮).`;
     })
@@ -536,13 +288,13 @@ function renderStatus(state, opp) {
 
   if (state.phase === "pick-row") {
     const card = state.revealed[0].card;
-    statusEl.textContent = state.pickPerson === currentPerson
+    statusEl.textContent = state.pickPerson === room.person
       ? `Deine ${card} passt in keine Reihe – tippe die Reihe an, die du nehmen musst.`
       : `Die ${card} von ${opp} passt in keine Reihe – ${opp} sucht sich eine Reihe aus…`;
     return;
   }
 
-  const mine = state.chosen[currentPerson];
+  const mine = state.chosen[room.person];
   const theirs = state.chosen[opp];
   if (mine === null || mine === undefined) {
     statusEl.textContent = theirs !== null && theirs !== undefined
@@ -555,7 +307,7 @@ function renderStatus(state, opp) {
 
 function renderResult(state, opp) {
   const { bulls, winner } = state.result;
-  statusEl.textContent = winner === currentPerson
+  statusEl.textContent = winner === room.person
     ? "🏆 Du hast gewonnen!"
     : winner ? `🏆 ${winner} hat gewonnen!` : "Unentschieden!";
 
@@ -565,8 +317,8 @@ function renderResult(state, opp) {
   table.innerHTML = `
     <thead><tr><th></th><th>Du</th><th>${escapeHtml(opp || "Gegner")}</th></tr></thead>
     <tbody>
-      <tr><td>Hornochsen</td><td class="total">${bulls[currentPerson]}</td><td class="total">${bulls[opp]}</td></tr>
-      <tr><td>Siege gesamt</td><td>${wins[currentPerson] || 0}</td><td>${wins[opp] || 0}</td></tr>
+      <tr><td>Hornochsen</td><td class="total">${bulls[room.person]}</td><td class="total">${bulls[opp]}</td></tr>
+      <tr><td>Siege gesamt</td><td>${wins[room.person] || 0}</td><td>${wins[opp] || 0}</td></tr>
     </tbody>
   `;
   actionsEl.appendChild(table);
@@ -575,7 +327,7 @@ function renderResult(state, opp) {
   again.type = "button";
   again.className = "btn btn-block";
   again.textContent = "Revanche 🐮";
-  again.addEventListener("click", () => dispatchAction(NimmtEngine.rematch));
+  again.addEventListener("click", () => room.dispatch(NimmtEngine.rematch));
   actionsEl.appendChild(again);
 }
 
@@ -599,7 +351,7 @@ function cellRect(row, col) {
 }
 
 function pileRect(person) {
-  return GameAnim.rectOf(person === currentPerson ? ownPileEl : oppPileEl);
+  return GameAnim.rectOf(person === room.person ? ownPileEl : oppPileEl);
 }
 
 /* Each move is animated once per device; after a reload only a fresh deal is replayed. */
@@ -616,7 +368,7 @@ function takeUnseenMove(game) {
 }
 
 function hideMovingCards(move, state) {
-  if (move.type === "choose" && move.person === currentPerson) {
+  if (move.type === "choose" && move.person === room.person) {
     GameAnim.hide(move.chosen ? "spot-own" : `hand-${move.card}`);
   }
   if (move.type === "reveal" || move.type === "resolve") {
@@ -631,7 +383,7 @@ function animateMove(move, prev, state, before, opp) {
   const jobs = [];
   const flyThenReveal = (options, key) => jobs.push(GameAnim.fly(options).then(() => key && GameAnim.reveal(key)));
 
-  if (move.type === "choose" && move.person === currentPerson) {
+  if (move.type === "choose" && move.person === room.person) {
     if (move.chosen) {
       flyThenReveal({ from: before.hand[`hand-${move.card}`], to: GameAnim.rectOf(spotOwnEl), front: cardEl(move.card), back: backEl(), startFaceUp: true, endFaceUp: true, duration: 380 }, "spot-own");
     } else {
@@ -641,16 +393,16 @@ function animateMove(move, prev, state, before, opp) {
   }
 
   if (move.type === "reveal" || move.type === "resolve") {
-    const ownCameFromSpot = prev && prev.chosen && prev.chosen[currentPerson] !== null;
+    const ownCameFromSpot = prev && prev.chosen && prev.chosen[room.person] !== null;
     const sourceOf = play => {
-      if (move.type === "resolve") return play.person === currentPerson ? before.spotOwn : before.spotOpp;
-      if (play.person !== currentPerson) return before.spotOpp;
+      if (move.type === "resolve") return play.person === room.person ? before.spotOwn : before.spotOpp;
+      if (play.person !== room.person) return before.spotOpp;
       return ownCameFromSpot ? before.spotOwn : (before.hand[`hand-${play.card}`] || before.spotOwn);
     };
 
     /* my own card that only now leaves the hand for the table (I chose last, then someone must pick a row) */
     if (move.type === "reveal" && state.phase === "pick-row") {
-      const ownPlay = move.plays.find(p => p.person === currentPerson);
+      const ownPlay = move.plays.find(p => p.person === room.person);
       if (ownPlay) {
         flyThenReveal({ from: sourceOf(ownPlay), to: GameAnim.rectOf(spotOwnEl), front: cardEl(ownPlay.card), back: backEl(), startFaceUp: true, endFaceUp: true, duration: 380 }, "spot-own");
       }
@@ -686,7 +438,7 @@ function animateMove(move, prev, state, before, opp) {
       simRows[p.row].push(p.card);
       const finalKey = state.rows[p.row][p.col] === p.card ? cellKey(p.row, p.col) : null;
       const play = { person: p.person, card: p.card };
-      const faceUp = p.person === currentPerson || move.type === "resolve";
+      const faceUp = p.person === room.person || move.type === "resolve";
 
       flyThenReveal({
         from: sourceOf(play),
@@ -710,48 +462,4 @@ function animateMove(move, prev, state, before, opp) {
   Promise.all(jobs).then(() => clearTimeout(safety));
 }
 
-/* ---------- sync ---------- */
-
-async function syncFromServer() {
-  const generation = ++syncGeneration;
-  const game = await fetchCurrentGame();
-  if (generation !== syncGeneration) return;
-
-  /* re-rendering an unchanged game would restart running card animations */
-  const json = JSON.stringify(game);
-  if (json === lastRenderedJson) return;
-  lastRenderedJson = json;
-  currentGame = game;
-
-  if (!game) {
-    renderLobbyNoGame();
-    return;
-  }
-
-  if (game.status === "closed") {
-    const closedBy = game.state && game.state.closedBy;
-    const endedEarly = !(game.state && game.state.phase === "finished");
-    renderLobbyNoGame(closedBy && closedBy !== currentPerson && endedEarly ? `${closedBy} hat das letzte Spiel beendet.` : "");
-    return;
-  }
-
-  if (game.status === "waiting") {
-    if (game.host_person === currentPerson) {
-      renderLobbyWaitingAsHost(game);
-    } else {
-      renderLobbyWaitingAsGuest(game);
-    }
-    return;
-  }
-
-  renderBoard(game);
-}
-
-supabaseClient
-  .channel("nimmt_games_changes")
-  .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, () => {
-    syncFromServer();
-  })
-  .subscribe();
-
-syncFromServer();
+room.start();

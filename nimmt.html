@@ -10,6 +10,7 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="game-anim.css">
+  <link rel="stylesheet" href="game-room.css">
   <link rel="stylesheet" href="nimmt.css">
   <script src="pin-lock.js"></script>
 </head>
@@ -29,7 +30,7 @@
     <h1 class="page-title">6 nimmt! 🐮</h1>
     <p class="page-subtitle">Bloß keine Hornochsen kassieren</p>
 
-    <div id="nmLobby" class="nm-lobby"></div>
+    <div id="nmLobby"></div>
 
     <div id="nmBoard" class="nm-board hidden">
 
@@ -64,8 +65,8 @@
       </div>
       <div class="nm-hand" id="nmHand"></div>
 
-      <div class="nm-leave">
-        <button type="button" id="nmLeaveBtn" class="nm-leave-btn">Spiel beenden</button>
+      <div class="gr-leave">
+        <button type="button" id="nmLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
       </div>
     </div>
   </main>
@@ -95,6 +96,7 @@
   <script src="shared.js"></script>
   <script src="nimmt-engine.js"></script>
   <script src="game-anim.js"></script>
+  <script src="game-room.js"></script>
   <script src="nimmt.js"></script>
 </body>
 </html>
