@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="favicon.svg">
 
   <link rel="stylesheet" href="shared.css">
-  <link rel="stylesheet" href="reflexion.css">
+  <link rel="stylesheet" href="watchlist.css">
   <link rel="stylesheet" href="questions.css">
   <link rel="stylesheet" href="liebesbriefe.css">
   <script src="pin-lock.js"></script>
@@ -18,86 +18,23 @@
 
   <main class="page">
     <h1 class="page-title">Wir 💬</h1>
-    <p class="page-subtitle">Reflexion, Gesprächsthemen und kleine Nachrichten füreinander</p>
+    <p class="page-subtitle">Watchlist, Gesprächsthemen und kleine Nachrichten füreinander</p>
 
     <div class="hub-tabs" role="tablist">
-      <button class="hub-tab" data-tab="reflexion" role="tab">🪞 Reflexion</button>
+      <button class="hub-tab" data-tab="watchlist" role="tab">🎬 Watchlist</button>
       <button class="hub-tab" data-tab="fragen" role="tab">💬 Fragen</button>
       <button class="hub-tab" data-tab="briefe" role="tab">💌 Briefe</button>
     </div>
 
-    <section class="hub-panel" data-panel="reflexion">
+    <section class="hub-panel" data-panel="watchlist">
 
-      <section class="reflection-card card">
-        <h2 class="reflection-title">Heute</h2>
-        <p id="dailyDateLabel" class="reflection-subtitle"></p>
+      <div class="watchlist-filter">
+        <button class="watchlist-filter-btn active" data-filter="alle">Alle</button>
+        <button class="watchlist-filter-btn" data-filter="film">🎬 Filme</button>
+        <button class="watchlist-filter-btn" data-filter="serie">📺 Serien</button>
+      </div>
 
-        <div id="dailyForm" class="reflection-form hidden">
-          <label>Kommunikation heute</label>
-          <div class="rating-hearts" id="dailyCommunicationRating" data-field="communication"></div>
-
-          <label>Nähe heute</label>
-          <div class="rating-hearts" id="dailyClosenessRating" data-field="closeness"></div>
-
-          <label>Kurze Notiz (optional)</label>
-          <input id="dailyNoteInput" type="text" placeholder="z. B. Videocall am Abend hat gutgetan">
-
-          <button id="submitDailyBtn" class="btn btn-block">Abschicken</button>
-        </div>
-
-        <div id="dailyWaiting" class="reflection-waiting hidden">
-          <span class="reflection-waiting-icon">⏳</span>
-          <p id="dailyWaitingText"></p>
-          <button id="editDailyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
-        </div>
-
-        <div id="dailyReveal" class="reflection-reveal hidden"></div>
-      </section>
-
-      <section class="reflection-card card">
-        <h2 class="reflection-title">Diese Woche</h2>
-        <p id="weeklyDateLabel" class="reflection-subtitle"></p>
-
-        <div id="weeklyForm" class="reflection-form hidden">
-          <label>Kommunikation diese Woche</label>
-          <div class="rating-hearts" id="weeklyCommunicationRating" data-field="communication"></div>
-
-          <label>Nähe diese Woche</label>
-          <div class="rating-hearts" id="weeklyClosenessRating" data-field="closeness"></div>
-
-          <label>Gemeinsame Zeit diese Woche</label>
-          <div class="rating-hearts" id="weeklyTimeRating" data-field="time"></div>
-
-          <label>Gab es Konflikte?</label>
-          <div class="conflict-toggle">
-            <button type="button" id="conflictNoBtn" class="chip conflict-chip active" data-value="false">Nein</button>
-            <button type="button" id="conflictYesBtn" class="chip conflict-chip" data-value="true">Ja</button>
-          </div>
-
-          <div id="conflictNoteWrap" class="hidden">
-            <label>Was genau? (optional)</label>
-            <textarea id="conflictNoteInput" rows="2" placeholder="Worum ging es?"></textarea>
-          </div>
-
-          <label>Sonstiges (optional)</label>
-          <textarea id="weeklyNoteInput" rows="3" placeholder="Was möchten wir sonst noch festhalten?"></textarea>
-
-          <button id="submitWeeklyBtn" class="btn btn-block">Abschicken</button>
-        </div>
-
-        <div id="weeklyWaiting" class="reflection-waiting hidden">
-          <span class="reflection-waiting-icon">⏳</span>
-          <p id="weeklyWaitingText"></p>
-          <button id="editWeeklyBtn" class="btn btn-secondary btn-sm">Antwort ändern</button>
-        </div>
-
-        <div id="weeklyReveal" class="reflection-reveal hidden"></div>
-      </section>
-
-      <section class="reflection-history">
-        <h2 class="reflection-history-title">Verlauf</h2>
-        <div id="historyList" class="history-list"></div>
-      </section>
+      <div id="watchlistList" class="watchlist-list"></div>
 
     </section>
 
@@ -136,15 +73,34 @@
 
   </main>
 
+  <button id="openWatchlistModal" class="fab" title="Neuer Eintrag" aria-label="Neuer Eintrag" data-show-for="watchlist">+</button>
   <button id="openNoteModal" class="fab" title="Neue Nachricht" aria-label="Neue Nachricht" data-show-for="briefe">+</button>
 
-  <div id="personModal" class="modal hidden">
+  <div id="watchlistModal" class="modal hidden">
     <div class="modal-box">
-      <h2>Wer bist du? 💗</h2>
-      <p class="push-modal-text">Damit wir wissen, wessen Reflexion das ist.</p>
-      <div class="push-person-choice">
-        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
-        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      <h2>Neuer Eintrag</h2>
+
+      <label>Titel</label>
+      <input id="watchlistTitleInput" type="text" placeholder="z. B. Dune">
+
+      <label>Film oder Serie?</label>
+      <select id="watchlistTypeInput">
+        <option value="film">🎬 Film</option>
+        <option value="serie">📺 Serie</option>
+      </select>
+
+      <label>Wo schauen? (optional)</label>
+      <input id="watchlistPlatformInput" type="text" placeholder="z. B. Netflix, Kino, Prime Video">
+
+      <label>Hinzugefügt von</label>
+      <select id="watchlistAddedByInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <div class="modal-buttons">
+        <button id="saveWatchlistBtn" class="btn">Hinzufügen</button>
+        <button id="closeWatchlistModal" class="btn btn-secondary">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -207,7 +163,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
-  <script src="reflexion.js"></script>
+  <script src="watchlist.js"></script>
   <script src="questions.js"></script>
   <script src="liebesbriefe.js"></script>
 </body>
