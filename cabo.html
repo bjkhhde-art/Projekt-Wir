@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I + B | Cabo</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="cabo.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body>
+
+  <main class="page">
+    <h1 class="page-title">Cabo 🦄</h1>
+    <p class="page-subtitle">Merken, tauschen, bluffen</p>
+
+    <div id="caboLobby" class="cabo-lobby"></div>
+
+    <div id="caboBoard" class="cabo-board hidden">
+
+      <div class="cabo-score-strip" id="caboScoreStrip"></div>
+
+      <div class="cabo-side">
+        <p class="cabo-player-label" id="opponentLabel">Gegner</p>
+        <div class="cabo-hand" id="opponentHand"></div>
+      </div>
+
+      <div class="cabo-table">
+        <button type="button" class="cabo-pile" id="drawPile" title="Nachziehstapel">
+          <img src="cabo-cards/Cover.webp" alt="Nachziehstapel">
+          <span class="cabo-pile-count" id="drawPileCount"></span>
+        </button>
+        <button type="button" class="cabo-pile" id="discardPile" title="Ablagestapel"></button>
+      </div>
+
+      <p class="cabo-status" id="caboStatus"></p>
+
+      <div class="cabo-actions" id="caboActions"></div>
+
+      <div class="cabo-side">
+        <p class="cabo-player-label" id="ownLabel">Du</p>
+        <div class="cabo-hand" id="ownHand"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="initialPeekOverlay" class="modal hidden">
+    <div class="modal-box cabo-peek-box">
+      <h2>Schau dir deine Karten an 👀</h2>
+      <p class="push-modal-text">Merk sie dir gut &ndash; gleich werden sie wieder verdeckt.</p>
+      <div class="cabo-peek-cards" id="initialPeekCards"></div>
+      <div class="modal-buttons">
+        <button id="initialPeekDoneBtn" class="btn btn-block">Gemerkt, los geht's!</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="peekResultOverlay" class="modal hidden">
+    <div class="modal-box cabo-peek-box">
+      <h2 id="peekResultTitle">Du siehst</h2>
+      <div class="cabo-peek-cards" id="peekResultCard"></div>
+      <div class="modal-buttons">
+        <button id="peekResultDoneBtn" class="btn btn-block">Weiter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="roundOverOverlay" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="roundOverTitle">Runde vorbei!</h2>
+      <div id="roundOverBody"></div>
+      <div class="modal-buttons">
+        <button id="roundOverActionBtn" class="btn btn-block">Nächste Runde</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wer am Zug ist.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="cabo-engine.js"></script>
+  <script src="cabo.js"></script>
+</body>
+</html>
