@@ -165,12 +165,13 @@ function drawFromDeck(state, person) {
   if (state.turnPhase !== "awaiting-draw") throw new Error("Du kannst gerade nicht ziehen.");
 
   const next = cloneState(state);
+  const reshuffled = next.deck.length === 0 ? next.discard.length - 1 : 0;
   ensureDeck(next);
   next.drawnCard = next.deck.pop();
   next.drawSource = "deck";
   next.turnPhase = "post-draw-decision";
-  next.lastEvent = null;
-  recordMove(next, { type: "draw", from: "deck", person, card: next.drawnCard });
+  next.lastEvent = reshuffled ? { type: "reshuffle", person, count: reshuffled } : null;
+  recordMove(next, { type: "draw", from: "deck", person, card: next.drawnCard, reshuffled });
   return next;
 }
 
