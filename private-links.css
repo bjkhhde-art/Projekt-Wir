@@ -11,6 +11,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* room to scroll the last card's buttons above the floating + button */
+  padding-bottom: 84px;
 }
 
 .pl-empty {
