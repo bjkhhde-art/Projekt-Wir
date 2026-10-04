@@ -11,16 +11,19 @@ const savePrivateLinkBtn = document.getElementById("savePrivateLinkBtn");
 const closePrivateLinkModal = document.getElementById("closePrivateLinkModal");
 const privateLinkEditExtras = document.getElementById("privateLinkEditExtras");
 const deletePrivateLinkBtn = document.getElementById("deletePrivateLinkBtn");
+const reloadPreviewBtn = document.getElementById("reloadPreviewBtn");
 const privatePersonModal = document.getElementById("personModal");
 
 const PL_SEEN_KEY = "pw_private_links_seen";
 const PL_LONG_PRESS_MS = 500;
+const PREVIEW_RETRY_MS = 2 * 60 * 1000;
 
 let privateLinks = [];
 let privateComments = [];
 let editingPrivateLinkId = null;
 let plSeenBefore = readSeen();
 let plPendingAction = null;
+const previewRequested = new Set();
 
 function plPerson() {
   const stored = localStorage.getItem("pw_person");
@@ -99,6 +102,7 @@ async function loadPrivateLinks() {
   privateLinks = links.data || [];
   privateComments = comments.data || [];
   renderPrivateLinks();
+  requestMissingPreviews();
 }
 
 /* ---------- rendering ---------- */
@@ -124,11 +128,12 @@ function buildPrivateLinkCard(link) {
   card.className = "pl-card card";
   card.dataset.id = link.id;
   card.innerHTML = `
+    ${previewHtml(link)}
     <div class="pl-head">
       <span class="pl-host chip">${escapeHtml(hostOf(link.url))}</span>
       ${isNew ? `<span class="pl-new">Neu</span>` : ""}
     </div>
-    <h3 class="pl-title">${escapeHtml(link.title || hostOf(link.url))}</h3>
+    <h3 class="pl-title">${escapeHtml(link.title || link.preview_title || hostOf(link.url))}</h3>
     <p class="pl-meta">von ${escapeHtml(link.added_by)} · ${timeAgo(link.created_at)}</p>
 
     <div class="pl-actions">
@@ -166,6 +171,39 @@ function buildPrivateLinkCard(link) {
   });
   attachPrivateLongPress(card, link);
   return card;
+}
+
+/* the picture comes from our own storage, so showing it never contacts the linked site */
+function previewHtml(link) {
+  if (link.preview_status === "ok" && link.preview_image) {
+    return `
+      <a class="pl-thumb" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Öffnen">
+        <img src="${escapeHtml(link.preview_image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+        <span class="pl-play">▶</span>
+      </a>`;
+  }
+  if (!link.preview_status || link.preview_status === "pending") {
+    return `<div class="pl-thumb loading"><span>Vorschaubild wird geladen …</span></div>`;
+  }
+  return "";
+}
+
+/* ask the link-preview function for a picture: right after sharing, and once per session for
+   links that never got one (e.g. the function was busy) */
+function requestPreview(linkId) {
+  previewRequested.add(linkId);
+  supabaseClient.functions.invoke("link-preview", { body: { linkId } }).catch(error => {
+    console.error("Vorschaubild konnte nicht angefragt werden:", error);
+  });
+}
+
+function requestMissingPreviews() {
+  const now = Date.now();
+  privateLinks.forEach(link => {
+    if (previewRequested.has(link.id)) return;
+    const stale = link.preview_status === "pending" && now - new Date(link.created_at).getTime() > PREVIEW_RETRY_MS;
+    if (!link.preview_status || stale) requestPreview(link.id);
+  });
 }
 
 function renderPrivateLinks() {
@@ -253,6 +291,7 @@ function openPrivateModal(link) {
   privateLinkUrlInput.value = link ? link.url : "";
   privateLinkTitleInput.value = link ? link.title || "" : "";
   privateLinkEditExtras.classList.toggle("hidden", !link);
+  reloadPreviewBtn.classList.toggle("hidden", !link);
   privateLinkModal.classList.remove("hidden");
   privateLinkUrlInput.focus();
 }
@@ -273,9 +312,12 @@ async function savePrivateLink() {
   }
 
   const editing = editingPrivateLinkId;
+  const previous = editing ? privateLinks.find(link => link.id === editing) : null;
+  const urlChanged = !previous || previous.url !== url;
+  const previewReset = urlChanged ? { preview_status: "pending", preview_image: null, preview_title: null } : {};
   const { error } = editing
-    ? await supabaseClient.from("private_links").update({ url, title }).eq("id", editing)
-    : await supabaseClient.from("private_links").insert({ url, title, added_by: me });
+    ? await supabaseClient.from("private_links").update({ url, title, ...previewReset }).eq("id", editing)
+    : await supabaseClient.from("private_links").insert({ url, title, added_by: me, preview_status: "pending" });
 
   if (error) {
     console.error("Fehler beim Speichern des Links:", error);
@@ -287,6 +329,11 @@ async function savePrivateLink() {
   editingPrivateLinkId = null;
   showToast(editing ? "Gespeichert 💾" : "Geteilt 🔥", "success");
   await loadPrivateLinks();
+
+  if (urlChanged) {
+    const saved = editing ? privateLinks.find(link => link.id === editing) : privateLinks.find(link => link.url === url);
+    if (saved) requestPreview(saved.id);
+  }
 
   if (!editing) {
     sendAppNotification(supabaseClient, {
@@ -354,6 +401,20 @@ closePrivateLinkModal.addEventListener("click", () => {
 });
 savePrivateLinkBtn.addEventListener("click", savePrivateLink);
 deletePrivateLinkBtn.addEventListener("click", deletePrivateLink);
+reloadPreviewBtn.addEventListener("click", async () => {
+  const linkId = editingPrivateLinkId;
+  if (!linkId) return;
+  privateLinkModal.classList.add("hidden");
+  editingPrivateLinkId = null;
+  const { error } = await supabaseClient.from("private_links").update({ preview_status: "pending", preview_image: null }).eq("id", linkId);
+  if (error) {
+    showToast("Vorschaubild konnte nicht neu geladen werden.", "error");
+    return;
+  }
+  await loadPrivateLinks();
+  requestPreview(linkId);
+  showToast("Vorschaubild wird neu geladen 🖼️", "success");
+});
 [privateLinkUrlInput, privateLinkTitleInput].forEach(input => {
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") savePrivateLink();

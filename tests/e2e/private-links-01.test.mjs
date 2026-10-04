@@ -53,6 +53,14 @@ await isi.click("#savePrivateLinkBtn");
 await until(async () => (await links()).length === 1, 3000, "stored");
 const stored = (await links())[0];
 ok(stored.url === "https://example.com/video/123" && stored.added_by === "Isi", "a link without https:// is completed and stored");
+ok(stored.preview_status === "pending", "a new link waits for its preview picture");
+await until(async () => (await isi.evaluate(() => (window.__mockInvocations || []).some(i => i.name === "link-preview"))), 3000, "preview requested");
+const previewCall = (await isi.evaluate(() => window.__mockInvocations)).find(i => i.name === "link-preview");
+ok(previewCall.body.linkId === stored.id, "sharing asks the link-preview function for this link's picture");
+ok(await isi.locator(".pl-thumb.loading").count() === 1, "meanwhile the card shows a loading placeholder");
+/* the function stores the picture in our bucket and fills in the row */
+await fetch(`${API}/t/private_links/games/${stored.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ preview_status: "ok", preview_image: "/icons/icon-512.png", preview_title: "Seitentitel" }) });
 await until(async () => (await isi.evaluate(() => (window.__mockInvocations || []).length)) > 0, 3000, "push sent");
 const pushes = await isi.evaluate(() => window.__mockInvocations || []);
 const push = pushes.find(p => p.body.url === "wir.html?tab=privat");
@@ -62,6 +70,11 @@ ok(push && push.body.excludePerson === "Isi" && !push.body.body.includes("exampl
 await until(async () => await benji.locator(".pl-card").count() === 1, 4000, "Benji sees the link");
 ok(await benji.locator(".pl-new").count() === 1, "Benji sees it marked as new");
 ok((await benji.locator(".pl-title").textContent()) === "Für heute Abend <b>😏</b>", "titles are shown as plain text");
+await until(async () => await benji.locator(".pl-thumb img").count() === 1, 4000, "preview picture shown");
+const thumb = benji.locator(".pl-thumb");
+ok(await thumb.locator("img").getAttribute("src") === "/icons/icon-512.png", "the card shows the stored preview picture");
+ok(await thumb.getAttribute("href") === "https://example.com/video/123" && (await thumb.getAttribute("rel")).includes("noreferrer"), "tapping the picture opens the link like 'Öffnen'");
+ok(await thumb.locator("img").evaluate(img => img.complete && img.naturalWidth > 0), "the picture loads from our own server");
 const anchor = benji.locator(".pl-open");
 ok(await anchor.getAttribute("href") === "https://example.com/video/123" && await anchor.getAttribute("target") === "_blank", "Öffnen opens the link in a new tab");
 ok((await anchor.getAttribute("rel")).includes("noreferrer") && await anchor.getAttribute("referrerpolicy") === "no-referrer", "the other site does not learn where the visit came from");
