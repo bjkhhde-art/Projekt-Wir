@@ -17,6 +17,7 @@ const watchlistTypeInput = document.getElementById("watchlistTypeInput");
 const watchlistPlatformInput = document.getElementById("watchlistPlatformInput");
 const watchlistAddedByInput = document.getElementById("watchlistAddedByInput");
 const watchlistEditExtras = document.getElementById("watchlistEditExtras");
+const watchlistDuplicateHint = document.getElementById("watchlistDuplicateHint");
 const watchlistToggleWatchedBtn = document.getElementById("watchlistToggleWatchedBtn");
 const watchlistDeleteBtn = document.getElementById("watchlistDeleteBtn");
 
@@ -340,6 +341,7 @@ openWatchlistModal.addEventListener("click", () => {
   watchlistPlatformInput.value = "";
   watchlistAddedByInput.value = "Isi";
   watchlistEditExtras.classList.add("hidden");
+  updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
 });
@@ -354,6 +356,7 @@ function openEditModal(entry) {
   watchlistAddedByInput.value = entry.added_by || "Isi";
   watchlistToggleWatchedBtn.textContent = entry.watched ? "↩️ Doch noch nicht gesehen" : "✅ Als gesehen markieren";
   watchlistEditExtras.classList.remove("hidden");
+  updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
 }
@@ -363,11 +366,48 @@ closeWatchlistModal.addEventListener("click", () => {
   watchlistModal.classList.add("hidden");
 });
 
+/* the same title counts as a duplicate however it is capitalised or spaced (a film and a
+   series may share a name). The database enforces the same rule. */
+function normalizeTitle(title) {
+  return (title || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function findDuplicate(title, mediaType) {
+  const key = normalizeTitle(title);
+  if (!key) return null;
+  return watchlistEntries.find(entry =>
+    entry.id !== editingWatchlistId &&
+    entry.media_type === mediaType &&
+    normalizeTitle(entry.title) === key) || null;
+}
+
+function duplicateMessage(entry) {
+  const where = entry.watched ? "habt ihr schon gesehen" : "steht schon auf der Watchlist";
+  return `„${entry.title}“ ${where} ${entry.media_type === "serie" ? "📺" : "🎬"}`;
+}
+
+function updateDuplicateHint() {
+  const duplicate = findDuplicate(watchlistTitleInput.value, watchlistTypeInput.value);
+  watchlistDuplicateHint.textContent = duplicate ? duplicateMessage(duplicate) : "";
+  watchlistDuplicateHint.classList.toggle("hidden", !duplicate);
+  saveWatchlistBtn.disabled = !!duplicate;
+}
+
+watchlistTitleInput.addEventListener("input", updateDuplicateHint);
+watchlistTypeInput.addEventListener("change", updateDuplicateHint);
+
 async function saveWatchlistEntry() {
-  const title = watchlistTitleInput.value.trim();
+  const title = watchlistTitleInput.value.trim().replace(/\s+/g, " ");
 
   if (!title) {
     showToast("Bitte einen Titel eingeben.", "error");
+    return;
+  }
+
+  const duplicate = findDuplicate(title, watchlistTypeInput.value);
+  if (duplicate) {
+    showToast(duplicateMessage(duplicate), "error");
+    updateDuplicateHint();
     return;
   }
 
@@ -383,6 +423,13 @@ async function saveWatchlistEntry() {
     : await supabaseClient.from("watchlist").insert(payload);
 
   if (error) {
+    /* the other phone added the same title a moment ago */
+    if (error.code === "23505") {
+      showToast(`„${title}“ steht schon auf der Watchlist`, "error");
+      await loadWatchlist();
+      updateDuplicateHint();
+      return;
+    }
     console.error("Fehler beim Speichern:", error);
     showToast("Speichern hat nicht geklappt.", "error");
     return;
