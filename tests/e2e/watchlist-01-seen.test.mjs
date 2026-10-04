@@ -94,6 +94,31 @@ await page.locator(".watchlist-card", { hasText: "The Bear" }).locator("button",
 await wait(700);
 ok((await page.locator(".watched-title").first().textContent()) === "The Bear", "a freshly watched title appears at the top of the list");
 
+/* the same title cannot be added twice */
+const countBefore = (await rows()).length;
+await page.click("#openWatchlistModal");
+await page.fill("#watchlistTitleInput", "  past   LIVES ");
+ok((await page.locator("#watchlistDuplicateHint").textContent()).includes("„Past Lives“ habt ihr schon gesehen"), "typing a watched title warns right away – spacing and capitals don't matter");
+ok(await page.locator("#saveWatchlistBtn").isDisabled(), "and the add button is blocked");
+await page.selectOption("#watchlistTypeInput", "serie");
+ok(await page.locator("#watchlistDuplicateHint").isHidden() && await page.locator("#saveWatchlistBtn").isEnabled(), "a series with the same name as a film is allowed");
+await page.selectOption("#watchlistTypeInput", "film");
+await page.fill("#watchlistTitleInput", "dune part three");
+ok((await page.locator("#watchlistDuplicateHint").textContent()).includes("steht schon auf der Watchlist"), "a title still to watch is recognised as well");
+await page.locator("#watchlistTitleInput").press("Enter");
+await wait(400);
+ok((await rows()).length === countBefore, "pressing Enter does not add the duplicate either");
+await page.fill("#watchlistTitleInput", "Perfect Days");
+ok(await page.locator("#watchlistDuplicateHint").isHidden() && await page.locator("#saveWatchlistBtn").isEnabled(), "a new title can be added");
+await page.click("#closeWatchlistModal");
+
+/* editing an entry does not flag its own title, but renaming onto another one is blocked */
+await hold(page.locator(".watchlist-card", { hasText: "Dune Part Three" }).locator(".watchlist-title"));
+ok(await page.locator("#watchlistDuplicateHint").isHidden() && await page.locator("#saveWatchlistBtn").isEnabled(), "an entry being edited is not its own duplicate");
+await page.fill("#watchlistTitleInput", "La La Land");
+ok(await page.locator("#saveWatchlistBtn").isDisabled(), "renaming it to another existing title is blocked");
+await page.click("#closeWatchlistModal");
+
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();
 console.log(`\n${n} assertions passed (watchlist: compact watched list)`);
