@@ -391,8 +391,9 @@ async function addComment(link, raw) {
   });
 }
 
-function openPrivateModal(link, focusTags) {
-  if (!plRequirePerson(() => openPrivateModal(link, focusTags))) return;
+/* prefill: { url, title, tags } for a new link, e.g. a suggestion from the dice */
+function openPrivateModal(link, focusTags, prefill) {
+  if (!plRequirePerson(() => openPrivateModal(link, focusTags, prefill))) return;
   editingPrivateLinkId = link ? link.id : null;
   privateLinkModalTitle.textContent = link ? "Link bearbeiten" : "Link teilen 🔥";
   savePrivateLinkBtn.textContent = link ? "Speichern" : "Teilen";
@@ -401,6 +402,11 @@ function openPrivateModal(link, focusTags) {
   privateLinkEditExtras.classList.toggle("hidden", !link);
   reloadPreviewBtn.classList.toggle("hidden", !link);
   modalTags = link ? [...(link.tags || [])] : [];
+  if (prefill) {
+    privateLinkUrlInput.value = prefill.url || "";
+    privateLinkTitleInput.value = prefill.title || "";
+    modalTags = Tags.addTags([], (prefill.tags || []).join(" "));
+  }
   privateLinkTagInput.value = "";
   renderModalTags();
   privateLinkModal.classList.remove("hidden");

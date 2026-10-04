@@ -75,6 +75,7 @@
 
     <section class="hub-panel" data-panel="privat" hidden>
       <p class="pl-intro">Links, die wir uns gegenseitig schicken &ndash; bewerten mit 🔥 und kommentieren. Das Vorschaubild liegt bei uns gespeichert &ndash; erst „Öffnen“ ruft die Seite auf, in einem neuen Tab ohne Spur zu unserer Seite. Für ein privates Fenster den Link kopieren.</p>
+      <button id="openDiceModal" class="btn btn-secondary btn-sm pl-dice-open" type="button">🎲 Zufall</button>
       <div id="privateTagBar" class="pl-tagbar hidden" aria-label="Nach Hashtags filtern"></div>
       <div id="privateLinkList" class="pl-list"></div>
     </section>
@@ -171,6 +172,34 @@
     </div>
   </div>
 
+  <div id="diceModal" class="modal hidden">
+    <div class="modal-box pl-dice">
+      <h2>🎲 Zufall</h2>
+      <div class="pl-dice-modes" role="tablist">
+        <button type="button" class="pl-dice-mode" data-mode="ours" role="tab">💞 Unsere Links</button>
+        <button type="button" class="pl-dice-mode" data-mode="new" role="tab">✨ Etwas Neues</button>
+      </div>
+
+      <div id="diceOurs" class="pl-dice-panel">
+        <div id="diceTagChips" class="pl-tag-suggestions"></div>
+        <label class="pl-dice-check"><input id="diceUnrated" type="checkbox"> Nur was ich noch nicht bewertet habe</label>
+      </div>
+
+      <div id="diceNew" class="pl-dice-panel hidden">
+        <input id="diceQuery" type="text" maxlength="60" autocomplete="off" enterkeyhint="go" placeholder="Wonach? (optional)">
+        <div id="diceQueryChips" class="pl-tag-suggestions"></div>
+        <p class="pl-dice-note">Beliebte Videos von eporner.com. Das Bild kommt über uns – erst „Öffnen“ ruft die Seite auf.</p>
+      </div>
+
+      <div id="diceResult" class="pl-dice-result" aria-live="polite"></div>
+
+      <div class="modal-buttons">
+        <button id="diceRollBtn" class="btn" type="button">🎲 Würfeln</button>
+        <button id="closeDiceModal" class="btn btn-secondary" type="button">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <div id="seenByModal" class="modal hidden">
     <div class="modal-box">
       <h2>Gesehen! 🎉</h2>
@@ -255,5 +284,7 @@
   <script src="liebesbriefe.js"></script>
   <script src="private-link-tags.js"></script>
   <script src="private-links.js"></script>
+  <script src="link-dice.js"></script>
+  <script src="private-dice.js"></script>
 </body>
 </html>

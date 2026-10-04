@@ -228,6 +228,9 @@
         functions: {
           async invoke(name, options) {
             (window.__mockInvocations = window.__mockInvocations || []).push({ name, body: options && options.body });
+            /* a test can answer a function: window.__mockFunctionResponses[name] = body => data */
+            const answer = window.__mockFunctionResponses && window.__mockFunctionResponses[name];
+            if (answer) return { data: await answer(options && options.body), error: null };
             return { data: null, error: null };
           }
         }
