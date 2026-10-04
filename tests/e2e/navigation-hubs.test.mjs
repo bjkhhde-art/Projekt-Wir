@@ -44,7 +44,7 @@ ok(await activeNav() === "games.html", "the questions page highlights Games in t
 /* Wir without questions; old links forward */
 await page.goto(base + "wir.html"); await page.waitForTimeout(400);
 const wirTabs = await page.locator(".hub-tab").allTextContents();
-ok(JSON.stringify(wirTabs) === JSON.stringify(["🎬 Watchlist", "💌 Briefe"]), `Wir keeps Watchlist and Briefe (${wirTabs.join(", ")})`);
+ok(JSON.stringify(wirTabs) === JSON.stringify(["🎬 Watchlist", "💌 Briefe", "🔥 Nur für uns"]), `Wir has Watchlist, Briefe and 'Nur für uns', no questions (${wirTabs.join(", ")})`);
 await page.goto(base + "wir.html?tab=fragen"); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html"), "old links to wir.html?tab=fragen land on the questions page");
 
