@@ -54,7 +54,14 @@ const finalFaces = await isi.locator("#qxDice .qx-die").evaluateAll(els => els.m
 ok(JSON.stringify(finalFaces.slice(0, 2)) === JSON.stringify([game.state.dice.w1, game.state.dice.w2]), "after the animation the dice show the real throw");
 
 /* a cross pops in on the crosser's sheet and in the other's small view */
-const option = isi.locator(".qx-cell.option").first();
+/* pick a field that fits the white sum (nothing is highlighted any more) */
+const whiteSum = game.state.dice.w1 + game.state.dice.w2;
+let target = null;
+game.state.layout.forEach((cells, r) => {
+  const i = cells.findIndex(c => c.n === whiteSum);
+  if (!target && i >= 0 && i < cells.length - 1) target = [r, i];
+});
+const option = isi.locator(".qx-row").nth(target[0]).locator(".qx-cell").nth(target[1]);
 const benjiSeesCross = benji.waitForFunction(() => {
   const crossed = document.querySelector(".qx-mini-cell.just-crossed");
   return crossed && crossed.getAnimations({ subtree: true }).length >= 0;

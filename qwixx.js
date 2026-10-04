@@ -227,17 +227,14 @@ function renderStatus(state, opp) {
     return;
   }
 
-  const sum = state.dice.w1 + state.dice.w2;
+  /* no hints about which fields fit – working that out is the game */
   if (state.phase === "white") {
     if (state.white[me].done) {
       statusEl.textContent = `Warte auf ${opp}…`;
       return;
     }
-    const options = Q.whiteOptions(state, me);
-    statusEl.textContent = options.length
-      ? `Weiße Summe ${sum}: Tippe ein leuchtendes Feld an – oder lass sie aus.`
-      : `Weiße Summe ${sum} passt bei dir gerade nirgends.`;
-    passButton(options.length ? "Nichts ankreuzen" : "Weiter", Q.passWhite);
+    statusEl.textContent = "Die beiden weißen Würfel gelten für alle: Kreuz ihre Summe an – oder lass sie aus.";
+    passButton("Nichts ankreuzen", Q.passWhite);
     return;
   }
 
@@ -245,10 +242,7 @@ function renderStatus(state, opp) {
     statusEl.textContent = `${opp} kombiniert noch Farben…`;
     return;
   }
-  const options = Q.colorOptions(state, me);
-  statusEl.textContent = options.length
-    ? "Jetzt du: ein weißer + ein farbiger Würfel – tippe ein leuchtendes Feld an."
-    : "Keine passende Farbkombination.";
+  statusEl.textContent = "Jetzt du: ein weißer + ein farbiger Würfel in der Farbe der Reihe.";
   passButton(state.activeCrossed ? "Fertig" : "Nichts ankreuzen – Fehlwurf (−5)", Q.passColor);
 }
 
@@ -295,10 +289,35 @@ function currentOptions(state) {
   return [];
 }
 
+/* explains a wrong tap by the rule it breaks – never by naming the fields that would work */
+function whyNot(state, row, index) {
+  const me = room.person;
+  const marks = state.sheets[me].marks[row];
+  const cells = state.layout[row];
+  const last = marks.length ? marks[marks.length - 1] : -1;
+  if (state.lockedRows.includes(row)) return "Diese Reihe ist schon abgeschlossen.";
+  if (index <= last) return "Links von deinem letzten Kreuz geht in dieser Reihe nichts mehr.";
+  if (index === cells.length - 1 && marks.length < Q.MIN_CROSSES_TO_LOCK) {
+    return `Zum Abschließen brauchst du mindestens ${Q.MIN_CROSSES_TO_LOCK} Kreuze in der Reihe.`;
+  }
+  if (state.phase === "white") return "Diese Zahl ist nicht die Summe der weißen Würfel.";
+  return `Diese Zahl ergibt sich nicht aus einem weißen und dem ${COLOR_ADJ[cells[index].c]}n Würfel.`;
+}
+
+function rejectTap(button, reason) {
+  button.classList.remove("nope");
+  void button.offsetWidth;
+  button.classList.add("nope");
+  setTimeout(() => button.classList.remove("nope"), 450);
+  if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+  showToast(reason, "error");
+}
+
 function renderSheet(state, move) {
   const me = room.person;
   const sheet = state.sheets[me];
   const options = new Set(currentOptions(state).map(o => `${o.row}-${o.index}`));
+  const canAct = (state.phase === "white" && !state.white[me].done) || (state.phase === "color" && state.active === me);
   const crossAction = state.phase === "white" ? Q.crossWhite : Q.crossColor;
   const myMove = move && move.person === me ? move : null;
 
@@ -324,10 +343,13 @@ function renderSheet(state, move) {
       if (crossed && myMove && myMove.type === "cross" && myMove.row === r && myMove.index === i) button.classList.add("just-crossed");
 
       const label = `${COLOR_NAME[cell.c]} ${cell.n}`;
-      if (options.has(`${r}-${i}`)) {
-        button.classList.add("option");
+      if (canAct && !crossed) {
+        button.classList.add("pickable");
         button.setAttribute("aria-label", `${label} ankreuzen`);
-        button.addEventListener("click", () => room.dispatch(crossAction, r, i));
+        button.addEventListener("click", () => {
+          if (options.has(`${r}-${i}`)) room.dispatch(crossAction, r, i);
+          else rejectTap(button, whyNot(state, r, i));
+        });
       } else {
         button.disabled = true;
         button.setAttribute("aria-label", crossed ? `${label}, angekreuzt` : label);

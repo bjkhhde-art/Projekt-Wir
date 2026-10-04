@@ -30,6 +30,7 @@ async function setup(mutate) {
 }
 const status = page => page.locator("#qxStatus").textContent();
 const cell = (page, row, index) => page.locator(".qx-row").nth(row).locator(".qx-cell").nth(index);
+const lastToast = async page => (await page.locator(".toast").allTextContents()).pop() || "";
 const settle = async () => { await isi.waitForTimeout(500); await benji.waitForTimeout(500); };
 
 /* ================= lobby with block choice ================= */
@@ -70,7 +71,13 @@ await setup(s => {
   ];
   s.dice = { w1: 2, w2: 3, red: 1, yellow: 6, green: 4, blue: 2 };
 });
-ok(await isi.locator(".qx-cell.option").count() === 4 && await benji.locator(".qx-cell.option").count() === 4, "white 5: each player can cross one 5 in any row");
+ok(await isi.locator(".qx-cell.option").count() === 0 && await benji.locator(".qx-cell.option").count() === 0, "no field lights up – each player works out the fitting fields alone");
+ok(await isi.locator(".qx-cell.pickable").count() === 44, "every open field can be tapped");
+ok(!(await status(isi)).match(/\d/), "the status line does not give away the white sum");
+await cell(isi, 0, 4).click();
+await isi.waitForTimeout(300);
+ok((await lastToast(isi)).includes("nicht die Summe der weißen Würfel"), "a wrong tap (red 6 on white 5) is explained by the rule");
+ok(await cell(isi, 0, 4).evaluate(el => !el.classList.contains("crossed")), "and nothing gets crossed");
 await Promise.all([cell(isi, 0, 3).click(), cell(benji, 1, 3).click()]);
 await isi.waitForTimeout(1200);
 await benji.waitForTimeout(400);
@@ -81,10 +88,16 @@ ok(await isi.locator(".qx-row").nth(0).locator(".qx-cell.crossed").count() === 1
 ok(await isi.locator(".qx-mini-row").nth(1).locator(".qx-mini-cell.crossed").count() === 1, "Isi sees Benji's cross in his small block");
 
 /* ================= colour combination, active player only ================= */
-ok(await benji.locator(".qx-cell.option").count() === 0, "Benji cannot use the colour dice");
+ok(await benji.locator(".qx-cell.pickable").count() === 0, "Benji cannot use the colour dice");
 ok((await status(benji)).includes("kombiniert"), "Benji is told Isi is combining colours");
-const isiOptions = await isi.locator(".qx-cell.option").evaluateAll(els => els.map(e => e.textContent + e.className.match(/qx-(red|yellow|green|blue)/)[1]));
-ok(isiOptions.includes("8yellow") && isiOptions.includes("9yellow") && !isiOptions.includes("3red"), `white + colour options are offered, fields left of a cross are lost (${isiOptions.join(", ")})`);
+await cell(isi, 0, 1).click();
+await isi.waitForTimeout(300);
+ok((await lastToast(isi)).includes("Links von deinem letzten Kreuz"), "fields left of a cross are lost – the tap says why");
+await cell(isi, 1, 2).click();
+await isi.waitForTimeout(300);
+ok((await lastToast(isi)).includes("weißen und dem gelben Würfel"), "yellow 4 does not fit white 2/3 + yellow 6 – the tap says so");
+game = await latest();
+ok(game.state.phase === "color" && game.state.active === "Isi" && game.state.sheets.Isi.marks[1].length === 0, "wrong taps change nothing");
 await isi.locator(".qx-row").nth(1).locator(".qx-cell", { hasText: /^9$/ }).click();
 await settle();
 game = await latest();
@@ -113,8 +126,9 @@ await setup(s => {
   s.white = { Isi: { done: false, cross: null }, Benji: { done: false, cross: null } };
   s.sheets.Isi.marks[0] = [0, 1, 2, 3, 4];
 });
-ok(await cell(isi, 0, 10).evaluate(el => el.classList.contains("option")), "with 5 crosses the red 12 can be crossed");
-ok(!(await cell(benji, 0, 10).evaluate(el => el.classList.contains("option"))), "Benji (without 5 red crosses) cannot lock red");
+await cell(benji, 0, 10).click();
+await benji.waitForTimeout(300);
+ok((await lastToast(benji)).includes("mindestens 5 Kreuze"), "Benji (without 5 red crosses) cannot lock red – and is told why");
 await cell(isi, 0, 10).click();
 await benji.waitForTimeout(500);
 await benji.locator(".qx-actions button", { hasText: /Nichts ankreuzen|Weiter/ }).click();
