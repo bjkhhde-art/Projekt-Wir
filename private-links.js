@@ -167,8 +167,7 @@ function buildPrivateLinkCard(link) {
     </div>
 
     <div class="pl-actions">
-      <a class="btn btn-sm pl-open" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">▶️ Öffnen</a>
-      <button type="button" class="btn btn-sm btn-secondary pl-copy">📋 Link kopieren</button>
+      <button type="button" class="btn btn-sm pl-copy">📋 Link kopieren</button>
     </div>
 
     <div class="pl-ratings">
@@ -191,6 +190,16 @@ function buildPrivateLinkCard(link) {
   `;
 
   card.querySelector(".pl-copy").addEventListener("click", () => copyLink(link.url));
+  const thumb = card.querySelector(".pl-thumb[data-copy]");
+  if (thumb) {
+    thumb.addEventListener("click", () => copyLink(link.url));
+    thumb.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        copyLink(link.url);
+      }
+    });
+  }
   card.querySelectorAll(".pl-tag").forEach(btn => btn.addEventListener("click", () => toggleTagFilter(btn.dataset.tag)));
   card.querySelector(".pl-tag-add").addEventListener("click", () => openPrivateModal(link, true));
   card.querySelectorAll(".pl-flame[data-rate]").forEach(btn => {
@@ -205,14 +214,15 @@ function buildPrivateLinkCard(link) {
   return card;
 }
 
-/* the picture comes from our own storage, so showing it never contacts the linked site */
+/* the picture comes from our own storage, so showing it never contacts the linked site.
+   Nothing here opens the link – tapping the picture copies it, like "Link kopieren". */
 function previewHtml(link) {
   if (link.preview_status === "ok" && link.preview_image) {
     return `
-      <a class="pl-thumb" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Öffnen">
+      <div class="pl-thumb" data-copy role="button" tabindex="0" aria-label="Link kopieren">
         <img src="${escapeHtml(link.preview_image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-        <span class="pl-play">▶</span>
-      </a>`;
+        <span class="pl-play">📋</span>
+      </div>`;
   }
   if (!link.preview_status || link.preview_status === "pending") {
     return `<div class="pl-thumb loading"><span>Vorschaubild wird geladen …</span></div>`;

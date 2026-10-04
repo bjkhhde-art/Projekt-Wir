@@ -73,11 +73,13 @@ ok((await benji.locator(".pl-title").textContent()) === "Für heute Abend <b>�
 await until(async () => await benji.locator(".pl-thumb img").count() === 1, 4000, "preview picture shown");
 const thumb = benji.locator(".pl-thumb");
 ok(await thumb.locator("img").getAttribute("src") === "/icons/icon-512.png", "the card shows the stored preview picture");
-ok(await thumb.getAttribute("href") === "https://example.com/video/123" && (await thumb.getAttribute("rel")).includes("noreferrer"), "tapping the picture opens the link like 'Öffnen'");
 ok(await thumb.locator("img").evaluate(img => img.complete && img.naturalWidth > 0), "the picture loads from our own server");
-const anchor = benji.locator(".pl-open");
-ok(await anchor.getAttribute("href") === "https://example.com/video/123" && await anchor.getAttribute("target") === "_blank", "Öffnen opens the link in a new tab");
-ok((await anchor.getAttribute("rel")).includes("noreferrer") && await anchor.getAttribute("referrerpolicy") === "no-referrer", "the other site does not learn where the visit came from");
+ok(await benji.locator(".pl-card a").count() === 0 && (await benji.locator(".pl-card").textContent()).indexOf("Öffnen") === -1, "nothing on the card opens the link – no Öffnen, no link on the picture");
+await benji.evaluate(() => navigator.clipboard.writeText(""));
+await thumb.click();
+await wait(300);
+ok(await benji.evaluate(() => navigator.clipboard.readText()) === "https://example.com/video/123", "tapping the picture copies the link");
+await benji.evaluate(() => navigator.clipboard.writeText(""));
 await benji.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 await wait(200);
 ok(await benji.evaluate(() => {
