@@ -475,3 +475,22 @@
 #watchlistSeenByField.hidden {
   display: none;
 }
+
+.seen-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.seen-date-row input {
+  width: auto;
+  flex: 0 1 170px;
+  margin: 0;
+  padding: 9px 10px;
+  font-size: 15px;
+}

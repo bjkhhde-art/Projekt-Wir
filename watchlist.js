@@ -31,6 +31,8 @@ const seenByModalText = document.getElementById("seenByModalText");
 const cancelSeenBy = document.getElementById("cancelSeenBy");
 const watchlistToggleWatchedBtn = document.getElementById("watchlistToggleWatchedBtn");
 const watchlistDeleteBtn = document.getElementById("watchlistDeleteBtn");
+const watchlistWatchedAtInput = document.getElementById("watchlistWatchedAtInput");
+const seenByDateInput = document.getElementById("seenByDateInput");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
 const MEDIA_ICONS = { film: "🎬", serie: "📺" };
@@ -360,7 +362,28 @@ watchlistSearchInput.addEventListener("input", () => {
   renderWatchlist();
 });
 
-/* marking as watched first asks how: together or one of us alone */
+/* watch dates as the yyyy-mm-dd of a date field, in local time */
+function dayKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/* a picked day keeps the time of day it had before (or now), so titles watched on the same
+   day stay in their order. Returns null for an empty field, false for a day in the future. */
+function watchedAtFromDay(day, previousIso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day || "")) return null;
+  if (day > dayKey(new Date())) return false;
+  const [year, month, date] = day.split("-").map(Number);
+  const result = previousIso ? new Date(previousIso) : new Date();
+  result.setFullYear(year, month - 1, date);
+  return result.toISOString();
+}
+
+function prepareDateInput(input, iso) {
+  input.max = dayKey(new Date());
+  input.value = iso ? dayKey(new Date(iso)) : "";
+}
+
+/* marking as watched first asks how (together or one of us alone) and when – today unless changed */
 function toggleWatched(entry) {
   if (entry.watched) {
     setWatched(entry, false, null);
@@ -368,15 +391,21 @@ function toggleWatched(entry) {
   }
   seenByEntry = entry;
   seenByModalText.textContent = `Wie habt ihr „${entry.title}“ geschaut?`;
+  prepareDateInput(seenByDateInput, new Date().toISOString());
   seenByModal.classList.remove("hidden");
 }
 
 seenByModal.querySelectorAll(".seen-by-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const entry = seenByEntry;
+    const watchedAt = watchedAtFromDay(seenByDateInput.value, null);
+    if (watchedAt === false) {
+      showToast("Das Datum liegt in der Zukunft 🙂", "error");
+      return;
+    }
     seenByEntry = null;
     seenByModal.classList.add("hidden");
-    if (entry) setWatched(entry, true, btn.dataset.seen);
+    if (entry) setWatched(entry, true, btn.dataset.seen, watchedAt);
   });
 });
 
@@ -385,12 +414,12 @@ cancelSeenBy.addEventListener("click", () => {
   seenByModal.classList.add("hidden");
 });
 
-async function setWatched(entry, nextWatched, seenBy) {
+async function setWatched(entry, nextWatched, seenBy, watchedAt) {
   const { error } = await supabaseClient
     .from("watchlist")
     .update({
       watched: nextWatched,
-      watched_at: nextWatched ? new Date().toISOString() : null,
+      watched_at: nextWatched ? watchedAt || new Date().toISOString() : null,
       rating: nextWatched ? entry.rating : null,
       seen_by: nextWatched ? seenBy : null
     })
@@ -474,6 +503,7 @@ function openEditModal(entry) {
   watchlistEditExtras.classList.remove("hidden");
   editingSeenBy = entry.seen_by || null;
   watchlistSeenByField.classList.toggle("hidden", !entry.watched);
+  prepareDateInput(watchlistWatchedAtInput, entry.watched_at);
   renderSeenByChoice();
   updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
@@ -536,7 +566,20 @@ async function saveWatchlistEntry() {
     platform: watchlistPlatformInput.value.trim() || null,
     added_by: watchlistAddedByInput.value
   };
-  if (editingWatchlistId && !watchlistSeenByField.classList.contains("hidden")) payload.seen_by = editingSeenBy;
+  if (editingWatchlistId && !watchlistSeenByField.classList.contains("hidden")) {
+    payload.seen_by = editingSeenBy;
+    /* only a changed day is written; an emptied field keeps the old date */
+    const entry = editingEntry();
+    const previous = entry && entry.watched_at ? dayKey(new Date(entry.watched_at)) : "";
+    if (watchlistWatchedAtInput.value && watchlistWatchedAtInput.value !== previous) {
+      const watchedAt = watchedAtFromDay(watchlistWatchedAtInput.value, entry && entry.watched_at);
+      if (watchedAt === false) {
+        showToast("Das Datum liegt in der Zukunft 🙂", "error");
+        return;
+      }
+      if (watchedAt) payload.watched_at = watchedAt;
+    }
+  }
 
   const { error } = editingWatchlistId
     ? await supabaseClient.from("watchlist").update(payload).eq("id", editingWatchlistId)

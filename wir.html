@@ -115,6 +115,8 @@
           <button type="button" class="seen-by-btn" data-seen="Isi" role="radio">👤 Isi allein</button>
           <button type="button" class="seen-by-btn" data-seen="Benji" role="radio">👤 Benji allein</button>
         </div>
+        <label for="watchlistWatchedAtInput">Gesehen am</label>
+        <input id="watchlistWatchedAtInput" type="date">
       </div>
 
       <div class="modal-buttons">
@@ -173,6 +175,10 @@
     <div class="modal-box">
       <h2>Gesehen! 🎉</h2>
       <p id="seenByModalText" class="push-modal-text">Wie habt ihr es geschaut?</p>
+      <label class="seen-date-row" for="seenByDateInput">
+        <span>📅 Gesehen am</span>
+        <input id="seenByDateInput" type="date">
+      </label>
       <div class="seen-by-choice seen-by-big">
         <button type="button" class="seen-by-btn" data-seen="both">👫 Zusammen</button>
         <button type="button" class="seen-by-btn" data-seen="Isi">👤 Isi allein</button>
