@@ -78,6 +78,12 @@ ok(await thumb.locator("img").evaluate(img => img.complete && img.naturalWidth >
 const anchor = benji.locator(".pl-open");
 ok(await anchor.getAttribute("href") === "https://example.com/video/123" && await anchor.getAttribute("target") === "_blank", "Öffnen opens the link in a new tab");
 ok((await anchor.getAttribute("rel")).includes("noreferrer") && await anchor.getAttribute("referrerpolicy") === "no-referrer", "the other site does not learn where the visit came from");
+await benji.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await wait(200);
+ok(await benji.evaluate(() => {
+  const send = document.querySelector(".pl-comment-send").getBoundingClientRect();
+  return document.elementFromPoint(send.left + send.width / 2, send.top + send.height / 2)?.closest(".pl-comment-send") !== null;
+}), "the + button never covers the last card's buttons");
 await benji.click(".pl-copy");
 await wait(300);
 ok(await benji.evaluate(() => navigator.clipboard.readText()) === "https://example.com/video/123", "the link can be copied for a private tab");
