@@ -18,18 +18,26 @@ const watchlistPlatformInput = document.getElementById("watchlistPlatformInput")
 const watchlistAddedByInput = document.getElementById("watchlistAddedByInput");
 const watchlistEditExtras = document.getElementById("watchlistEditExtras");
 const watchlistDuplicateHint = document.getElementById("watchlistDuplicateHint");
+const watchlistSeenByField = document.getElementById("watchlistSeenByField");
+const seenByEditButtons = watchlistSeenByField.querySelectorAll(".seen-by-btn");
+const seenByModal = document.getElementById("seenByModal");
+const seenByModalText = document.getElementById("seenByModalText");
+const cancelSeenBy = document.getElementById("cancelSeenBy");
 const watchlistToggleWatchedBtn = document.getElementById("watchlistToggleWatchedBtn");
 const watchlistDeleteBtn = document.getElementById("watchlistDeleteBtn");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
 const MEDIA_ICONS = { film: "🎬", serie: "📺" };
 const SEEN_OPEN_KEY = "pw_watchlist_seen_open";
+const SEEN_BY_LABELS = { both: "👫 zusammen", Isi: "👤 Isi allein", Benji: "👤 Benji allein" };
 const LONG_PRESS_MS = 500;
 
 let watchlistEntries = [];
 let currentFilter = "alle";
 let currentSearch = "";
 let editingWatchlistId = null;
+let editingSeenBy = null;
+let seenByEntry = null;
 
 async function loadWatchlist() {
   const { data, error } = await supabaseClient
@@ -157,7 +165,7 @@ function buildWatchedRow(entry) {
   row.className = "watched-row";
   attachLongPressToEdit(row, entry);
 
-  const meta = [entry.platform, entry.watched_at ? `gesehen ${formatDate(entry.watched_at)}` : null].filter(Boolean).join(" · ");
+  const meta = [SEEN_BY_LABELS[entry.seen_by], entry.platform, entry.watched_at ? `gesehen ${formatDate(entry.watched_at)}` : null].filter(Boolean).join(" · ");
   row.innerHTML = `
     <span class="watched-type" title="${entry.media_type === "serie" ? "Serie" : "Film"}">${MEDIA_ICONS[entry.media_type] || MEDIA_ICONS.film}</span>
     <div class="watched-main">
@@ -218,15 +226,19 @@ function buildSeenSection(watched, forceOpen) {
 function renderWatchlist() {
   watchlistList.innerHTML = "";
 
-  const search = currentSearch.trim().toLowerCase();
+  const search = currentSearch.trim();
 
+  /* forgiving search (typos, umlauts, word beginnings); best matches first */
+  const scores = new Map();
   const filtered = watchlistEntries.filter(entry => {
-    const matchesFilter = currentFilter === "alle" || entry.media_type === currentFilter;
-    const matchesSearch = !search ||
-      entry.title.toLowerCase().includes(search) ||
-      (entry.platform && entry.platform.toLowerCase().includes(search));
-    return matchesFilter && matchesSearch;
+    if (currentFilter !== "alle" && entry.media_type !== currentFilter) return false;
+    if (!search) return true;
+    const score = FuzzySearch.score(search, entry.title, entry.platform);
+    scores.set(entry.id, score);
+    return score > 0;
   });
+  const byRelevance = (a, b) => scores.get(b.id) - scores.get(a.id);
+  if (search) filtered.sort(byRelevance);
 
   if (filtered.length === 0) {
     watchlistList.innerHTML = search || currentFilter !== "alle"
@@ -242,7 +254,7 @@ function renderWatchlist() {
   const open = filtered.filter(entry => !entry.watched);
   const watched = filtered
     .filter(entry => entry.watched)
-    .sort((a, b) => (b.watched_at || "").localeCompare(a.watched_at || ""));
+    .sort(search ? byRelevance : (a, b) => (b.watched_at || "").localeCompare(a.watched_at || ""));
 
   if (open.length > 0) {
     const label = document.createElement("p");
@@ -270,15 +282,39 @@ watchlistSearchInput.addEventListener("input", () => {
   renderWatchlist();
 });
 
-async function toggleWatched(entry) {
-  const nextWatched = !entry.watched;
+/* marking as watched first asks how: together or one of us alone */
+function toggleWatched(entry) {
+  if (entry.watched) {
+    setWatched(entry, false, null);
+    return;
+  }
+  seenByEntry = entry;
+  seenByModalText.textContent = `Wie habt ihr „${entry.title}“ geschaut?`;
+  seenByModal.classList.remove("hidden");
+}
 
+seenByModal.querySelectorAll(".seen-by-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const entry = seenByEntry;
+    seenByEntry = null;
+    seenByModal.classList.add("hidden");
+    if (entry) setWatched(entry, true, btn.dataset.seen);
+  });
+});
+
+cancelSeenBy.addEventListener("click", () => {
+  seenByEntry = null;
+  seenByModal.classList.add("hidden");
+});
+
+async function setWatched(entry, nextWatched, seenBy) {
   const { error } = await supabaseClient
     .from("watchlist")
     .update({
       watched: nextWatched,
       watched_at: nextWatched ? new Date().toISOString() : null,
-      rating: nextWatched ? entry.rating : null
+      rating: nextWatched ? entry.rating : null,
+      seen_by: nextWatched ? seenBy : null
     })
     .eq("id", entry.id);
 
@@ -341,6 +377,8 @@ openWatchlistModal.addEventListener("click", () => {
   watchlistPlatformInput.value = "";
   watchlistAddedByInput.value = "Isi";
   watchlistEditExtras.classList.add("hidden");
+  watchlistSeenByField.classList.add("hidden");
+  editingSeenBy = null;
   updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
@@ -356,6 +394,9 @@ function openEditModal(entry) {
   watchlistAddedByInput.value = entry.added_by || "Isi";
   watchlistToggleWatchedBtn.textContent = entry.watched ? "↩️ Doch noch nicht gesehen" : "✅ Als gesehen markieren";
   watchlistEditExtras.classList.remove("hidden");
+  editingSeenBy = entry.seen_by || null;
+  watchlistSeenByField.classList.toggle("hidden", !entry.watched);
+  renderSeenByChoice();
   updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
@@ -417,6 +458,7 @@ async function saveWatchlistEntry() {
     platform: watchlistPlatformInput.value.trim() || null,
     added_by: watchlistAddedByInput.value
   };
+  if (editingWatchlistId && !watchlistSeenByField.classList.contains("hidden")) payload.seen_by = editingSeenBy;
 
   const { error } = editingWatchlistId
     ? await supabaseClient.from("watchlist").update(payload).eq("id", editingWatchlistId)
@@ -442,6 +484,22 @@ async function saveWatchlistEntry() {
 }
 
 saveWatchlistBtn.addEventListener("click", saveWatchlistEntry);
+
+function renderSeenByChoice() {
+  seenByEditButtons.forEach(btn => {
+    const selected = btn.dataset.seen === editingSeenBy;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-checked", String(selected));
+  });
+}
+
+/* tapping the selected option again clears it ("not recorded") */
+seenByEditButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    editingSeenBy = editingSeenBy === btn.dataset.seen ? null : btn.dataset.seen;
+    renderSeenByChoice();
+  });
+});
 
 function editingEntry() {
   return watchlistEntries.find(entry => entry.id === editingWatchlistId);

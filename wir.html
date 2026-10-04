@@ -90,6 +90,15 @@
         <option value="Benji">Benji</option>
       </select>
 
+      <div id="watchlistSeenByField" class="hidden">
+        <label>Gesehen</label>
+        <div class="seen-by-choice" role="radiogroup" aria-label="Wer hat es gesehen?">
+          <button type="button" class="seen-by-btn" data-seen="both" role="radio">👫 Zusammen</button>
+          <button type="button" class="seen-by-btn" data-seen="Isi" role="radio">👤 Isi allein</button>
+          <button type="button" class="seen-by-btn" data-seen="Benji" role="radio">👤 Benji allein</button>
+        </div>
+      </div>
+
       <div class="modal-buttons">
         <button id="saveWatchlistBtn" class="btn">Hinzufügen</button>
         <button id="closeWatchlistModal" class="btn btn-secondary">Abbrechen</button>
@@ -130,6 +139,21 @@
 
       <div id="privateLinkEditExtras" class="watchlist-edit-extras hidden">
         <button id="deletePrivateLinkBtn" class="btn btn-secondary btn-sm watchlist-edit-delete" type="button">🗑️ Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seenByModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Gesehen! 🎉</h2>
+      <p id="seenByModalText" class="push-modal-text">Wie habt ihr es geschaut?</p>
+      <div class="seen-by-choice seen-by-big">
+        <button type="button" class="seen-by-btn" data-seen="both">👫 Zusammen</button>
+        <button type="button" class="seen-by-btn" data-seen="Isi">👤 Isi allein</button>
+        <button type="button" class="seen-by-btn" data-seen="Benji">👤 Benji allein</button>
+      </div>
+      <div class="modal-buttons">
+        <button id="cancelSeenBy" class="btn btn-secondary btn-block" type="button">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -193,6 +217,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
+  <script src="fuzzy-search.js"></script>
   <script src="watchlist.js"></script>
   <script src="liebesbriefe.js"></script>
   <script src="private-links.js"></script>
