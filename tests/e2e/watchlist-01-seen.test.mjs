@@ -49,6 +49,20 @@ ok(await page.locator(".watched-list").isHidden(), "and stays folded after reloa
 await page.fill("#watchlistSearchInput", "arc");
 await page.waitForTimeout(200);
 ok(await page.locator(".watched-list").isVisible() && await page.locator(".watched-row").count() === 1, "searching opens it and finds watched titles");
+await page.fill("#watchlistSearchInput", "shogun");
+await page.waitForTimeout(200);
+ok((await page.locator(".watched-title").allTextContents()).includes("Shōgun"), "fuzzy search: 'shogun' finds Shōgun");
+await page.fill("#watchlistSearchInput", "past livs");
+await page.waitForTimeout(200);
+ok(JSON.stringify(await page.locator(".watched-title").allTextContents()) === JSON.stringify(["Past Lives"]), "fuzzy search forgives typos: 'past livs' → Past Lives");
+await page.fill("#watchlistSearchInput", "dune thre");
+await page.waitForTimeout(200);
+ok(await page.locator(".watchlist-card", { hasText: "Dune Part Three" }).count() === 1 && await page.locator(".watchlist-card").count() === 1, "word beginnings across the title: 'dune thre' → Dune Part Three");
+await page.fill("#watchlistSearchInput", "kino");
+await page.waitForTimeout(200);
+ok(await page.locator(".watchlist-card", { hasText: "Dune Part Three" }).count() === 1, "the platform is searched too ('kino')");
+await page.fill("#watchlistSearchInput", "arc");
+await page.waitForTimeout(200);
 await page.fill("#watchlistSearchInput", "");
 await page.waitForTimeout(200);
 await page.click(".watched-toggle");
@@ -87,12 +101,45 @@ ok(!(await rows()).some(r => r.id === 4), "deleting from the edit form removes t
 /* the + form for a new title has no edit extras */
 await page.click("#openWatchlistModal");
 ok(await page.locator("#watchlistEditExtras").isHidden(), "a new entry form shows no delete button");
+ok(await page.locator("#watchlistSeenByField").isHidden(), "a new entry form does not ask who watched it");
 await page.click("#closeWatchlistModal");
 
 /* marking an open title as watched moves it into the compact list */
 await page.locator(".watchlist-card", { hasText: "The Bear" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await wait(200);
+ok(await page.locator("#seenByModal").isVisible() && (await page.locator("#seenByModalText").textContent()).includes("The Bear"), "marking as watched asks: together or alone?");
+await page.click('#seenByModal .seen-by-btn[data-seen="Benji"]');
 await wait(700);
+ok((await rows()).find(r => r.id === 2).seen_by === "Benji", "'Benji allein' is stored");
 ok((await page.locator(".watched-title").first().textContent()) === "The Bear", "a freshly watched title appears at the top of the list");
+ok((await page.locator(".watched-meta").first().textContent()).includes("👤 Benji allein"), "the row says who watched it");
+
+/* recording it later for an older entry */
+await hold(page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-main"));
+ok(await page.locator("#watchlistSeenByField").isVisible(), "editing a watched title offers together / alone");
+await page.click('#watchlistSeenByField .seen-by-btn[data-seen="both"]');
+ok(await page.locator('#watchlistSeenByField .seen-by-btn[data-seen="both"]').evaluate(el => el.classList.contains("selected")), "the choice is highlighted");
+await page.click("#saveWatchlistBtn");
+await wait(700);
+ok((await rows()).find(r => r.id === 3).seen_by === "both", "'zusammen' is stored for Past Lives");
+ok((await page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-meta").textContent()).includes("👫 zusammen"), "and shown in its row");
+
+/* un-watching clears it */
+await hold(page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-main"));
+await page.click("#watchlistToggleWatchedBtn");
+await wait(700);
+const pastLives = (await rows()).find(r => r.id === 3);
+ok(pastLives.watched === false && pastLives.seen_by === null, "marking it as not watched also clears who watched it");
+
+/* cancelling the question changes nothing */
+await page.locator(".watchlist-card", { hasText: "Past Lives" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.click("#cancelSeenBy");
+await wait(400);
+ok((await rows()).find(r => r.id === 3).watched === false, "cancelling the question keeps it on the list");
+await page.locator(".watchlist-card", { hasText: "Past Lives" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.click('#seenByModal .seen-by-btn[data-seen="both"]');
+await wait(700);
+ok((await rows()).find(r => r.id === 3).seen_by === "both", "watched together again");
 
 /* the same title cannot be added twice */
 const countBefore = (await rows()).length;

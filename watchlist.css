@@ -303,3 +303,44 @@
 .watchlist-duplicate-hint.hidden {
   display: none;
 }
+
+/* ---------- together or alone ---------- */
+
+.seen-by-choice {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.seen-by-btn {
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.seen-by-btn.selected {
+  border-color: var(--pink);
+  background: rgba(255, 92, 138, 0.12);
+}
+
+.seen-by-big {
+  grid-template-columns: 1fr;
+  margin: 14px 0 4px;
+}
+
+.seen-by-big .seen-by-btn {
+  padding: 14px;
+  font-size: 15px;
+}
+
+#watchlistSeenByField.hidden {
+  display: none;
+}
