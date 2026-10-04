@@ -23,17 +23,19 @@
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="watchlist.css">
   <link rel="stylesheet" href="liebesbriefe.css">
+  <link rel="stylesheet" href="private-links.css">
   <script src="pin-lock.js"></script>
 </head>
 <body data-hub="wir">
 
   <main class="page">
     <h1 class="page-title">Wir 💬</h1>
-    <p class="page-subtitle">Watchlist und kleine Nachrichten füreinander</p>
+    <p class="page-subtitle">Watchlist, kleine Nachrichten und was nur uns beide etwas angeht</p>
 
     <div class="hub-tabs" role="tablist">
       <button class="hub-tab" data-tab="watchlist" role="tab">🎬 Watchlist</button>
       <button class="hub-tab" data-tab="briefe" role="tab">💌 Briefe</button>
+      <button class="hub-tab" data-tab="privat" role="tab">🔥 Nur für uns</button>
     </div>
 
     <section class="hub-panel" data-panel="watchlist">
@@ -54,8 +56,14 @@
       <div id="notesFeed" class="notes-feed"></div>
     </section>
 
+    <section class="hub-panel" data-panel="privat" hidden>
+      <p class="pl-intro">Links, die wir uns gegenseitig schicken &ndash; bewerten mit 🔥 und kommentieren. „Öffnen“ startet einen neuen Tab ohne Spur zu unserer Seite; für ein privates Fenster den Link kopieren oder lange drücken.</p>
+      <div id="privateLinkList" class="pl-list"></div>
+    </section>
+
   </main>
 
+  <button id="openPrivateLinkModal" class="fab" title="Link teilen" aria-label="Link teilen" data-show-for="privat">+</button>
   <button id="openWatchlistModal" class="fab" title="Neuer Eintrag" aria-label="Neuer Eintrag" data-show-for="watchlist">+</button>
   <button id="openNoteModal" class="fab" title="Neue Nachricht" aria-label="Neue Nachricht" data-show-for="briefe">+</button>
 
@@ -90,6 +98,38 @@
       <div id="watchlistEditExtras" class="watchlist-edit-extras hidden">
         <button id="watchlistToggleWatchedBtn" class="btn btn-secondary btn-sm" type="button">↩️ Doch noch nicht gesehen</button>
         <button id="watchlistDeleteBtn" class="btn btn-secondary btn-sm watchlist-edit-delete" type="button">🗑️ Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wer was geteilt und kommentiert hat.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="privateLinkModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="privateLinkModalTitle">Link teilen 🔥</h2>
+
+      <label for="privateLinkUrlInput">Link</label>
+      <input id="privateLinkUrlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+
+      <label for="privateLinkTitleInput">Titel (optional)</label>
+      <input id="privateLinkTitleInput" type="text" maxlength="120" placeholder="Worum geht's?">
+
+      <div class="modal-buttons">
+        <button id="savePrivateLinkBtn" class="btn" type="button">Teilen</button>
+        <button id="closePrivateLinkModal" class="btn btn-secondary" type="button">Abbrechen</button>
+      </div>
+
+      <div id="privateLinkEditExtras" class="watchlist-edit-extras hidden">
+        <button id="deletePrivateLinkBtn" class="btn btn-secondary btn-sm watchlist-edit-delete" type="button">🗑️ Löschen</button>
       </div>
     </div>
   </div>
@@ -155,5 +195,6 @@
   <script src="hub-tabs.js"></script>
   <script src="watchlist.js"></script>
   <script src="liebesbriefe.js"></script>
+  <script src="private-links.js"></script>
 </body>
 </html>
