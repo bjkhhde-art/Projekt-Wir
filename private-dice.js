@@ -1,5 +1,5 @@
 /* "🎲 Zufall" in Nur für uns: a random link from our own list, or something new from
-   eporner.com via the random-video function. Uses the state and helpers of private-links.js. */
+   eporner.com via the random-video function. Results are only copied, never opened from here. Uses the state and helpers of private-links.js. */
 
 const openDiceModal = document.getElementById("openDiceModal");
 const diceModal = document.getElementById("diceModal");
@@ -121,10 +121,11 @@ function rollOurs() {
       <p class="pl-meta">von ${escapeHtml(link.added_by)} · ${timeAgo(link.created_at)}</p>
       ${tags ? `<div class="pl-tags">${tags}</div>` : ""}
       <div class="pl-actions">
-        <a class="btn btn-sm pl-open" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">▶️ Öffnen</a>
+        <button type="button" class="btn btn-sm pl-dice-copy">📋 Link kopieren</button>
         <button type="button" class="btn btn-sm btn-secondary pl-dice-goto">📍 Zur Karte</button>
       </div>
     </div>`);
+  diceResult.querySelector(".pl-dice-copy").addEventListener("click", () => copyLink(link.url));
   diceResult.querySelector(".pl-dice-goto").addEventListener("click", () => goToCard(link.id));
   diceRollBtn.textContent = "🎲 Nochmal";
 }
@@ -197,10 +198,11 @@ async function rollNew() {
       <h3 class="pl-dice-title">${escapeHtml(title)}</h3>
       ${facts ? `<p class="pl-meta">${escapeHtml(facts)}</p>` : ""}
       <div class="pl-actions">
-        <a class="btn btn-sm pl-open" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">▶️ Öffnen</a>
+        <button type="button" class="btn btn-sm pl-dice-copy">📋 Link kopieren</button>
         <button type="button" class="btn btn-sm btn-secondary pl-dice-take">➕ In unsere Liste</button>
       </div>
     </div>`);
+  diceResult.querySelector(".pl-dice-copy").addEventListener("click", () => copyLink(url));
   diceResult.querySelector(".pl-dice-take").addEventListener("click", () => {
     diceModal.classList.add("hidden");
     openPrivateModal(null, false, { url, title, tags: Tags.parseTags(query) });

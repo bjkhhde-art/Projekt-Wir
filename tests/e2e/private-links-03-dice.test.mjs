@@ -20,6 +20,7 @@ await post("/t/private_link_comments/seed", { rows: [] });
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost:9091" });
 await ctx.addInitScript(() => {
   localStorage.setItem("pw_person", "Isi");
   /* the random-video function, answered by the test: window.__videoAnswers is a queue */
@@ -68,6 +69,10 @@ await chip("pov").click();
 await roll();
 const shownPicture = await page.locator("#diceResult .pl-dice-thumb").count();
 ok(await resultTitle() === "Bravo" && shownPicture === 0, "links without a stored picture show no picture");
+ok(await page.locator("#diceResult a").count() === 0, "the pick cannot be opened from here – no link to tap");
+await page.click("#diceResult .pl-dice-copy");
+await wait(300);
+ok(await page.evaluate(() => navigator.clipboard.readText()) === "https://example.com/2", "'Link kopieren' copies the picked link");
 
 /* 'Zur Karte' finds the card even when the list filter hides it */
 await page.click("#closeDiceModal");
@@ -96,8 +101,10 @@ ok(["https://example.com/1", "https://example.com/2", "https://example.com/3"].e
 ok(await resultTitle() === "Heißer <b>Clip</b> a", "the title is shown as plain text");
 ok((await page.locator("#diceResult .pl-meta").textContent()) === "⏱ 12:34 · ⭐ 4,6 · 1,2 Mio. Aufrufe", "length, rating and views are shown");
 ok((await page.locator("#diceResult .pl-dice-thumb").getAttribute("src")).startsWith("data:image/png;base64,"), "the picture comes with the answer, not from the site");
-const open = page.locator("#diceResult .pl-open");
-ok(await open.getAttribute("href") === "https://www.eporner.com/video-a/clip/" && (await open.getAttribute("rel")).includes("noreferrer") && await open.getAttribute("target") === "_blank", "Öffnen opens the video in a new tab without a trace to us");
+ok(await page.locator("#diceResult a").count() === 0, "the suggestion is not a tappable link");
+await page.click("#diceResult .pl-dice-copy");
+await wait(300);
+ok(await page.evaluate(() => navigator.clipboard.readText()) === "https://www.eporner.com/video-a/clip/", "'Link kopieren' copies the suggested video for a private tab");
 await roll();
 await page.waitForFunction(() => document.querySelector("#diceResult .pl-dice-title")?.textContent.endsWith("</b> b"));
 calls = await invocations();
@@ -124,7 +131,7 @@ ok((await page.locator("#diceResult .pl-dice-empty").textContent()).includes("�
 await queue([video("x", { url: "https://evil.example/x" })]);
 await roll();
 await wait(300);
-ok((await page.locator("#diceResult .pl-dice-empty").textContent()).includes("antwortet gerade nicht") && await page.locator("#diceResult .pl-open").count() === 0, "a suggestion that is not on eporner is never shown");
+ok((await page.locator("#diceResult .pl-dice-empty").textContent()).includes("antwortet gerade nicht") && await page.locator("#diceResult .pl-dice-copy").count() === 0, "a suggestion that is not on eporner is never shown");
 await queue([video("y", { thumb: "javascript:alert(1)" })]);
 await roll();
 await page.waitForSelector("#diceResult .pl-dice-title");

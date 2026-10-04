@@ -1,6 +1,6 @@
 /* "Etwas Neues" in Nur für uns: suggests one random, popular video from the public Eporner
    API. The preview picture is fetched here and sent along, so phones only contact the site
-   when "Öffnen" is tapped. Called with { query?, exclude? } (exclude = links we already have). */
+   when the copied link is opened. Called with { query?, exclude? } (exclude = links we already have). */
 import { isEpornerUrl, pickVideo, randomOrder, randomPage, searchUrl } from "./eporner.mjs";
 
 const TIMEOUT_MS = 8000;
