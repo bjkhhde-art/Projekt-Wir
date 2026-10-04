@@ -42,10 +42,27 @@
 
       <input id="watchlistSearchInput" type="search" class="watchlist-search" placeholder="🔍 Suchen...">
 
-      <div class="watchlist-filter">
-        <button class="watchlist-filter-btn active" data-filter="alle">Alle</button>
-        <button class="watchlist-filter-btn" data-filter="film">🎬 Filme</button>
-        <button class="watchlist-filter-btn" data-filter="serie">📺 Serien</button>
+      <div class="wl-filter-bar">
+        <button id="watchlistFilterToggle" class="wl-filter-toggle" type="button" aria-expanded="false" aria-controls="watchlistFilterPanel">
+          Filter <span id="watchlistFilterCount" class="wl-filter-count hidden"></span><span class="wl-filter-chevron">▾</span>
+        </button>
+        <span id="watchlistResultCount" class="wl-result-count"></span>
+        <button id="watchlistFilterReset" class="wl-filter-reset hidden" type="button">Zurücksetzen</button>
+      </div>
+
+      <div id="watchlistFilterPanel" class="wl-filter-panel card" hidden>
+        <div class="wl-filter-group" data-group="types"><h4>Art</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="status"><h4>Gesehen?</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="platforms"><h4>Anbieter</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="periods">
+          <h4>Gesehen am</h4>
+          <div class="wl-chips"></div>
+          <div class="wl-date-range">
+            <label>von <input id="watchlistFilterFrom" type="date"></label>
+            <label>bis <input id="watchlistFilterTo" type="date"></label>
+          </div>
+        </div>
+        <p class="wl-filter-hint">Mehrere pro Gruppe möglich. Zeitraum-Filter zeigen nur gesehene Titel.</p>
       </div>
 
       <div id="watchlistList" class="watchlist-list"></div>
@@ -218,6 +235,7 @@
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
   <script src="fuzzy-search.js"></script>
+  <script src="watchlist-filter.js"></script>
   <script src="watchlist.js"></script>
   <script src="liebesbriefe.js"></script>
   <script src="private-links.js"></script>

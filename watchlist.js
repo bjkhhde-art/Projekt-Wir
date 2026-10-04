@@ -4,7 +4,13 @@ const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const watchlistList = document.getElementById("watchlistList");
-const watchlistFilterButtons = document.querySelectorAll(".watchlist-filter-btn");
+const watchlistFilterToggle = document.getElementById("watchlistFilterToggle");
+const watchlistFilterPanel = document.getElementById("watchlistFilterPanel");
+const watchlistFilterCount = document.getElementById("watchlistFilterCount");
+const watchlistFilterReset = document.getElementById("watchlistFilterReset");
+const watchlistResultCount = document.getElementById("watchlistResultCount");
+const watchlistFilterFrom = document.getElementById("watchlistFilterFrom");
+const watchlistFilterTo = document.getElementById("watchlistFilterTo");
 const watchlistSearchInput = document.getElementById("watchlistSearchInput");
 
 const openWatchlistModal = document.getElementById("openWatchlistModal");
@@ -33,7 +39,8 @@ const SEEN_BY_LABELS = { both: "👫 zusammen", Isi: "👤 Isi allein", Benji: "
 const LONG_PRESS_MS = 500;
 
 let watchlistEntries = [];
-let currentFilter = "alle";
+const FILTERS_KEY = "pw_watchlist_filters";
+let filters = loadFilters();
 let currentSearch = "";
 let editingWatchlistId = null;
 let editingSeenBy = null;
@@ -231,7 +238,7 @@ function renderWatchlist() {
   /* forgiving search (typos, umlauts, word beginnings); best matches first */
   const scores = new Map();
   const filtered = watchlistEntries.filter(entry => {
-    if (currentFilter !== "alle" && entry.media_type !== currentFilter) return false;
+    if (!WatchlistFilter.matches(entry, filters)) return false;
     if (!search) return true;
     const score = FuzzySearch.score(search, entry.title, entry.platform);
     scores.set(entry.id, score);
@@ -240,8 +247,11 @@ function renderWatchlist() {
   const byRelevance = (a, b) => scores.get(b.id) - scores.get(a.id);
   if (search) filtered.sort(byRelevance);
 
+  const filtering = WatchlistFilter.activeCount(filters) > 0;
+  renderFilterPanel(filtered.length);
+
   if (filtered.length === 0) {
-    watchlistList.innerHTML = search || currentFilter !== "alle"
+    watchlistList.innerHTML = search || filtering
       ? `<div class="watchlist-empty"><p>Nichts gefunden.</p></div>`
       : `
       <div class="watchlist-empty">
@@ -265,16 +275,84 @@ function renderWatchlist() {
   }
 
   if (watched.length > 0) {
-    watchlistList.appendChild(buildSeenSection(watched, !!search));
+    watchlistList.appendChild(buildSeenSection(watched, !!search || filtering));
   }
 }
 
-watchlistFilterButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    currentFilter = btn.dataset.filter;
-    watchlistFilterButtons.forEach(b => b.classList.toggle("active", b === btn));
+/* ---------- filters: several choices per group, remembered on this phone ---------- */
+
+function loadFilters() {
+  try {
+    return WatchlistFilter.sanitize(JSON.parse(localStorage.getItem(FILTERS_KEY) || "null"));
+  } catch (error) {
+    return WatchlistFilter.emptyFilters();
+  }
+}
+
+function saveFilters() {
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+  } catch (error) {
+    /* only a convenience */
+  }
+}
+
+function renderFilterPanel(shownCount) {
+  const options = WatchlistFilter.options(watchlistEntries);
+  watchlistFilterPanel.querySelectorAll(".wl-filter-group").forEach(groupEl => {
+    const group = groupEl.dataset.group;
+    const selected = filters[group];
+    const known = new Set(options[group].map(o => o.value));
+    /* a stored choice that no longer exists (e.g. a deleted platform) still shows, so it can be removed */
+    const list = [...options[group], ...selected.filter(v => !known.has(v)).map(v => ({ value: v, label: v }))];
+    groupEl.querySelector(".wl-chips").innerHTML = list.map(o => `
+      <button type="button" class="wl-chip${selected.includes(o.value) ? " selected" : ""}" data-group="${group}" data-value="${escapeHtml(o.value)}" aria-pressed="${selected.includes(o.value)}">
+        ${escapeHtml(o.label)}${o.count ? ` <span class="wl-chip-count">${o.count}</span>` : ""}
+      </button>`).join("");
+  });
+  watchlistFilterFrom.value = filters.from;
+  watchlistFilterTo.value = filters.to;
+
+  const active = WatchlistFilter.activeCount(filters);
+  watchlistFilterCount.textContent = active;
+  watchlistFilterCount.classList.toggle("hidden", active === 0);
+  watchlistFilterToggle.classList.toggle("active", active > 0);
+  watchlistFilterReset.classList.toggle("hidden", active === 0);
+  watchlistResultCount.textContent = active || currentSearch.trim()
+    ? `${shownCount} von ${watchlistEntries.length}`
+    : "";
+}
+
+watchlistFilterToggle.addEventListener("click", () => {
+  const open = watchlistFilterPanel.hidden;
+  watchlistFilterPanel.hidden = !open;
+  watchlistFilterToggle.setAttribute("aria-expanded", String(open));
+});
+
+watchlistFilterPanel.addEventListener("click", event => {
+  const chip = event.target.closest(".wl-chip");
+  if (!chip) return;
+  const { group, value } = chip.dataset;
+  filters[group] = filters[group].includes(value)
+    ? filters[group].filter(v => v !== value)
+    : [...filters[group], value];
+  saveFilters();
+  renderWatchlist();
+});
+
+[watchlistFilterFrom, watchlistFilterTo].forEach(input => {
+  input.addEventListener("change", () => {
+    filters.from = watchlistFilterFrom.value;
+    filters.to = watchlistFilterTo.value;
+    saveFilters();
     renderWatchlist();
   });
+});
+
+watchlistFilterReset.addEventListener("click", () => {
+  filters = WatchlistFilter.emptyFilters();
+  saveFilters();
+  renderWatchlist();
 });
 
 watchlistSearchInput.addEventListener("input", () => {
