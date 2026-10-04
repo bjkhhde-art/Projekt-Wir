@@ -75,6 +75,7 @@
 
     <section class="hub-panel" data-panel="privat" hidden>
       <p class="pl-intro">Links, die wir uns gegenseitig schicken &ndash; bewerten mit 🔥 und kommentieren. Das Vorschaubild liegt bei uns gespeichert &ndash; erst „Öffnen“ ruft die Seite auf, in einem neuen Tab ohne Spur zu unserer Seite. Für ein privates Fenster den Link kopieren.</p>
+      <div id="privateTagBar" class="pl-tagbar hidden" aria-label="Nach Hashtags filtern"></div>
       <div id="privateLinkList" class="pl-list"></div>
     </section>
 
@@ -148,6 +149,13 @@
 
       <label for="privateLinkTitleInput">Titel (optional)</label>
       <input id="privateLinkTitleInput" type="text" maxlength="120" placeholder="Worum geht's?">
+
+      <label for="privateLinkTagInput">Hashtags</label>
+      <div id="privateLinkTagEditor" class="pl-tag-editor">
+        <span id="privateLinkTagChips" class="pl-tag-chips"></span>
+        <input id="privateLinkTagInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="#hashtag">
+      </div>
+      <div id="privateLinkTagSuggestions" class="pl-tag-suggestions"></div>
 
       <div class="modal-buttons">
         <button id="savePrivateLinkBtn" class="btn" type="button">Teilen</button>
@@ -239,6 +247,7 @@
   <script src="watchlist-filter.js"></script>
   <script src="watchlist.js"></script>
   <script src="liebesbriefe.js"></script>
+  <script src="private-link-tags.js"></script>
   <script src="private-links.js"></script>
 </body>
 </html>

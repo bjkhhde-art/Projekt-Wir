@@ -132,7 +132,9 @@
             try {
               const res = await fetch(`${API}/t/${h.table}/latest`);
               const row = await res.json();
-              const serialized = JSON.stringify(row);
+              /* like real realtime, a change to any row counts – game tables only care about the newest game */
+              const watched = h.table.endsWith("_games") ? row : await (await fetch(`${API}/t/${h.table}/dump`)).json();
+              const serialized = JSON.stringify(watched);
               if (serialized !== h.lastSeen) {
                 h.lastSeen = serialized;
                 h.callback({ new: row, eventType: "UPDATE" });

@@ -264,3 +264,120 @@ span.pl-flame {
   font-size: 16px;
   cursor: pointer;
 }
+
+/* ---------- hashtags ---------- */
+
+.pl-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -2px 0 12px;
+}
+
+.pl-tag,
+.pl-tag-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 92, 138, 0.08);
+  color: var(--pink-deep);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pl-tag.selected {
+  border-color: var(--pink);
+  background: rgba(255, 92, 138, 0.2);
+}
+
+.pl-tag-add {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.pl-tagbar {
+  margin-bottom: 14px;
+}
+
+.pl-tagbar-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.pl-tagbar-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.pl-tagbar-chips .wl-chip {
+  flex: 0 0 auto;
+}
+
+.pl-tagbar-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.pl-tagbar-reset {
+  border: none;
+  background: none;
+  color: var(--pink-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.pl-tag-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+}
+
+.pl-tag-editor:focus-within {
+  border-color: var(--pink);
+}
+
+.pl-tag-chips {
+  display: contents;
+}
+
+.pl-tag-editor input {
+  flex: 1 1 110px;
+  min-width: 110px;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+  margin: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+.pl-tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.pl-tag-suggestions:empty {
+  display: none;
+}

@@ -13,8 +13,14 @@ const privateLinkEditExtras = document.getElementById("privateLinkEditExtras");
 const deletePrivateLinkBtn = document.getElementById("deletePrivateLinkBtn");
 const reloadPreviewBtn = document.getElementById("reloadPreviewBtn");
 const privatePersonModal = document.getElementById("personModal");
+const privateTagBar = document.getElementById("privateTagBar");
+const privateLinkTagChips = document.getElementById("privateLinkTagChips");
+const privateLinkTagInput = document.getElementById("privateLinkTagInput");
+const privateLinkTagSuggestions = document.getElementById("privateLinkTagSuggestions");
+const Tags = window.PrivateLinkTags;
 
 const PL_SEEN_KEY = "pw_private_links_seen";
+const PL_TAG_FILTER_KEY = "pw_private_links_tags";
 const PL_LONG_PRESS_MS = 500;
 const PREVIEW_RETRY_MS = 2 * 60 * 1000;
 
@@ -23,6 +29,8 @@ let privateComments = [];
 let editingPrivateLinkId = null;
 let plSeenBefore = readSeen();
 let plPendingAction = null;
+let selectedTags = readTagFilter();
+let modalTags = [];
 const previewRequested = new Set();
 
 function plPerson() {
@@ -59,6 +67,23 @@ function readSeen() {
 function markSeen() {
   try {
     localStorage.setItem(PL_SEEN_KEY, new Date().toISOString());
+  } catch (error) {
+    /* only a convenience */
+  }
+}
+
+function readTagFilter() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PL_TAG_FILTER_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter(tag => typeof tag === "string") : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function storeTagFilter() {
+  try {
+    localStorage.setItem(PL_TAG_FILTER_KEY, JSON.stringify(selectedTags));
   } catch (error) {
     /* only a convenience */
   }
@@ -101,6 +126,7 @@ async function loadPrivateLinks() {
 
   privateLinks = links.data || [];
   privateComments = comments.data || [];
+  selectedTags = Tags.sanitizeSelection(selectedTags, privateLinks);
   renderPrivateLinks();
   requestMissingPreviews();
 }
@@ -135,6 +161,10 @@ function buildPrivateLinkCard(link) {
     </div>
     <h3 class="pl-title">${escapeHtml(link.title || link.preview_title || hostOf(link.url))}</h3>
     <p class="pl-meta">von ${escapeHtml(link.added_by)} · ${timeAgo(link.created_at)}</p>
+    <div class="pl-tags">
+      ${(link.tags || []).map(tag => `<button type="button" class="pl-tag${selectedTags.includes(tag) ? " selected" : ""}" data-tag="${escapeHtml(tag)}">#${escapeHtml(tag)}</button>`).join("")}
+      <button type="button" class="pl-tag-add" aria-label="Hashtags bearbeiten">${(link.tags || []).length ? "＋" : "＃ Hashtag"}</button>
+    </div>
 
     <div class="pl-actions">
       <a class="btn btn-sm pl-open" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">▶️ Öffnen</a>
@@ -161,6 +191,8 @@ function buildPrivateLinkCard(link) {
   `;
 
   card.querySelector(".pl-copy").addEventListener("click", () => copyLink(link.url));
+  card.querySelectorAll(".pl-tag").forEach(btn => btn.addEventListener("click", () => toggleTagFilter(btn.dataset.tag)));
+  card.querySelector(".pl-tag-add").addEventListener("click", () => openPrivateModal(link, true));
   card.querySelectorAll(".pl-flame[data-rate]").forEach(btn => {
     btn.addEventListener("click", () => rateLink(link, Number(btn.dataset.rate)));
   });
@@ -214,12 +246,18 @@ function renderPrivateLinks() {
     if (input && input.value) drafts[card.dataset.id] = { value: input.value, focused: document.activeElement === input };
   });
 
+  renderTagBar();
   privateLinkList.innerHTML = "";
   if (privateLinks.length === 0) {
     privateLinkList.innerHTML = `<p class="pl-empty">Noch nichts geteilt. Tippt unten rechts auf + und schickt den ersten Link 🔥</p>`;
     return;
   }
-  privateLinks.forEach(link => {
+  const visible = privateLinks.filter(link => Tags.matches(link, selectedTags));
+  if (visible.length === 0) {
+    privateLinkList.innerHTML = `<p class="pl-empty">Kein Link hat ${selectedTags.map(tag => "#" + escapeHtml(tag)).join(" und ")}.</p>`;
+    return;
+  }
+  visible.forEach(link => {
     const card = buildPrivateLinkCard(link);
     const draft = drafts[link.id];
     if (draft) {
@@ -229,6 +267,76 @@ function renderPrivateLinks() {
     }
     privateLinkList.appendChild(card);
   });
+}
+
+/* the tags in use as filter chips; several chosen tags narrow the list further */
+function renderTagBar() {
+  const tags = Tags.tagCounts(privateLinks);
+  privateTagBar.classList.toggle("hidden", tags.length === 0);
+  if (!tags.length) {
+    privateTagBar.innerHTML = "";
+    return;
+  }
+  const shown = privateLinks.filter(link => Tags.matches(link, selectedTags)).length;
+  privateTagBar.innerHTML = `
+    <div class="pl-tagbar-chips">
+      ${tags.map(({ tag, count }) => `
+        <button type="button" class="wl-chip pl-filter-tag${selectedTags.includes(tag) ? " selected" : ""}" data-tag="${escapeHtml(tag)}" aria-pressed="${selectedTags.includes(tag)}">
+          #${escapeHtml(tag)} <span class="wl-chip-count">${count}</span>
+        </button>`).join("")}
+    </div>
+    ${selectedTags.length ? `
+      <div class="pl-tagbar-status">
+        <span id="privateTagResult">${shown} von ${privateLinks.length}</span>
+        <button type="button" id="privateTagReset" class="pl-tagbar-reset">Alle zeigen</button>
+      </div>` : ""}
+  `;
+  privateTagBar.querySelectorAll(".pl-filter-tag").forEach(btn => btn.addEventListener("click", () => toggleTagFilter(btn.dataset.tag)));
+  const reset = privateTagBar.querySelector("#privateTagReset");
+  if (reset) reset.addEventListener("click", () => {
+    selectedTags = [];
+    storeTagFilter();
+    renderPrivateLinks();
+  });
+}
+
+function toggleTagFilter(tag) {
+  selectedTags = selectedTags.includes(tag) ? selectedTags.filter(t => t !== tag) : [...selectedTags, tag];
+  storeTagFilter();
+  renderPrivateLinks();
+  privateTagBar.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+/* ---------- tag editor in the share / edit sheet ---------- */
+
+function renderModalTags() {
+  privateLinkTagChips.innerHTML = modalTags.map(tag => `
+    <button type="button" class="pl-tag selected pl-tag-remove" data-tag="${escapeHtml(tag)}" aria-label="#${escapeHtml(tag)} entfernen">#${escapeHtml(tag)} <span aria-hidden="true">×</span></button>`).join("");
+  privateLinkTagChips.querySelectorAll(".pl-tag-remove").forEach(btn => btn.addEventListener("click", () => {
+    modalTags = Tags.removeTag(modalTags, btn.dataset.tag);
+    renderModalTags();
+  }));
+
+  /* the tags we already use, the ones matching what is being typed first */
+  const typed = Tags.cleanTag(privateLinkTagInput.value);
+  const suggestions = Tags.tagCounts(privateLinks)
+    .map(t => t.tag)
+    .filter(tag => !modalTags.includes(tag) && (!typed || tag.includes(typed)))
+    .sort((a, b) => (typed ? b.startsWith(typed) - a.startsWith(typed) : 0))
+    .slice(0, 10);
+  privateLinkTagSuggestions.innerHTML = suggestions.map(tag => `<button type="button" class="pl-tag pl-tag-suggestion" data-tag="${escapeHtml(tag)}">#${escapeHtml(tag)}</button>`).join("");
+  privateLinkTagSuggestions.querySelectorAll(".pl-tag-suggestion").forEach(btn => btn.addEventListener("click", () => {
+    modalTags = Tags.addTags(modalTags, btn.dataset.tag);
+    privateLinkTagInput.value = "";
+    renderModalTags();
+  }));
+}
+
+function commitTypedTags() {
+  if (!privateLinkTagInput.value.trim()) return;
+  modalTags = Tags.addTags(modalTags, privateLinkTagInput.value);
+  privateLinkTagInput.value = "";
+  renderModalTags();
 }
 
 /* ---------- actions ---------- */
@@ -283,8 +391,8 @@ async function addComment(link, raw) {
   });
 }
 
-function openPrivateModal(link) {
-  if (!plRequirePerson(() => openPrivateModal(link))) return;
+function openPrivateModal(link, focusTags) {
+  if (!plRequirePerson(() => openPrivateModal(link, focusTags))) return;
   editingPrivateLinkId = link ? link.id : null;
   privateLinkModalTitle.textContent = link ? "Link bearbeiten" : "Link teilen 🔥";
   savePrivateLinkBtn.textContent = link ? "Speichern" : "Teilen";
@@ -292,8 +400,11 @@ function openPrivateModal(link) {
   privateLinkTitleInput.value = link ? link.title || "" : "";
   privateLinkEditExtras.classList.toggle("hidden", !link);
   reloadPreviewBtn.classList.toggle("hidden", !link);
+  modalTags = link ? [...(link.tags || [])] : [];
+  privateLinkTagInput.value = "";
+  renderModalTags();
   privateLinkModal.classList.remove("hidden");
-  privateLinkUrlInput.focus();
+  (focusTags ? privateLinkTagInput : privateLinkUrlInput).focus();
 }
 
 async function savePrivateLink() {
@@ -303,6 +414,7 @@ async function savePrivateLink() {
     return;
   }
   const title = privateLinkTitleInput.value.trim().slice(0, 120) || null;
+  const tags = Tags.addTags(modalTags, privateLinkTagInput.value);
   const me = plPerson();
 
   const duplicate = privateLinks.find(link => link.url === url && link.id !== editingPrivateLinkId);
@@ -316,8 +428,8 @@ async function savePrivateLink() {
   const urlChanged = !previous || previous.url !== url;
   const previewReset = urlChanged ? { preview_status: "pending", preview_image: null, preview_title: null } : {};
   const { error } = editing
-    ? await supabaseClient.from("private_links").update({ url, title, ...previewReset }).eq("id", editing)
-    : await supabaseClient.from("private_links").insert({ url, title, added_by: me, preview_status: "pending" });
+    ? await supabaseClient.from("private_links").update({ url, title, tags, ...previewReset }).eq("id", editing)
+    : await supabaseClient.from("private_links").insert({ url, title, tags, added_by: me, preview_status: "pending" });
 
   if (error) {
     console.error("Fehler beim Speichern des Links:", error);
@@ -418,6 +530,33 @@ reloadPreviewBtn.addEventListener("click", async () => {
 [privateLinkUrlInput, privateLinkTitleInput].forEach(input => {
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") savePrivateLink();
+  });
+});
+/* Enter, space or comma turns what was typed into a tag; backspace in the empty field removes the last */
+privateLinkTagInput.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.key === "," || event.key === " ") {
+    if (!privateLinkTagInput.value.trim()) {
+      if (event.key === "Enter") savePrivateLink();
+      return;
+    }
+    event.preventDefault();
+    commitTypedTags();
+  } else if (event.key === "Backspace" && !privateLinkTagInput.value && modalTags.length) {
+    modalTags = modalTags.slice(0, -1);
+    renderModalTags();
+  }
+});
+/* phone keyboards often skip keydown for space/comma – catch it on input as well */
+privateLinkTagInput.addEventListener("input", () => {
+  if (/[\s,;]/.test(privateLinkTagInput.value)) commitTypedTags();
+  else renderModalTags();
+});
+/* a word still in the field is not turned into a chip on blur – that would shift the sheet
+   under the finger on its way to "Teilen"; saving picks it up instead */
+/* tapping a suggestion or × keeps the keyboard open, so a half-typed word is not saved as a tag */
+[privateLinkTagSuggestions, privateLinkTagChips].forEach(box => {
+  box.addEventListener("pointerdown", event => {
+    if (event.target.closest("button") && document.activeElement === privateLinkTagInput) event.preventDefault();
   });
 });
 
