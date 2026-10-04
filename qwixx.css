@@ -325,16 +325,27 @@
   border-width: 2.5px;
 }
 
-.qx-cell.option {
+.qx-cell.pickable {
   cursor: pointer;
-  border-color: var(--pink-deep);
-  box-shadow: 0 0 0 2px var(--pink-deep);
-  animation: qx-option 1.3s ease-in-out infinite;
+}
+
+.qx-cell.pickable:active {
+  transform: scale(0.92);
+}
+
+/* a tap that breaks the rules shakes the field */
+.qx-cell.nope {
+  animation: qx-nope 0.4s ease;
+  box-shadow: 0 0 0 2px var(--danger);
   z-index: 1;
 }
 
-@keyframes qx-option {
-  50% { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.45); }
+@keyframes qx-nope {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
 }
 
 .qx-lock {
@@ -449,7 +460,7 @@
 @media (prefers-reduced-motion: reduce) {
   .qx-dice.rolling .qx-die,
   .qx-dice.can-roll,
-  .qx-cell.option,
+  .qx-cell.nope,
   .just-crossed::after,
   .qx-row.just-locked,
   .qx-penalty.just-crossed {
