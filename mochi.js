@@ -164,7 +164,8 @@ const DANCE_BEAT_INTERVAL_MS = 650;
 const DANCE_HIT_WINDOW_MS = 280;
 const DANCE_PARTY_TAIL_MS = 500;
 const DISCO_RISE_DURATION_MS = 1400;
-const SLEEP_DURATION_MS = 2 * 60 * 1000;
+/* Mochi sleeps until one of us wakes him; after this long he is fully rested */
+const FULL_REST_MS = 2 * 60 * 1000;
 const SUNRISE_DURATION_MS = 1400;
 const DEFAULT_STAT = 70;
 const SURPRISE_COIN_CHANCE = 0.06;
@@ -341,9 +342,13 @@ function decayedStats(state = petState) {
   const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / 3600000);
   const result = {};
 
+  const sleeping = !!(state && state.sleep_started_at);
+
   for (const key of Object.keys(DECAY_BASE)) {
     const stored = state && typeof state[key] === "number" ? state[key] : DEFAULT_STAT;
-    result[key] = clamp(Math.round(stored - hoursElapsed * decayRate(DECAY_BASE[key])), 0, 100);
+    /* a sleeping Mochi does not get more tired */
+    const decay = sleeping && key === "energy" ? 0 : hoursElapsed * decayRate(DECAY_BASE[key]);
+    result[key] = clamp(Math.round(stored - decay), 0, 100);
   }
 
   return result;
@@ -354,8 +359,7 @@ function overallMood(stats) {
 }
 
 function isAsleep() {
-  if (!petState || !petState.sleep_started_at) return false;
-  return Date.now() - new Date(petState.sleep_started_at).getTime() < SLEEP_DURATION_MS;
+  return !!(petState && petState.sleep_started_at);
 }
 
 function moodTier(happiness) {
@@ -636,7 +640,7 @@ async function wakeMochi() {
   vibrate([15, 15]);
 
   const sleepStart = petState && petState.sleep_started_at ? new Date(petState.sleep_started_at).getTime() : null;
-  const sleptRatio = sleepStart ? clamp((Date.now() - sleepStart) / SLEEP_DURATION_MS, 0, 1) : 0;
+  const sleptRatio = sleepStart ? clamp((Date.now() - sleepStart) / FULL_REST_MS, 0, 1) : 0;
   const energyBoost = Math.round(sleptRatio * 50);
   const coinReward = sleptRatio >= 0.8 ? 6 : 0;
 
