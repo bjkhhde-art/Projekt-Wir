@@ -403,3 +403,27 @@
     animation: none;
   }
 }
+
+/* ---------- more than one other player ---------- */
+
+.nm-opps {
+  display: grid;
+  gap: 4px;
+}
+
+.nm-spots[data-count="3"],
+.nm-spots[data-count="4"] {
+  gap: 14px;
+}
+
+.nm-spots .nm-spot-label {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nm-result th,
+.nm-result td {
+  overflow-wrap: anywhere;
+}

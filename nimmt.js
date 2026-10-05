@@ -1,13 +1,9 @@
+/* 6 nimmt! for 2–4 players. Lobby, invites, moves and live sync come from game-room.js. */
 const boardEl = document.getElementById("nmBoard");
 const scoreEl = document.getElementById("nmScore");
-const oppNameEl = document.getElementById("nmOppName");
-const oppHandEl = document.getElementById("nmOppHand");
-const oppPileEl = document.getElementById("nmOppPile");
+const oppsEl = document.getElementById("nmOpps");
 const ownPileEl = document.getElementById("nmOwnPile");
-const spotsEl = document.querySelector(".nm-spots");
-const spotOppEl = document.getElementById("nmSpotOpp");
-const spotOppLabelEl = document.getElementById("nmSpotOppLabel");
-const spotOwnEl = document.getElementById("nmSpotOwn");
+const spotsEl = document.getElementById("nmSpots");
 const rowsEl = document.getElementById("nmRows");
 const eventEl = document.getElementById("nmEvent");
 const statusEl = document.getElementById("nmStatus");
@@ -21,6 +17,57 @@ let lastAnimatedMove = { gameId: null, seq: null };
 let previousState = null;
 let previousStateGameId = null;
 
+/* one line (name, cards left, bulls) and one spot for the played card per other player;
+   the first other player keeps the ids the two-player table always had */
+const oppEls = new Map();
+const spotEls = new Map();
+let spotOwnEl = null;
+let tableKey = "";
+
+function makeSpot(label, id, labelId) {
+  const wrap = document.createElement("div");
+  wrap.className = "nm-spot";
+  const card = document.createElement("div");
+  card.className = "nm-spot-card";
+  if (id) card.id = id;
+  const text = document.createElement("span");
+  text.className = "nm-spot-label";
+  text.textContent = label;
+  if (labelId) text.id = labelId;
+  wrap.append(card, text);
+  spotsEl.appendChild(wrap);
+  return card;
+}
+
+function ensureTable(opponents) {
+  const key = opponents.join("|");
+  if (key === tableKey) return;
+  tableKey = key;
+  oppEls.clear();
+  spotEls.clear();
+  oppsEl.innerHTML = "";
+  spotsEl.innerHTML = "";
+  spotsEl.dataset.count = String(opponents.length + 1);
+  opponents.forEach((person, index) => {
+    const row = document.createElement("div");
+    row.className = "nm-player nm-player-opp";
+    row.innerHTML = `<span class="nm-player-name"></span><span class="nm-player-hand"></span><span class="nm-pile"></span>`;
+    const [name, hand, pile] = row.children;
+    name.textContent = person;
+    if (index === 0) {
+      name.id = "nmOppName";
+      hand.id = "nmOppHand";
+      pile.id = "nmOppPile";
+    }
+    oppsEl.appendChild(row);
+    oppEls.set(person, { name, hand, pile });
+    spotEls.set(person, makeSpot(person, index === 0 ? "nmSpotOpp" : null, index === 0 ? "nmSpotOppLabel" : null));
+  });
+  spotOwnEl = makeSpot("Du", "nmSpotOwn", null);
+}
+
+const spotKey = person => (person === room.person ? "spot-own" : `spot-${person}`);
+
 const { bullsFor, sumBulls } = NimmtEngine;
 
 const room = GameRoom.create({
@@ -31,7 +78,7 @@ const room = GameRoom.create({
   lobbyEl: document.getElementById("nmLobby"),
   boardEl,
   leaveBtn: document.getElementById("nmLeaveBtn"),
-  createState: (host, guest) => NimmtEngine.createInitialState(host, guest),
+  createState: players => NimmtEngine.createInitialState(players),
   isFinished: state => state.phase === "finished",
   renderBoard
 });
@@ -70,34 +117,38 @@ function flipEl(value, faceUp) {
 
 function renderBoard(game) {
   const state = game.state;
-  const opp = room.opponentOf(game);
+  const opponents = room.others(state);
   if (previousStateGameId !== game.id) {
     previousState = null;
     previousStateGameId = game.id;
   }
 
   const before = captureLayout();
+  ensureTable(opponents);
   const move = takeUnseenMove(game);
   if (move) hideMovingCards(move, state);
 
-  renderScore(state, opp);
-  renderPlayers(state, opp);
-  renderSpots(state, opp, move);
+  renderScore(state, opponents);
+  renderPlayers(state, opponents);
+  renderSpots(state, opponents, move);
   renderRows(state, move);
   renderHand(state, move);
   renderEvent(state);
-  renderStatus(state, opp);
+  renderStatus(state, opponents);
 
-  if (move) animateMove(move, previousState, state, before, opp);
+  if (move) animateMove(move, previousState, state, before);
   previousState = state;
 }
 
-function renderScore(state, opp) {
+function renderScore(state, opponents) {
   const wins = state.wins || {};
   const trickText = state.phase === "finished" ? "vorbei" : `Stich ${state.trick}/10`;
+  const tally = opponents.length === 1
+    ? `Du <strong>${wins[room.person] || 0}</strong> : <strong>${wins[opponents[0]] || 0}</strong> ${escapeHtml(opponents[0])}`
+    : [`Du <strong>${wins[room.person] || 0}</strong>`, ...opponents.map(p => `${escapeHtml(p)} <strong>${wins[p] || 0}</strong>`)].join(" · ");
   scoreEl.innerHTML = `
     <span>Partie <strong>${state.gameNo}</strong> · ${trickText}</span>
-    <span>Siege: Du <strong>${wins[room.person] || 0}</strong> : <strong>${wins[opp] || 0}</strong> ${escapeHtml(opp || "")}</span>
+    <span>Siege: ${tally}</span>
   `;
 }
 
@@ -106,17 +157,17 @@ function pileHtml(person, state) {
   return `${bullIcon()}<span>${sumBulls(cards)}</span>`;
 }
 
-function renderPlayers(state, opp) {
-  oppNameEl.textContent = opp || "Gegner";
-  const oppIsActing = (state.phase === "choose" && state.chosen[opp] === null) ||
-    (state.phase === "pick-row" && state.pickPerson === opp);
-  oppNameEl.classList.toggle("active", oppIsActing);
-
-  const oppCards = (state.hands[opp] || []).length;
-  oppHandEl.textContent = state.phase === "finished" ? "" : `${oppCards} ${oppCards === 1 ? "Karte" : "Karten"}`;
-
-  oppPileEl.innerHTML = pileHtml(opp, state);
-  oppPileEl.title = `${(state.penalties[opp] || []).length} kassierte Karten`;
+function renderPlayers(state, opponents) {
+  opponents.forEach(opp => {
+    const els = oppEls.get(opp);
+    const acting = (state.phase === "choose" && state.chosen[opp] === null) ||
+      (state.phase === "pick-row" && state.pickPerson === opp);
+    els.name.classList.toggle("active", acting);
+    const cards = (state.hands[opp] || []).length;
+    els.hand.textContent = state.phase === "finished" ? "" : `${cards} ${cards === 1 ? "Karte" : "Karten"}`;
+    els.pile.innerHTML = pileHtml(opp, state);
+    els.pile.title = `${(state.penalties[opp] || []).length} kassierte Karten`;
+  });
   ownPileEl.innerHTML = pileHtml(room.person, state);
   ownPileEl.title = `${(state.penalties[room.person] || []).length} kassierte Karten`;
 }
@@ -137,24 +188,26 @@ function setSpot(spot, content, { key, clickable = false, pending = false, onCli
   GameAnim.tag(spot, key);
 }
 
-function renderSpots(state, opp, move) {
+function renderSpots(state, opponents, move) {
   spotsEl.classList.toggle("hidden", state.phase === "finished");
-  spotOppLabelEl.textContent = opp || "Gegner";
 
   if (state.phase === "pick-row") {
     const revealed = state.revealed || [];
     const playOf = person => revealed.find(play => play.person === person);
-    const oppPlay = playOf(opp);
     const ownPlay = playOf(room.person);
 
-    if (oppPlay) {
-      const justRevealed = move && move.type === "reveal" && GameAnim.enabled();
-      const flip = flipEl(oppPlay.card, !justRevealed);
-      setSpot(spotOppEl, flip, { key: "spot-opp", pending: state.pickPerson === opp });
-      if (justRevealed) setTimeout(() => flip.classList.add("face-up"), 60);
-    } else {
-      setSpot(spotOppEl, "", { key: "spot-opp" });
-    }
+    opponents.forEach(opp => {
+      const spot = spotEls.get(opp);
+      const oppPlay = playOf(opp);
+      if (oppPlay) {
+        const justRevealed = move && move.type === "reveal" && GameAnim.enabled();
+        const flip = flipEl(oppPlay.card, !justRevealed);
+        setSpot(spot, flip, { key: spotKey(opp), pending: state.pickPerson === opp });
+        if (justRevealed) setTimeout(() => flip.classList.add("face-up"), 60);
+      } else {
+        setSpot(spot, "", { key: spotKey(opp) });
+      }
+    });
 
     if (ownPlay) {
       setSpot(spotOwnEl, cardEl(ownPlay.card), { key: "spot-own", pending: state.pickPerson === room.person });
@@ -164,14 +217,17 @@ function renderSpots(state, opp, move) {
     return;
   }
 
-  const oppChosen = state.chosen[opp] !== null && state.chosen[opp] !== undefined;
-  if (oppChosen) {
-    const back = backEl();
-    if (move && move.type === "choose" && move.person === opp && move.chosen) back.classList.add("nm-drop-in");
-    setSpot(spotOppEl, back, { key: "spot-opp" });
-  } else {
-    setSpot(spotOppEl, state.phase === "choose" ? "wählt…" : "", { key: "spot-opp" });
-  }
+  opponents.forEach(opp => {
+    const spot = spotEls.get(opp);
+    const oppChosen = state.chosen[opp] !== null && state.chosen[opp] !== undefined;
+    if (oppChosen) {
+      const back = backEl();
+      if (move && move.type === "choose" && move.person === opp && move.chosen) back.classList.add("nm-drop-in");
+      setSpot(spot, back, { key: spotKey(opp) });
+    } else {
+      setSpot(spot, state.phase === "choose" ? "wählt…" : "", { key: spotKey(opp) });
+    }
+  });
 
   const ownChosen = state.chosen[room.person];
   if (ownChosen !== null && ownChosen !== undefined) {
@@ -277,48 +333,49 @@ function renderEvent(state) {
   eventEl.textContent = describeTakes(state);
 }
 
-function renderStatus(state, opp) {
+function renderStatus(state, opponents) {
   actionsEl.innerHTML = "";
   statusEl.classList.remove("nudge");
 
   if (state.phase === "finished") {
-    renderResult(state, opp);
+    renderResult(state, opponents);
     return;
   }
 
   if (state.phase === "pick-row") {
     const card = state.revealed[0].card;
-    statusEl.textContent = state.pickPerson === room.person
+    const picker = state.pickPerson;
+    statusEl.textContent = picker === room.person
       ? `Deine ${card} passt in keine Reihe – tippe die Reihe an, die du nehmen musst.`
-      : `Die ${card} von ${opp} passt in keine Reihe – ${opp} sucht sich eine Reihe aus…`;
+      : `Die ${card} von ${picker} passt in keine Reihe – ${picker} sucht sich eine Reihe aus…`;
     return;
   }
 
-  const mine = state.chosen[room.person];
-  const theirs = state.chosen[opp];
-  if (mine === null || mine === undefined) {
-    statusEl.textContent = theirs !== null && theirs !== undefined
-      ? `${opp} hat schon gewählt – tippe eine Karte aus deiner Hand an.`
-      : "Tippe eine Karte aus deiner Hand an, um sie verdeckt zu legen.";
+  const chose = person => state.chosen[person] !== null && state.chosen[person] !== undefined;
+  const done = opponents.filter(chose);
+  const waiting = opponents.filter(p => !chose(p));
+  if (!chose(room.person)) {
+    if (done.length === 0) statusEl.textContent = "Tippe eine Karte aus deiner Hand an, um sie verdeckt zu legen.";
+    else if (waiting.length === 0 && opponents.length > 1) statusEl.textContent = "Alle anderen haben schon gewählt – tippe eine Karte aus deiner Hand an.";
+    else statusEl.textContent = `${listNames(done)} ${done.length > 1 ? "haben" : "hat"} schon gewählt – tippe eine Karte aus deiner Hand an.`;
   } else {
-    statusEl.textContent = `Warte auf ${opp}… Tippe deine Karte an, um sie zurückzunehmen, oder eine andere zum Wechseln.`;
+    statusEl.textContent = `Warte auf ${listNames(waiting)}… Tippe deine Karte an, um sie zurückzunehmen, oder eine andere zum Wechseln.`;
   }
 }
 
-function renderResult(state, opp) {
-  const { bulls, winner } = state.result;
-  statusEl.textContent = winner === room.person
-    ? "🏆 Du hast gewonnen!"
-    : winner ? `🏆 ${winner} hat gewonnen!` : "Unentschieden!";
+function renderResult(state, opponents) {
+  const { bulls } = state.result;
+  statusEl.textContent = describeWinners(state.result, room.person);
 
   const wins = state.wins || {};
+  const columns = [room.person, ...opponents];
   const table = document.createElement("table");
   table.className = "nm-result";
   table.innerHTML = `
-    <thead><tr><th></th><th>Du</th><th>${escapeHtml(opp || "Gegner")}</th></tr></thead>
+    <thead><tr><th></th>${columns.map(p => `<th>${p === room.person ? "Du" : escapeHtml(p)}</th>`).join("")}</tr></thead>
     <tbody>
-      <tr><td>Hornochsen</td><td class="total">${bulls[room.person]}</td><td class="total">${bulls[opp]}</td></tr>
-      <tr><td>Siege gesamt</td><td>${wins[room.person] || 0}</td><td>${wins[opp] || 0}</td></tr>
+      <tr><td>Hornochsen</td>${columns.map(p => `<td class="total">${bulls[p]}</td>`).join("")}</tr>
+      <tr><td>Siege gesamt</td>${columns.map(p => `<td>${wins[p] || 0}</td>`).join("")}</tr>
     </tbody>
   `;
   actionsEl.appendChild(table);
@@ -339,9 +396,11 @@ function captureLayout() {
     document.querySelectorAll(selector).forEach(el => { map[el.dataset.animKey] = GameAnim.rectOf(el); });
     return map;
   };
+  const spots = {};
+  spotEls.forEach((el, person) => { spots[person] = GameAnim.rectOf(el); });
   return {
-    spotOpp: GameAnim.rectOf(spotOppEl),
-    spotOwn: GameAnim.rectOf(spotOwnEl),
+    spots,
+    spotOwn: spotOwnEl ? GameAnim.rectOf(spotOwnEl) : null,
     hand: rectByKey(".nm-hand-card")
   };
 }
@@ -351,7 +410,8 @@ function cellRect(row, col) {
 }
 
 function pileRect(person) {
-  return GameAnim.rectOf(person === room.person ? ownPileEl : oppPileEl);
+  const els = oppEls.get(person);
+  return GameAnim.rectOf(person === room.person ? ownPileEl : els && els.pile);
 }
 
 /* Each move is animated once per device; after a reload only a fresh deal is replayed. */
@@ -379,7 +439,7 @@ function hideMovingCards(move, state) {
   }
 }
 
-function animateMove(move, prev, state, before, opp) {
+function animateMove(move, prev, state, before) {
   const jobs = [];
   const flyThenReveal = (options, key) => jobs.push(GameAnim.fly(options).then(() => key && GameAnim.reveal(key)));
 
@@ -395,8 +455,8 @@ function animateMove(move, prev, state, before, opp) {
   if (move.type === "reveal" || move.type === "resolve") {
     const ownCameFromSpot = prev && prev.chosen && prev.chosen[room.person] !== null;
     const sourceOf = play => {
-      if (move.type === "resolve") return play.person === room.person ? before.spotOwn : before.spotOpp;
-      if (play.person !== room.person) return before.spotOpp;
+      if (move.type === "resolve") return play.person === room.person ? before.spotOwn : before.spots[play.person];
+      if (play.person !== room.person) return before.spots[play.person];
       return ownCameFromSpot ? before.spotOwn : (before.hand[`hand-${play.card}`] || before.spotOwn);
     };
 

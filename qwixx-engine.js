@@ -1,4 +1,4 @@
-/* Qwixx – reine Spiellogik für zwei Personen, inkl. „Qwixx gemixxt“-Blöcke und Zufallsblock.
+/* Qwixx – reine Spiellogik für 2–4 Personen, inkl. „Qwixx gemixxt“-Blöcke und Zufallsblock.
    Ohne DOM-Abhängigkeit: im Browser als <script> geladen, in Node per require testbar. */
 
 const QwixxEngine = (() => {
@@ -11,6 +11,7 @@ const MIN_CROSSES_TO_LOCK = 5;
 const MAX_PENALTIES = 4;
 const LOCKS_TO_END = 2;
 const PENALTY_POINTS = 5;
+const MAX_PLAYERS = 4;
 
 const BLOCKS = {
   classic: "Klassisch",
@@ -38,6 +39,19 @@ function perPlayer(players, valueFn) {
 
 function otherPerson(state, person) {
   return state.players.find(p => p !== person);
+}
+
+/* turns go round in the order of the players list */
+function nextPerson(state, person) {
+  const index = state.players.indexOf(person);
+  return state.players[(index + 1) % state.players.length];
+}
+
+/* highest wins; several share a win, but if everybody has the same nobody wins */
+function winnersOf(players, valueOf) {
+  const best = Math.max(...players.map(valueOf));
+  const winners = players.filter(p => valueOf(p) === best);
+  return winners.length === players.length ? [] : winners;
 }
 
 function recordMove(state, move) {
@@ -142,9 +156,13 @@ function newGame(players, blockType, starter, wins, gameNo, previousMoveSeq) {
   };
 }
 
-function createInitialState(hostPerson, guestPerson, blockType) {
+/* createInitialState(["Isi", "Benji", "Lena"], "classic") – or the old form (host, guest, blockType) */
+function createInitialState(playersOrHost, second, third) {
+  const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, second];
+  const blockType = Array.isArray(playersOrHost) ? second : third;
+  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Qwixx braucht hier 2 bis 4 Personen.");
   const type = BLOCKS[blockType] ? blockType : "classic";
-  return newGame([hostPerson, guestPerson], type, hostPerson, null, 1, 0);
+  return newGame(players, type, players[0], null, 1, 0);
 }
 
 /* ---------- rules ---------- */
@@ -220,10 +238,9 @@ function gameShouldEnd(state) {
 function finishGame(state) {
   state.phase = "finished";
   const scores = perPlayer(state.players, p => scoreOf(state, p));
-  const [a, b] = state.players;
-  const winner = scores[a].total === scores[b].total ? null : (scores[a].total > scores[b].total ? a : b);
-  if (winner) state.wins[winner] = (state.wins[winner] || 0) + 1;
-  state.result = { scores, winner };
+  const winners = winnersOf(state.players, p => scores[p].total);
+  winners.forEach(p => { state.wins[p] = (state.wins[p] || 0) + 1; });
+  state.result = { scores, winner: winners.length === 1 ? winners[0] : null, winners };
 }
 
 function endTurn(state) {
@@ -233,14 +250,14 @@ function endTurn(state) {
   if (gameShouldEnd(state)) {
     finishGame(state);
   } else {
-    state.active = otherPerson(state, state.active);
+    state.active = nextPerson(state, state.active);
     state.phase = "roll";
     state.dice = null;
   }
   return penalty;
 }
 
-/* locks made while both choose at once only take effect when both are done */
+/* locks made while everybody chooses at once only take effect when all are done */
 function resolveWhite(state) {
   state.pendingLocks.forEach(row => {
     if (!state.lockedRows.includes(row)) state.lockedRows.push(row);
@@ -337,7 +354,7 @@ function passColor(state, person) {
 
 function rematch(state) {
   if (state.phase !== "finished") throw new Error("Die Partie läuft noch.");
-  return newGame(state.players, state.blockType, otherPerson(state, state.starter), state.wins, state.gameNo + 1, state.moveSeq);
+  return newGame(state.players, state.blockType, nextPerson(state, state.starter), state.wins, state.gameNo + 1, state.moveSeq);
 }
 
 return {
@@ -347,6 +364,7 @@ return {
   MIN_CROSSES_TO_LOCK,
   MAX_PENALTIES,
   PENALTY_POINTS,
+  MAX_PLAYERS,
   layoutFor,
   lockColorOf,
   removedColors,
@@ -361,7 +379,8 @@ return {
   crossColor,
   passColor,
   rematch,
-  otherPerson
+  otherPerson,
+  nextPerson
 };
 
 })();

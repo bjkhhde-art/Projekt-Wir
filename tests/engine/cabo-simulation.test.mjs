@@ -10,8 +10,7 @@ function randomChoice(arr) {
 }
 
 function playRandomRound(state) {
-  state = Engine.performInitialPeek(state, "Isi");
-  state = Engine.performInitialPeek(state, "Benji");
+  for (const p of state.players) state = Engine.performInitialPeek(state, p);
 
   let steps = 0;
   const MAX_STEPS = 500;
@@ -51,17 +50,18 @@ function playRandomRound(state) {
     } else if (state.turnPhase === "await-peek-own-target") {
       state = Engine.choosePeekOwnTarget(state, person, Math.floor(Math.random() * state.hands[person].length));
     } else if (state.turnPhase === "await-spy-target") {
-      const target = Engine.otherPerson(state, person);
-      state = Engine.chooseSpyTarget(state, person, Math.floor(Math.random() * state.hands[target].length));
+      const target = randomChoice(state.players.filter(p => p !== person));
+      state = Engine.chooseSpyTarget(state, person, target, Math.floor(Math.random() * state.hands[target].length));
     } else if (state.turnPhase === "peek-result") {
       state = Engine.finishPeek(state, person);
     } else if (state.turnPhase === "await-swap-target") {
-      const target = Engine.otherPerson(state, person);
+      const target = randomChoice(state.players.filter(p => p !== person));
       state = Math.random() < 0.2
         ? Engine.skipSwap(state, person)
         : Engine.swapWithOpponent(
           state, person,
           Math.floor(Math.random() * state.hands[person].length),
+          target,
           Math.floor(Math.random() * state.hands[target].length)
         );
     } else {
@@ -75,8 +75,10 @@ function playRandomRound(state) {
 let totalRounds = 0;
 let totalSteps = 0;
 
-for (let game = 0; game < 25; game++) {
-  let state = Engine.createInitialState("Isi", "Benji");
+const TABLES = [["Isi", "Benji"], ["Isi", "Benji", "Lena"], ["Isi", "Benji", "Lena", "Tom"]];
+for (let game = 0; game < 45; game++) {
+  const players = TABLES[game % TABLES.length];
+  let state = Engine.createInitialState(players);
 
   while (!state.gameOver) {
     const { state: afterRound, steps } = playRandomRound(state);
@@ -84,22 +86,18 @@ for (let game = 0; game < 25; game++) {
     totalSteps += steps;
     state = afterRound;
 
-    assert.ok(state.roundScores.Isi >= 0, "round score non-negative (Isi)");
-    assert.ok(state.roundScores.Benji >= 0, "round score non-negative (Benji)");
+    players.forEach(p => assert.ok(state.roundScores[p] >= 0, `round score non-negative (${p})`));
 
     if (!state.gameOver) {
       state = Engine.startNextRound(state);
     }
   }
 
-  assert.ok(state.winner === "Isi" || state.winner === "Benji", `game ${game} produced a valid winner`);
-  const totals = {
-    Isi: state.scores.Isi.reduce((a, b) => a + b, 0),
-    Benji: state.scores.Benji.reduce((a, b) => a + b, 0)
-  };
-  assert.ok(totals[state.winner] <= totals[Engine.otherPerson(state, state.winner)], "winner has the lower (or equal) cumulative total");
+  assert.ok(players.includes(state.winner), `game ${game} produced a valid winner`);
+  const total = p => state.scores[p].reduce((a, b) => a + b, 0);
+  assert.ok(players.every(p => total(state.winner) <= total(p)), "winner has the lowest (or equal) cumulative total");
 }
 
-console.log(`25 full randomized games simulated successfully.`);
+console.log(`45 full randomized games with 2, 3 and 4 players simulated successfully.`);
 console.log(`Total rounds: ${totalRounds}, total turn-steps: ${totalSteps}, avg steps/round: ${(totalSteps / totalRounds).toFixed(1)}`);
 console.log("All invariants held (card conservation, valid winner, non-negative scores).");

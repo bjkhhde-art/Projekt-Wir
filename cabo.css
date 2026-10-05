@@ -456,3 +456,54 @@
   font-family: var(--font-heading);
 }
 
+
+/* ---------- more than one other player ---------- */
+
+.cabo-opponents {
+  display: grid;
+  gap: 12px;
+}
+
+.cabo-opponents .cabo-side {
+  width: 100%;
+}
+
+.cabo-opponents[data-count="2"],
+.cabo-opponents[data-count="3"] {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 12px;
+}
+
+.cabo-opponents[data-count="2"] .cabo-hand,
+.cabo-opponents[data-count="3"] .cabo-hand {
+  gap: 5px;
+  max-width: 190px;
+}
+
+.cabo-opponents[data-count="2"] .cabo-card-slot,
+.cabo-opponents[data-count="3"] .cabo-card-slot {
+  flex-basis: calc((100% - 15px) / 4);
+  border-radius: 7px;
+}
+
+.cabo-opponents[data-count="2"] .cabo-player-label,
+.cabo-opponents[data-count="3"] .cabo-player-label {
+  margin-bottom: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cabo-score-strip {
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.cabo-scoreboard[data-players="3"] th,
+.cabo-scoreboard[data-players="3"] td,
+.cabo-scoreboard[data-players="4"] th,
+.cabo-scoreboard[data-players="4"] td {
+  padding-left: 6px;
+  padding-right: 6px;
+  font-size: 13px;
+}

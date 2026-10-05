@@ -27,10 +27,12 @@ await isi.goto("http://localhost:9091/cabo.html");
 await benji.goto("http://localhost:9091/cabo.html");
 await isi.waitForTimeout(300);
 
-await isi.locator("#startGameBtn").click();
+await isi.locator("#grStartBtn").click();
 await isi.waitForTimeout(300);
 await benji.waitForTimeout(600);
-await benji.locator("#joinGameBtn").click();
+await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 await benji.waitForTimeout(600);
 
 ok(errors.length === 0, `no JS errors (got: ${JSON.stringify(errors)})`);

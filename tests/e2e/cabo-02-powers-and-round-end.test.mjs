@@ -25,10 +25,12 @@ await benji.goto("http://localhost:9091/cabo.html");
 await isi.waitForTimeout(300);
 await benji.waitForTimeout(300);
 
-await isi.locator("#startGameBtn").click();
+await isi.locator("#grStartBtn").click();
 await isi.waitForTimeout(400);
 await benji.waitForTimeout(600);
-await benji.locator("#joinGameBtn").click();
+await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 await benji.waitForTimeout(400);
 await isi.locator("#ownHand .cabo-card-slot").nth(1).click();
 await benji.locator("#ownHand .cabo-card-slot").nth(0).click();

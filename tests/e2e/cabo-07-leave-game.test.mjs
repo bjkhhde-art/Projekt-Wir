@@ -29,10 +29,12 @@ await benji.goto("http://localhost:9091/cabo.html");
 await isi.waitForTimeout(300);
 
 async function startAndJoin() {
-  await isi.locator("#startGameBtn").click();
+  await isi.locator("#grStartBtn").click();
   await isi.waitForTimeout(300);
   await benji.waitForTimeout(600);
-  await benji.locator("#joinGameBtn").click();
+  await benji.locator("#grJoinBtn").click();
+  await isi.waitForTimeout(600);
+  await isi.locator("#grBeginBtn").click();
   await benji.waitForTimeout(500);
   await isi.waitForTimeout(500);
 }
@@ -72,11 +74,11 @@ await isi.waitForTimeout(500);
 await benji.waitForTimeout(700);
 
 ok((await dump())[0].status === "closed", "game row is marked closed");
-ok(await isi.locator("#startGameBtn").count() === 1, "Isi is back in the lobby and can start a new game");
-ok(await benji.locator("#startGameBtn").count() === 1, "Benji is moved back to the lobby live, without a reload");
-const benjiNote = await benji.locator(".cabo-lobby-note").textContent().catch(() => "");
+ok(await isi.locator("#grStartBtn").count() === 1, "Isi is back in the lobby and can start a new game");
+ok(await benji.locator("#grStartBtn").count() === 1, "Benji is moved back to the lobby live, without a reload");
+const benjiNote = await benji.locator(".gr-lobby-note").textContent().catch(() => "");
 ok(benjiNote.includes("Isi hat das letzte Spiel beendet"), `Benji is told who ended the game (got "${benjiNote}")`);
-ok(await isi.locator(".cabo-lobby-note").count() === 0, "Isi (who left herself) gets no such note");
+ok(await isi.locator(".gr-lobby-note").count() === 0, "Isi (who left herself) gets no such note");
 
 /* ---------- a new game can start right after ---------- */
 await startAndJoin();
@@ -116,9 +118,9 @@ ok((await benji.locator("#leaveGameBtn").textContent()).includes("Zurück zur Ü
 await benji.locator("#leaveGameBtn").click();
 await benji.waitForTimeout(500);
 await isi.waitForTimeout(700);
-ok(await benji.locator("#startGameBtn").count() === 1, "a finished game is left with a single tap, no confirmation");
-ok(await isi.locator("#startGameBtn").count() === 1, "Isi also returns to the lobby");
-ok(await isi.locator(".cabo-lobby-note").count() === 0, "no 'hat beendet' note when the game was already over");
+ok(await benji.locator("#grStartBtn").count() === 1, "a finished game is left with a single tap, no confirmation");
+ok(await isi.locator("#grStartBtn").count() === 1, "Isi also returns to the lobby");
+ok(await isi.locator(".gr-lobby-note").count() === 0, "no 'hat beendet' note when the game was already over");
 
 ok(errors.length === 0, `no JS errors (${JSON.stringify(errors)})`);
 

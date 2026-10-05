@@ -1,11 +1,12 @@
-/* 6 nimmt! – reine Spiellogik für zwei Personen (Grundspiel, ein Durchgang = eine Partie).
+/* 6 nimmt! – reine Spiellogik für 2–4 Personen (Grundspiel, ein Durchgang = eine Partie).
    Ohne DOM-Abhängigkeit: im Browser als <script> geladen, in Node per require testbar. */
 
 const NimmtEngine = (() => {
 
 const CARD_MAX = 104;
 const HAND_SIZE = 10;
-const ROW_COUNT = 3; // house rule for two players (the box says 4) - tighter and more exciting
+const ROW_COUNT = 4;
+const MAX_PLAYERS = 4;
 const ROW_LIMIT = 5;
 
 function bullsFor(card) {
@@ -73,8 +74,18 @@ function deal(players, wins, gameNo, previousMoveSeq) {
   };
 }
 
-function createInitialState(hostPerson, guestPerson) {
-  return deal([hostPerson, guestPerson], null, 1, 0);
+/* createInitialState(["Isi", "Benji", "Lena"]) – or the old two-player form (host, guest) */
+function createInitialState(playersOrHost, guestPerson) {
+  const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, guestPerson];
+  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("6 nimmt! braucht 2 bis 4 Personen.");
+  return deal(players, null, 1, 0);
+}
+
+/* lowest wins; several share a win, but if everybody has the same nobody wins */
+function winnersOf(players, valueOf, better) {
+  const best = players.reduce((acc, p) => (acc === null || better(valueOf(p), acc) ? valueOf(p) : acc), null);
+  const winners = players.filter(p => valueOf(p) === best);
+  return winners.length === players.length ? [] : winners;
 }
 
 /* Rules 1 + 2: ascending order, smallest difference. Returns -1 if the card is lower than every row end. */
@@ -125,10 +136,9 @@ function placeCard(state, play, rowIndex, tooLow) {
 function finishGame(state) {
   state.phase = "finished";
   const bulls = perPlayer(state.players, p => sumBulls(state.penalties[p]));
-  const [a, b] = state.players;
-  const winner = bulls[a] === bulls[b] ? null : (bulls[a] < bulls[b] ? a : b);
-  if (winner) state.wins[winner] = (state.wins[winner] || 0) + 1;
-  state.result = { bulls, winner };
+  const winners = winnersOf(state.players, p => bulls[p], (a, b) => a < b);
+  winners.forEach(p => { state.wins[p] = (state.wins[p] || 0) + 1; });
+  state.result = { bulls, winner: winners.length === 1 ? winners[0] : null, winners };
 }
 
 /* Places revealed cards lowest first until done or until someone has to pick a row. */
@@ -162,8 +172,8 @@ function resolvePlays(state, step) {
 
 /* ---------- player actions (each returns a NEW state) ---------- */
 
-/* Both choose secretly at the same time; tapping your chosen card again takes it back.
-   As soon as both have chosen, the cards are revealed and placed. */
+/* Everybody chooses secretly at the same time; tapping your chosen card again takes it back.
+   As soon as all have chosen, the cards are revealed and placed. */
 function chooseCard(state, person, card) {
   if (state.phase !== "choose") throw new Error("Gerade kann keine Karte gewählt werden.");
   if (!state.players.includes(person)) throw new Error("Unbekannte Person.");
@@ -222,6 +232,7 @@ return {
   HAND_SIZE,
   ROW_COUNT,
   ROW_LIMIT,
+  MAX_PLAYERS,
   bullsFor,
   sumBulls,
   rowFor,

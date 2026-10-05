@@ -1,16 +1,10 @@
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const personModal = document.getElementById("personModal");
-const personButtons = document.querySelectorAll(".person-choice-btn");
+/* Cabo for 2–4 players. Lobby, invites, moves and live sync come from game-room.js;
+   this file renders the table: my hand, the others' hands, piles and the round result. */
 
 const caboLobby = document.getElementById("caboLobby");
 const caboBoard = document.getElementById("caboBoard");
 const caboScoreStrip = document.getElementById("caboScoreStrip");
-const opponentLabel = document.getElementById("opponentLabel");
-const opponentHand = document.getElementById("opponentHand");
+const caboOpponents = document.getElementById("caboOpponents");
 const ownLabel = document.getElementById("ownLabel");
 const ownHand = document.getElementById("ownHand");
 const drawPile = document.getElementById("drawPile");
@@ -22,285 +16,107 @@ const caboActions = document.getElementById("caboActions");
 const leaveGameBtn = document.getElementById("leaveGameBtn");
 
 const INITIAL_PEEK_SLOTS = [0, 1];
-const LEAVE_CONFIRM_MS = 4000;
 
 const POWER_NAMES = { 7: "Peek", 8: "Peek", 9: "Spy", 10: "Spy", 11: "Swap", 12: "Swap" };
 
-let currentPerson = localStorage.getItem("pw_person");
+let currentPerson = null;
 let currentGame = null;
-let leaveArmedTimer = null;
-let actionInFlight = false;
 
 /* Card picks only live on this device until the move is sent. */
 let selectedSwapSlots = new Set();
 let selectedPowerOwnSlot = null;
 
-let lastRenderedJson = null;
-let syncGeneration = 0;
 let lastAnimatedMove = { gameId: null, seq: null };
 const flipMemory = new Map();
 let flipScope = "";
 let flipTiming = { base: 0, revealOrder: 0 };
 
+/* one block (name + hand) per other player, kept while the table stays the same */
+const opponentEls = new Map();
+let opponentKey = "";
+
 function cardImg(value) {
   return `cabo-cards/Karte-${value}.webp`;
 }
 
-function requirePerson() {
-  if (currentPerson) return true;
-  personModal.classList.remove("hidden");
-  return false;
-}
-
-personButtons.forEach(button => {
-  button.addEventListener("click", () => {
-    currentPerson = button.dataset.person;
-    localStorage.setItem("pw_person", currentPerson);
-    personModal.classList.add("hidden");
-    lastRenderedJson = null;
-    syncFromServer();
-  });
+const room = GameRoom.create({
+  table: "cabo_games",
+  title: "Cabo",
+  icon: "🦄",
+  url: "cabo.html",
+  lobbyEl: caboLobby,
+  boardEl: caboBoard,
+  leaveBtn: leaveGameBtn,
+  createState: players => CaboEngine.createInitialState(players),
+  isFinished: state => Boolean(state.gameOver),
+  renderBoard
 });
 
-if (!currentPerson) {
-  personModal.classList.remove("hidden");
+function dispatchAction(actionFn, ...args) {
+  return room.dispatch(actionFn, ...args);
 }
 
-/* ---------- data access ---------- */
+const others = state => room.others(state);
+const totalOf = (state, person) => (state.scores[person] || []).reduce((a, b) => a + b, 0);
 
-async function fetchCurrentGame() {
-  const { data, error } = await supabaseClient
-    .from("cabo_games")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Fehler beim Laden des Spiels:", error);
-    return null;
-  }
-
-  return data;
-}
-
-async function createGame() {
-  if (!requirePerson()) return;
-
-  const { error } = await supabaseClient
-    .from("cabo_games")
-    .insert({ status: "waiting", host_person: currentPerson, guest_person: null, state: {} });
-
-  if (error) {
-    console.error("Fehler beim Erstellen:", error);
-    showToast("Runde konnte nicht erstellt werden.", "error");
-    return;
-  }
-
-  sendAppNotification(supabaseClient, {
-    title: "Cabo-Einladung 🦄",
-    body: `${currentPerson} lädt dich zu einer Runde Cabo ein.`,
-    excludePerson: normalizePerson(currentPerson),
-    category: "games",
-    url: "cabo.html"
+function ensureOpponentBlocks(opponents) {
+  const key = opponents.join("|");
+  if (key === opponentKey) return;
+  opponentKey = key;
+  opponentEls.clear();
+  caboOpponents.innerHTML = "";
+  caboOpponents.dataset.count = String(opponents.length);
+  opponents.forEach((person, index) => {
+    const side = document.createElement("div");
+    side.className = "cabo-side cabo-opponent";
+    side.dataset.person = person;
+    const label = document.createElement("p");
+    label.className = "cabo-player-label";
+    label.textContent = person;
+    const hand = document.createElement("div");
+    hand.className = "cabo-hand";
+    /* the first other player keeps the ids the two-player table always had */
+    if (index === 0) {
+      label.id = "opponentLabel";
+      hand.id = "opponentHand";
+    }
+    side.appendChild(label);
+    side.appendChild(hand);
+    caboOpponents.appendChild(side);
+    opponentEls.set(person, { side, label, hand });
   });
-
-  await syncFromServer();
-}
-
-async function cancelWaitingGame(gameId) {
-  const { error } = await supabaseClient.from("cabo_games").delete().eq("id", gameId);
-  if (error) {
-    console.error("Fehler beim Abbrechen:", error);
-    showToast("Konnte nicht abgebrochen werden.", "error");
-  }
-  await syncFromServer();
-}
-
-async function joinGame(game) {
-  if (!requirePerson()) return;
-
-  const state = CaboEngine.createInitialState(game.host_person, currentPerson);
-
-  const { error } = await supabaseClient
-    .from("cabo_games")
-    .update({ guest_person: currentPerson, status: "active", state, updated_at: new Date().toISOString() })
-    .eq("id", game.id);
-
-  if (error) {
-    console.error("Fehler beim Beitreten:", error);
-    showToast("Beitreten hat nicht geklappt.", "error");
-    return;
-  }
-
-  await syncFromServer();
-}
-
-async function dispatchAction(actionFn, ...args) {
-  if (!requirePerson() || actionInFlight) return;
-  actionInFlight = true;
-
-  try {
-    const fresh = await fetchCurrentGame();
-    if (!fresh || fresh.status !== "active") {
-      await syncFromServer();
-      return;
-    }
-
-    let nextState;
-    try {
-      nextState = actionFn(fresh.state, currentPerson, ...args);
-    } catch (error) {
-      showToast(error.message, "error");
-      return;
-    }
-
-    const patch = { state: nextState, updated_at: new Date().toISOString() };
-    if (nextState.gameOver) patch.status = "finished";
-
-    const { error } = await supabaseClient.from("cabo_games").update(patch).eq("id", fresh.id);
-    if (error) {
-      console.error("Fehler beim Speichern des Spielzugs:", error);
-      showToast("Zug konnte nicht gespeichert werden.", "error");
-      return;
-    }
-
-    await syncFromServer();
-  } finally {
-    actionInFlight = false;
-  }
-}
-
-async function leaveGame() {
-  if (!requirePerson()) return;
-
-  const fresh = await fetchCurrentGame();
-  if (!fresh || (fresh.status !== "active" && fresh.status !== "finished")) {
-    await syncFromServer();
-    return;
-  }
-
-  const state = { ...fresh.state, closedBy: currentPerson };
-  const { error } = await supabaseClient
-    .from("cabo_games")
-    .update({ status: "closed", state, updated_at: new Date().toISOString() })
-    .eq("id", fresh.id);
-
-  if (error) {
-    console.error("Fehler beim Beenden:", error);
-    showToast("Spiel konnte nicht beendet werden.", "error");
-    return;
-  }
-
-  await syncFromServer();
-}
-
-function disarmLeaveButton() {
-  clearTimeout(leaveArmedTimer);
-  leaveArmedTimer = null;
-  leaveGameBtn.classList.remove("armed");
-}
-
-function renderLeaveButton(state) {
-  const gameDone = state.gameOver;
-  if (leaveArmedTimer && !gameDone) return;
-  disarmLeaveButton();
-  leaveGameBtn.textContent = gameDone ? "Zurück zur Übersicht" : "Spiel beenden";
-}
-
-leaveGameBtn.addEventListener("click", () => {
-  const gameDone = currentGame && currentGame.state && currentGame.state.gameOver;
-  if (gameDone || leaveArmedTimer) {
-    disarmLeaveButton();
-    leaveGame();
-    return;
-  }
-
-  leaveGameBtn.classList.add("armed");
-  leaveGameBtn.textContent = "Wirklich beenden? Nochmal tippen";
-  leaveArmedTimer = setTimeout(() => {
-    disarmLeaveButton();
-    leaveGameBtn.textContent = "Spiel beenden";
-  }, LEAVE_CONFIRM_MS);
-});
-
-/* ---------- rendering: lobby ---------- */
-
-function renderLobbyNoGame(note) {
-  disarmLeaveButton();
-  GameAnim.revealAll();
-  caboBoard.classList.add("hidden");
-  caboLobby.classList.remove("hidden");
-  caboLobby.innerHTML = `
-    <div class="cabo-lobby-card card">
-      <div class="cabo-lobby-icon">🦄</div>
-      ${note ? `<p class="cabo-lobby-note">${escapeHtml(note)}</p>` : ""}
-      <h2>Noch keine Runde</h2>
-      <p>Startet eine neue Cabo-Runde &ndash; der andere kann direkt beitreten.</p>
-      <button id="startGameBtn" class="btn btn-block">Neue Runde starten</button>
-    </div>
-  `;
-  document.getElementById("startGameBtn").addEventListener("click", createGame);
-}
-
-function renderLobbyWaitingAsHost(game) {
-  caboBoard.classList.add("hidden");
-  caboLobby.classList.remove("hidden");
-  caboLobby.innerHTML = `
-    <div class="cabo-lobby-card card">
-      <div class="cabo-lobby-icon">🦄</div>
-      <h2>Warte auf Mitspieler:in</h2>
-      <div class="cabo-lobby-waiting"><span class="cabo-spinner"></span> Einladung ist raus...</div>
-      <button id="cancelGameBtn" class="btn btn-secondary btn-block">Abbrechen</button>
-    </div>
-  `;
-  document.getElementById("cancelGameBtn").addEventListener("click", () => cancelWaitingGame(game.id));
-}
-
-function renderLobbyWaitingAsGuest(game) {
-  caboBoard.classList.add("hidden");
-  caboLobby.classList.remove("hidden");
-  caboLobby.innerHTML = `
-    <div class="cabo-lobby-card card">
-      <div class="cabo-lobby-icon">🦄</div>
-      <h2>${escapeHtml(game.host_person)} lädt dich ein!</h2>
-      <p>Bereit für eine Runde Cabo?</p>
-      <button id="joinGameBtn" class="btn btn-block">Beitreten</button>
-    </div>
-  `;
-  document.getElementById("joinGameBtn").addEventListener("click", () => joinGame(game));
 }
 
 /* ---------- rendering: board ---------- */
 
 function renderBoard(game) {
-  caboLobby.classList.add("hidden");
-  caboBoard.classList.remove("hidden");
-
+  currentPerson = room.person;
+  currentGame = game;
   const state = game.state;
-  const opponent = CaboEngine.otherPerson(state, currentPerson) || (currentPerson === game.host_person ? game.guest_person : game.host_person);
+  const opponents = others(state);
 
-  opponentLabel.textContent = opponent || "Gegner";
+  const layoutBefore = captureLayout(state.players);
+  ensureOpponentBlocks(opponents);
   ownLabel.textContent = "Du";
-  opponentLabel.classList.toggle("active-turn", state.turnPerson === opponent && !state.roundOver);
   ownLabel.classList.toggle("active-turn", state.turnPerson === currentPerson && !state.roundOver);
+  opponents.forEach(person => {
+    opponentEls.get(person).label.classList.toggle("active-turn", state.turnPerson === person && !state.roundOver);
+  });
 
-  const layoutBefore = captureLayout(opponent);
   const move = takeUnseenMove(game);
   flipScope = `${game.id}-${state.round}`;
   flipTiming = { base: flipDelayFor(move, state), revealOrder: 0 };
   if (move) hideMovingCards(move, state);
 
   dropStaleSelections(state);
-  renderScoreStrip(state, opponent);
-  renderHand(opponentHand, state, opponent, false);
+  renderScoreStrip(state, opponents);
+  opponents.forEach(person => renderHand(opponentEls.get(person).hand, state, person, false));
   renderHand(ownHand, state, currentPerson, true);
   renderPiles(state);
   renderEvent(state);
-  renderStatusAndActions(state, game, opponent);
-  renderLeaveButton(state);
+  renderStatusAndActions(state, game, opponents);
 
-  if (move) animateMove(move, state, layoutBefore, opponent);
+  if (move) animateMove(move, state, layoutBefore);
 }
 
 /* ---------- animations ---------- */
@@ -313,16 +129,22 @@ const RESHUFFLE_SHOWN_CARDS = 8;
 const RESHUFFLE_STEP_MS = 70;
 
 const handKey = (person, index) => `hand-${person}-${index}`;
-const handElement = person => (person === currentPerson ? ownHand : opponentHand);
+function handElement(person) {
+  if (person === currentPerson) return ownHand;
+  const entry = opponentEls.get(person);
+  return entry ? entry.hand : null;
+}
 
 function handRects(person) {
-  return [...handElement(person).children].map(GameAnim.rectOf);
+  const hand = handElement(person);
+  return hand ? [...hand.children].map(GameAnim.rectOf) : [];
 }
 
 /* Where a player "holds" a drawn card: my drawn card is shown face-up; the other's sits over their hand. */
 function holdingRect(person, layout) {
   if (person === currentPerson && layout.drawnCard) return layout.drawnCard;
-  const hand = GameAnim.rectOf(handElement(person));
+  const handEl = handElement(person);
+  const hand = handEl && GameAnim.rectOf(handEl);
   const card = (layout.hands[person] || []).find(Boolean) || layout.drawPile;
   if (!hand || !card) return null;
   return {
@@ -333,15 +155,14 @@ function holdingRect(person, layout) {
   };
 }
 
-function captureLayout(opponent) {
+function captureLayout(players) {
   const layout = {
     drawPile: GameAnim.rectOf(drawPile),
     discardPile: GameAnim.rectOf(discardPile),
     drawnCard: GameAnim.rectOf(document.querySelector(".cabo-drawn-preview")),
     hands: {}
   };
-  if (currentPerson) layout.hands[currentPerson] = handRects(currentPerson);
-  if (opponent) layout.hands[opponent] = handRects(opponent);
+  (players || []).forEach(person => { layout.hands[person] = handRects(person); });
   return layout;
 }
 
@@ -391,8 +212,8 @@ function hideMovingCards(move, state) {
   }
 }
 
-function animateMove(move, state, before, opponent) {
-  const now = captureLayout(opponent);
+function animateMove(move, state, before) {
+  const now = captureLayout(state.players);
   const mine = move.person === currentPerson;
   const jobs = [];
   const flyThenReveal = (options, key) => jobs.push(GameAnim.fly(options).then(() => key && GameAnim.reveal(key)));
@@ -492,7 +313,7 @@ function animateMove(move, state, before, opponent) {
       if (move.slots.length > 1) {
         const removed = new Set(move.slots.slice(1));
         const survivors = oldSlots.map((_, index) => index).filter(index => !removed.has(index));
-        [...handElement(move.person).children].forEach((el, newIndex) => {
+        [...(handElement(move.person) || { children: [] }).children].forEach((el, newIndex) => {
           if (newIndex !== move.slots[0]) GameAnim.slideFrom(el, oldSlots[survivors[newIndex]]);
         });
       }
@@ -500,7 +321,10 @@ function animateMove(move, state, before, opponent) {
     }
 
     case "swap-failed":
-      move.slots.forEach(index => GameAnim.shake(handElement(move.person).children[index]));
+      move.slots.forEach(index => {
+        const handEl = handElement(move.person);
+        if (handEl) GameAnim.shake(handEl.children[index]);
+      });
       flyThenReveal({
         from: holdingRect(move.person, before),
         to: now.discardPile,
@@ -573,7 +397,10 @@ function describeEvent(event) {
 
   switch (event.type) {
     case "cabo":
-      return mine ? "Du hast Cabo gerufen." : `${event.person} hat Cabo gerufen – das ist dein letzter Zug!`;
+      if (mine) return "Du hast Cabo gerufen.";
+      return currentGame && currentGame.state.players.length > 2
+        ? `${event.person} hat Cabo gerufen – jetzt hat jeder noch einen letzten Zug!`
+        : `${event.person} hat Cabo gerufen – das ist dein letzter Zug!`;
     case "multi-swap":
       return mine
         ? `Du hast ${event.count} gleiche Karten auf einmal abgelegt.`
@@ -583,9 +410,9 @@ function describeEvent(event) {
         ? "Die Karten waren nicht gleich – die gezogene Karte ist abgelegt, Zug verloren."
         : `${event.person} hat sich vertan: Die Karten waren nicht gleich, Zug verloren.`;
     case "blind-swap":
-      return mine
-        ? `Du hast deine ${event.ownIndex + 1}. Karte mit der ${event.opponentIndex + 1}. von ${event.targetPerson} getauscht.`
-        : `${event.person} hat deine ${event.opponentIndex + 1}. Karte mit der eigenen ${event.ownIndex + 1}. getauscht.`;
+      if (mine) return `Du hast deine ${event.ownIndex + 1}. Karte mit der ${event.opponentIndex + 1}. von ${event.targetPerson} getauscht.`;
+      if (event.targetPerson === currentPerson) return `${event.person} hat deine ${event.opponentIndex + 1}. Karte mit der eigenen ${event.ownIndex + 1}. getauscht.`;
+      return `${event.person} hat die eigene ${event.ownIndex + 1}. Karte mit der ${event.opponentIndex + 1}. von ${event.targetPerson} getauscht.`;
     case "reshuffle":
       return `Der Nachziehstapel war leer – der Ablagestapel wurde neu gemischt (${event.count} Karten).`;
     default:
@@ -597,13 +424,11 @@ function renderEvent(state) {
   caboEvent.textContent = state.roundOver ? "" : describeEvent(state.lastEvent);
 }
 
-function renderScoreStrip(state, opponent) {
-  const ownTotal = (state.scores[currentPerson] || []).reduce((a, b) => a + b, 0);
-  const oppTotal = (state.scores[opponent] || []).reduce((a, b) => a + b, 0);
-  caboScoreStrip.innerHTML = `
-    <span>Du: <strong>${ownTotal}</strong></span>
-    <span>${escapeHtml(opponent || "Gegner")}: <strong>${oppTotal}</strong></span>
-  `;
+function renderScoreStrip(state, opponents) {
+  caboScoreStrip.innerHTML = [
+    `<span>Du: <strong>${totalOf(state, currentPerson)}</strong></span>`,
+    ...opponents.map(person => `<span>${escapeHtml(person)}: <strong>${totalOf(state, person)}</strong></span>`)
+  ].join("");
 }
 
 /* During a peek/spy, the looked-at card is face-up only for the looker; the other player sees it highlighted. */
@@ -623,7 +448,7 @@ function isJustSwappedSlot(state, person, index) {
     (person === event.targetPerson && index === event.opponentIndex);
 }
 
-function slotClickHandler(state, isOwn, index, peekState, previewingInitial) {
+function slotClickHandler(state, owner, isOwn, index, peekState, previewingInitial) {
   if (peekState === "looking") return () => dispatchAction(CaboEngine.finishPeek);
   if (previewingInitial) return () => dispatchAction(CaboEngine.performInitialPeek);
 
@@ -636,7 +461,7 @@ function slotClickHandler(state, isOwn, index, peekState, previewingInitial) {
     case "await-peek-own-target":
       return isOwn ? () => dispatchAction(CaboEngine.choosePeekOwnTarget, index) : null;
     case "await-spy-target":
-      return isOwn ? null : () => dispatchAction(CaboEngine.chooseSpyTarget, index);
+      return isOwn ? null : () => dispatchAction(CaboEngine.chooseSpyTarget, owner, index);
     case "await-swap-target":
       if (isOwn) return () => selectPowerOwnSlot(index);
       return () => {
@@ -644,7 +469,7 @@ function slotClickHandler(state, isOwn, index, peekState, previewingInitial) {
           nudgeStatus();
           return;
         }
-        dispatchAction(CaboEngine.swapWithOpponent, selectedPowerOwnSlot, index);
+        dispatchAction(CaboEngine.swapWithOpponent, selectedPowerOwnSlot, owner, index);
       };
     default:
       return null;
@@ -719,7 +544,7 @@ function renderHand(container, state, person, isOwn) {
     );
     slot.classList.toggle("selected", selected);
 
-    const onClick = slotClickHandler(state, isOwn, index, peekState, previewingInitial);
+    const onClick = slotClickHandler(state, person, isOwn, index, peekState, previewingInitial);
     if (onClick) slot.addEventListener("click", onClick);
     slot.classList.toggle("clickable", Boolean(onClick));
     if (!onClick) slot.disabled = true;
@@ -810,35 +635,38 @@ function postDrawStatus(state) {
     : `${pick} – oder tippe auf den Ablagestapel, um sie abzulegen.`;
 }
 
-function renderStatusAndActions(state, game, opponent) {
+function renderStatusAndActions(state, game, opponents) {
   caboActions.innerHTML = "";
   caboStatus.classList.remove("nudge");
-  const other = opponent || "der andere";
+  /* with one other player the texts name them; with more they say "jemand anderem" */
+  const single = opponents.length === 1 ? opponents[0] : null;
 
   if (state.roundOver) {
-    renderRoundOverInline(state, game, opponent);
+    renderRoundOverInline(state, game, opponents);
     return;
   }
 
   if (state.turnPhase === "initial-peek") {
+    const waitingFor = opponents.filter(p => !state.initialPeekDone[p]);
     caboStatus.textContent = state.initialPeekDone[currentPerson]
-      ? `Warte, bis ${opponent || "der andere"} auch bereit ist...`
+      ? `Warte, bis ${listNames(waitingFor) || "alle"} auch bereit ${waitingFor.length > 1 ? "sind" : "ist"}...`
       : "Schau dir deine beiden linken Karten an und tippe eine davon an, wenn du bereit bist.";
     return;
   }
 
   const myTurn = state.turnPerson === currentPerson;
   const peek = state.lastPeekResult;
+  const turner = state.turnPerson;
 
   if (!myTurn) {
     if (state.turnPhase === "peek-result" && peek) {
-      caboStatus.textContent = peek.type === "own"
-        ? `${opponent} schaut sich eine eigene Karte an...`
-        : `${opponent} schaut sich deine markierte Karte an...`;
+      if (peek.type === "own") caboStatus.textContent = `${turner} schaut sich eine eigene Karte an...`;
+      else if (peek.targetPerson === currentPerson) caboStatus.textContent = `${turner} schaut sich deine markierte Karte an...`;
+      else caboStatus.textContent = `${turner} schaut sich eine Karte von ${peek.targetPerson} an...`;
     } else if (state.turnPhase.startsWith("await-")) {
-      caboStatus.textContent = `${opponent} setzt eine Fähigkeit ein...`;
+      caboStatus.textContent = `${turner} setzt eine Fähigkeit ein...`;
     } else {
-      caboStatus.textContent = `${opponent || "Der andere"} ist am Zug...`;
+      caboStatus.textContent = `${turner} ist am Zug...`;
     }
     return;
   }
@@ -867,13 +695,17 @@ function renderStatusAndActions(state, game, opponent) {
       caboStatus.textContent = "Peek: Tippe eine deiner Karten an, um sie dir anzusehen.";
       break;
     case "await-spy-target":
-      caboStatus.textContent = `Spy: Tippe eine Karte von ${other} an, um sie dir anzusehen.`;
+      caboStatus.textContent = single
+        ? `Spy: Tippe eine Karte von ${single} an, um sie dir anzusehen.`
+        : "Spy: Tippe eine Karte von jemand anderem an, um sie dir anzusehen.";
       break;
-    case "await-swap-target":
+    case "await-swap-target": {
+      const whose = single ? `von ${single}` : "von jemand anderem";
       caboStatus.textContent = selectedPowerOwnSlot === null
-        ? `Swap: Tippe eine deiner Karten an und dann eine von ${other} – sie werden blind getauscht. Ablagestapel antippen = verzichten.`
-        : `Jetzt eine Karte von ${other} antippen, um sie blind zu tauschen.`;
+        ? `Swap: Tippe eine deiner Karten an und dann eine ${whose} – sie werden blind getauscht. Ablagestapel antippen = verzichten.`
+        : `Jetzt eine Karte ${whose} antippen, um sie blind zu tauschen.`;
       break;
+    }
     case "peek-result":
       caboStatus.textContent = "Merk sie dir – tippe sie nochmal an, um sie umzudrehen und den Zug zu beenden.";
       break;
@@ -882,9 +714,7 @@ function renderStatusAndActions(state, game, opponent) {
   }
 }
 
-function renderRoundOverInline(state, game, opponent) {
-  const ownTotal = (state.scores[currentPerson] || []).reduce((a, b) => a + b, 0);
-  const oppTotal = (state.scores[opponent] || []).reduce((a, b) => a + b, 0);
+function renderRoundOverInline(state, game, opponents) {
 
   let winnerBanner = "";
   if (state.gameOver) {
@@ -894,13 +724,15 @@ function renderRoundOverInline(state, game, opponent) {
 
   caboStatus.textContent = winnerBanner + (state.gameOver ? "" : `Runde ${state.round} vorbei.`);
 
+  const columns = [currentPerson, ...opponents];
   const table = document.createElement("table");
   table.className = "cabo-scoreboard";
+  table.dataset.players = String(columns.length);
   table.innerHTML = `
-    <thead><tr><th></th><th>Du</th><th>${escapeHtml(opponent || "Gegner")}</th></tr></thead>
+    <thead><tr><th></th>${columns.map(p => `<th>${p === currentPerson ? "Du" : escapeHtml(p)}</th>`).join("")}</tr></thead>
     <tbody>
-      <tr><td>Diese Runde</td><td>${state.roundScores[currentPerson]}</td><td>${state.roundScores[opponent]}</td></tr>
-      <tr><td class="total-row">Gesamt</td><td class="total-row">${ownTotal}</td><td class="total-row">${oppTotal}</td></tr>
+      <tr><td>Diese Runde</td>${columns.map(p => `<td>${state.roundScores[p]}</td>`).join("")}</tr>
+      <tr><td class="total-row">Gesamt</td>${columns.map(p => `<td class="total-row">${totalOf(state, p)}</td>`).join("")}</tr>
     </tbody>
   `;
   caboActions.appendChild(table);
@@ -909,59 +741,8 @@ function renderRoundOverInline(state, game, opponent) {
   actionBtn.type = "button";
   actionBtn.className = "btn btn-block";
   actionBtn.textContent = state.gameOver ? "Neues Spiel" : "Nächste Runde";
-  actionBtn.addEventListener("click", state.gameOver
-    ? () => createGame()
-    : () => dispatchAction(CaboEngine.startNextRound));
+  actionBtn.addEventListener("click", () => dispatchAction(state.gameOver ? CaboEngine.newGame : CaboEngine.startNextRound));
   caboActions.appendChild(actionBtn);
 }
 
-/* ---------- sync loop ---------- */
-
-async function syncFromServer() {
-  const generation = ++syncGeneration;
-  const game = await fetchCurrentGame();
-  if (generation !== syncGeneration) return;
-
-  /* re-rendering an unchanged game would restart running card animations */
-  const json = JSON.stringify(game);
-  if (json === lastRenderedJson) return;
-  lastRenderedJson = json;
-  currentGame = game;
-
-  if (!game) {
-    renderLobbyNoGame();
-    return;
-  }
-
-  if (game.status === "closed") {
-    const closedBy = game.state && game.state.closedBy;
-    const endedEarly = !(game.state && game.state.gameOver);
-    const note = closedBy && closedBy !== currentPerson && endedEarly
-      ? `${closedBy} hat das letzte Spiel beendet.`
-      : "";
-    renderLobbyNoGame(note);
-    return;
-  }
-
-  if (game.status === "waiting") {
-    if (game.host_person === currentPerson) {
-      renderLobbyWaitingAsHost(game);
-    } else {
-      renderLobbyWaitingAsGuest(game);
-    }
-    return;
-  }
-
-  if (game.status === "active" || game.status === "finished") {
-    renderBoard(game);
-  }
-}
-
-supabaseClient
-  .channel("cabo_games_changes")
-  .on("postgres_changes", { event: "*", schema: "public", table: "cabo_games" }, () => {
-    syncFromServer();
-  })
-  .subscribe();
-
-syncFromServer();
+room.start();

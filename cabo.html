@@ -17,6 +17,7 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="game-anim.css">
+  <link rel="stylesheet" href="game-room.css">
   <link rel="stylesheet" href="cabo.css">
   <script src="pin-lock.js"></script>
 </head>
@@ -32,10 +33,7 @@
 
       <div class="cabo-score-strip" id="caboScoreStrip"></div>
 
-      <div class="cabo-side">
-        <p class="cabo-player-label" id="opponentLabel">Gegner</p>
-        <div class="cabo-hand" id="opponentHand"></div>
-      </div>
+      <div class="cabo-opponents" id="caboOpponents"></div>
 
       <div class="cabo-table">
         <button type="button" class="cabo-pile" id="drawPile" title="Nachziehstapel">
@@ -87,6 +85,7 @@
   <script src="shared.js"></script>
   <script src="cabo-engine.js"></script>
   <script src="game-anim.js"></script>
+  <script src="game-room.js"></script>
   <script src="cabo.js"></script>
 </body>
 </html>
