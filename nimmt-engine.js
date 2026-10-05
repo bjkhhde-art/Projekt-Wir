@@ -5,8 +5,12 @@ const NimmtEngine = (() => {
 
 const CARD_MAX = 104;
 const HAND_SIZE = 10;
-const ROW_COUNT = 4;
 const MAX_PLAYERS = 4;
+
+/* two at the table play with three rows (tighter), three or four with the four of the box */
+function rowCountFor(playerCount) {
+  return playerCount === 2 ? 3 : 4;
+}
 const ROW_LIMIT = 5;
 
 function bullsFor(card) {
@@ -51,7 +55,7 @@ function recordMove(state, move) {
 function deal(players, wins, gameNo, previousMoveSeq) {
   const deck = shuffle(Array.from({ length: CARD_MAX }, (_, i) => i + 1));
   const hands = perPlayer(players, () => deck.splice(0, HAND_SIZE).sort((a, b) => a - b));
-  const rows = deck.splice(0, ROW_COUNT).sort((a, b) => a - b).map(card => [card]);
+  const rows = deck.splice(0, rowCountFor(players.length)).sort((a, b) => a - b).map(card => [card]);
   const moveSeq = (previousMoveSeq || 0) + 1;
 
   return {
@@ -230,8 +234,8 @@ function rematch(state) {
 return {
   CARD_MAX,
   HAND_SIZE,
-  ROW_COUNT,
   ROW_LIMIT,
+  rowCountFor,
   MAX_PLAYERS,
   bullsFor,
   sumBulls,

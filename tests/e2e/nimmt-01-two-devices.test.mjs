@@ -47,7 +47,7 @@ await isi.locator("#grBeginBtn").click();
 await benji.waitForTimeout(500);
 await isi.waitForTimeout(500);
 ok(await isi.locator("#nmBoard").isVisible() && await benji.locator("#nmBoard").isVisible(), "both boards are shown after joining");
-ok(await isi.locator(".nm-row").count() === 4, "four rows on the table");
+ok(await isi.locator(".nm-row").count() === 3, "two players: three rows on the table");
 ok(await isi.locator(".nm-hand-card").count() === 10 && await benji.locator(".nm-hand-card").count() === 10, "each player holds 10 cards");
 ok((await isi.locator("#nmOppHand").textContent()).includes("10 Karten"), "Isi sees how many cards Benji holds");
 ok(await isi.locator("#nmHand .nm-card-num").count() === 10 && await isi.locator("#nmOppHand .nm-card-num").count() === 0, "only your own card values are shown");
