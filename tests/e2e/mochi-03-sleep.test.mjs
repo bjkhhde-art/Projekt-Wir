@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 
 /* Mochi keeps sleeping – across closing and reopening the page – until one of us wakes him */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
@@ -8,11 +9,19 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const petRow = async () => (await (await fetch(API + "/t/pet_state/dump")).json())[0];
 const hoursAgo = h => new Date(Date.now() - h * 3600000).toISOString();
+/* today's wishes count as done already – on days where Mochi wishes for a full nap,
+   waking him would otherwise also pay the wish reward */
+const Core = createRequire(import.meta.url)("../../mochi-core.js");
+const today = Core.dayKey(new Date());
+const daily = {
+  date: today, wishes_done: Object.fromEntries(Core.wishesFor(today).map(w => [w.id, "Benji"])),
+  chest: {}, visitors: [], messages_rewarded: {}, bonus_claimed: true
+};
 
 await post("/t/mochi_messages/seed", { rows: [] });
 await post("/t/pet_state/seed", { rows: [{
   id: "shared", version: 3, hunger: 90, energy: 40, cleanliness: 90, bond: 90, coins: 20, care_score: 10,
-  total_care_actions: 5, total_coins_earned: 30, owned_items: [], room_decor: [], daily: {},
+  total_care_actions: 5, total_coins_earned: 30, owned_items: [], room_decor: [], daily,
   sleep_started_at: hoursAgo(6), updated_at: hoursAgo(6), created_at: hoursAgo(100), last_interacted_by: "Benji"
 }] });
 

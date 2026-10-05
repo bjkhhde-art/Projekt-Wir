@@ -1,4 +1,6 @@
+/* Qwixx for 2–4 players. Lobby, invites, moves and live sync come from game-room.js. */
 const boardEl = document.getElementById("qxBoard");
+const oppTabsEl = document.getElementById("qxOppTabs");
 const scoreEl = document.getElementById("qxScore");
 const oppNameEl = document.getElementById("qxOppName");
 const oppPenaltiesEl = document.getElementById("qxOppPenalties");
@@ -20,6 +22,10 @@ const ROLL_FLICKER_MS = 520;
 
 let lastAnimatedMove = { gameId: null, seq: null };
 
+/* with several others one mini sheet is shown: whoever is rolling, unless one was tapped */
+let pinnedOpp = null;
+let pinnedWhileActive = null;
+
 const room = GameRoom.create({
   table: "qwixx_games",
   title: "Qwixx",
@@ -28,7 +34,7 @@ const room = GameRoom.create({
   lobbyEl: document.getElementById("qxLobby"),
   boardEl,
   leaveBtn: document.getElementById("qxLeaveBtn"),
-  createState: (host, guest, option) => Q.createInitialState(host, guest, option),
+  createState: (players, option) => Q.createInitialState(players, option),
   isFinished: state => state.phase === "finished",
   renderBoard,
   startOptions: [
@@ -51,33 +57,69 @@ function takeUnseenMove(game) {
 
 function renderBoard(game) {
   const state = game.state;
-  const opp = room.opponentOf(game);
+  const opponents = room.others(state);
   const move = takeUnseenMove(game);
 
-  renderScore(state, opp);
-  renderOpponent(state, opp, move);
+  renderScore(state, opponents);
+  renderOpponents(state, opponents, move);
   renderDice(state, move);
   renderEvent(state);
-  renderStatus(state, opp);
+  renderStatus(state, opponents);
   renderSheet(state, move);
 }
 
-/* ---------- score + opponent ---------- */
+/* ---------- score + opponents ---------- */
 
-function renderScore(state, opp) {
+function renderScore(state, opponents) {
   const me = room.person;
   const wins = state.wins || {};
+  const tally = opponents.length === 1
+    ? `Du <strong>${wins[me] || 0}</strong> : <strong>${wins[opponents[0]] || 0}</strong> ${escapeHtml(opponents[0])}`
+    : [`Du <strong>${wins[me] || 0}</strong>`, ...opponents.map(p => `${escapeHtml(p)} <strong>${wins[p] || 0}</strong>`)].join(" · ");
   scoreEl.innerHTML = `
     <span>Partie <strong>${state.gameNo}</strong> · ${escapeHtml(Q.BLOCKS[state.blockType])}</span>
-    <span>Siege: Du <strong>${wins[me] || 0}</strong> : <strong>${wins[opp] || 0}</strong> ${escapeHtml(opp || "")}</span>
+    <span>Siege: ${tally}</span>
   `;
+}
+
+const isActing = (state, person) => (state.phase === "white" && !state.white[person].done) ||
+  (state.phase !== "white" && state.phase !== "finished" && state.active === person);
+
+function shownOpponent(state, opponents) {
+  if (pinnedOpp && opponents.includes(pinnedOpp) && pinnedWhileActive === state.active) return pinnedOpp;
+  pinnedOpp = null;
+  return opponents.includes(state.active) ? state.active : opponents[0];
+}
+
+function renderOpponents(state, opponents, move) {
+  const shown = shownOpponent(state, opponents);
+  oppTabsEl.classList.toggle("hidden", opponents.length < 2);
+  oppTabsEl.innerHTML = "";
+  if (opponents.length > 1) {
+    opponents.forEach(person => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "qx-opp-tab";
+      tab.dataset.person = person;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", String(person === shown));
+      tab.classList.toggle("selected", person === shown);
+      tab.classList.toggle("active", isActing(state, person));
+      tab.innerHTML = `<span class="qx-opp-tab-name">${escapeHtml(person)}</span><span class="qx-opp-tab-total">${Q.scoreOf(state, person).total}</span>`;
+      tab.addEventListener("click", () => {
+        pinnedOpp = person;
+        pinnedWhileActive = state.active;
+        renderOpponents(state, opponents, null);
+      });
+      oppTabsEl.appendChild(tab);
+    });
+  }
+  renderOpponent(state, shown, move);
 }
 
 function renderOpponent(state, opp, move) {
   oppNameEl.textContent = opp || "Gegner";
-  const oppActs = (state.phase === "white" && !state.white[opp].done) ||
-    (state.phase !== "white" && state.phase !== "finished" && state.active === opp);
-  oppNameEl.classList.toggle("active", oppActs);
+  oppNameEl.classList.toggle("active", isActing(state, opp));
 
   const sheet = state.sheets[opp];
   oppPenaltiesEl.textContent = "✕".repeat(sheet.penalties);
@@ -211,26 +253,26 @@ function passButton(label, action) {
   actionsEl.appendChild(button);
 }
 
-function renderStatus(state, opp) {
+function renderStatus(state, opponents) {
   const me = room.person;
   actionsEl.innerHTML = "";
 
   if (state.phase === "finished") {
-    renderResult(state, opp);
+    renderResult(state, opponents);
     return;
   }
 
   if (state.phase === "roll") {
     statusEl.textContent = state.active === me
       ? "Du bist dran – tippe auf die Würfel!"
-      : `${opp} würfelt gleich…`;
+      : `${state.active} würfelt gleich…`;
     return;
   }
 
   /* no hints about which fields fit – working that out is the game */
   if (state.phase === "white") {
     if (state.white[me].done) {
-      statusEl.textContent = `Warte auf ${opp}…`;
+      statusEl.textContent = `Warte auf ${listNames(opponents.filter(p => !state.white[p].done))}…`;
       return;
     }
     statusEl.textContent = "Die beiden weißen Würfel gelten für alle: Kreuz ihre Summe an – oder lass sie aus.";
@@ -239,17 +281,19 @@ function renderStatus(state, opp) {
   }
 
   if (state.active !== me) {
-    statusEl.textContent = `${opp} kombiniert noch Farben…`;
+    statusEl.textContent = `${state.active} kombiniert noch Farben…`;
     return;
   }
   statusEl.textContent = "Jetzt du: ein weißer + ein farbiger Würfel in der Farbe der Reihe.";
   passButton(state.activeCrossed ? "Fertig" : "Nichts ankreuzen – Fehlwurf (−5)", Q.passColor);
 }
 
-function renderResult(state, opp) {
+function renderResult(state, opponents) {
   const me = room.person;
-  const { scores, winner } = state.result;
-  statusEl.textContent = winner === me ? "🏆 Du hast gewonnen!" : winner ? `🏆 ${winner} hat gewonnen!` : "Unentschieden!";
+  const { scores } = state.result;
+  statusEl.textContent = describeWinners(state.result, me);
+  const columns = [me, ...opponents];
+  const cells = valueOf => columns.map(p => `<td>${valueOf(p)}</td>`).join("");
 
   const classic = state.blockType === "classic" || state.blockType === "numbers";
   const rowLabel = r => {
@@ -257,18 +301,19 @@ function renderResult(state, opp) {
     return `<span class="qx-dot qx-${color}"></span> ${classic ? COLOR_NAME[color] : `Reihe ${r + 1}`}`;
   };
   const rows = state.layout.map((_, r) =>
-    `<tr><td>${rowLabel(r)}</td><td>${scores[me].rows[r]}</td><td>${scores[opp].rows[r]}</td></tr>`).join("");
+    `<tr><td>${rowLabel(r)}</td>${cells(p => scores[p].rows[r])}</tr>`).join("");
 
   const wins = state.wins || {};
   const table = document.createElement("table");
   table.className = "qx-result";
+  table.dataset.players = String(columns.length);
   table.innerHTML = `
-    <thead><tr><th></th><th>Du</th><th>${escapeHtml(opp || "Gegner")}</th></tr></thead>
+    <thead><tr><th></th>${columns.map(p => `<th>${p === me ? "Du" : escapeHtml(p)}</th>`).join("")}</tr></thead>
     <tbody>
       ${rows}
-      <tr><td>Fehlwürfe</td><td>−${scores[me].penalties}</td><td>−${scores[opp].penalties}</td></tr>
-      <tr><td>Gesamt</td><td class="total">${scores[me].total}</td><td class="total">${scores[opp].total}</td></tr>
-      <tr><td>Siege</td><td>${wins[me] || 0}</td><td>${wins[opp] || 0}</td></tr>
+      <tr><td>Fehlwürfe</td>${cells(p => `−${scores[p].penalties}`)}</tr>
+      <tr><td>Gesamt</td>${columns.map(p => `<td class="total">${scores[p].total}</td>`).join("")}</tr>
+      <tr><td>Siege</td>${cells(p => wins[p] || 0)}</tr>
     </tbody>
   `;
   actionsEl.appendChild(table);

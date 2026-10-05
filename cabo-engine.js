@@ -1,8 +1,9 @@
-/* Cabo – reine Spiellogik, ohne DOM-Abhängigkeit (im Browser als <script> geladen, in Node per require testbar). */
+/* Cabo – reine Spiellogik für 2–4 Personen, ohne DOM-Abhängigkeit (im Browser als <script> geladen, in Node per require testbar). */
 
 const CARD_COUNTS = { 0: 2, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4, 10: 4, 11: 4, 12: 4, 13: 2 };
 const CABO_TARGET_SCORE = 100;
 const HAND_SIZE = 4;
+const MAX_PLAYERS = 4;
 
 function buildDeck() {
   const deck = [];
@@ -24,6 +25,12 @@ function shuffle(array) {
 
 function otherPerson(state, person) {
   return state.players.find(p => p !== person);
+}
+
+/* turns go round in the order of the players list */
+function nextPerson(state, person) {
+  const index = state.players.indexOf(person);
+  return state.players[(index + 1) % state.players.length];
 }
 
 /* Every visible card movement gets a sequence number so each device can animate it exactly once. */
@@ -69,8 +76,11 @@ function dealRound(players, startingPerson, scores, round, previousMoveSeq) {
   };
 }
 
-function createInitialState(hostPerson, guestPerson) {
-  return dealRound([hostPerson, guestPerson], hostPerson, null, 1);
+/* createInitialState(["Isi", "Benji", "Lena"]) – or the old two-player form (host, guest) */
+function createInitialState(playersOrHost, guestPerson) {
+  const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, guestPerson];
+  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Cabo braucht 2 bis 4 Personen.");
+  return dealRound(players, players[0], null, 1);
 }
 
 function cloneState(state) {
@@ -79,7 +89,7 @@ function cloneState(state) {
 
 function assertTurn(state, person) {
   if (state.roundOver) throw new Error("Die Runde ist bereits vorbei.");
-  if (state.turnPhase === "initial-peek") throw new Error("Erst müssen beide ihre Startkarten ansehen.");
+  if (state.turnPhase === "initial-peek") throw new Error("Erst müssen alle ihre Startkarten ansehen.");
   if (state.turnPerson !== person) throw new Error("Du bist gerade nicht am Zug.");
 }
 
@@ -106,7 +116,7 @@ function advanceTurn(state, finishedPerson) {
     }
   }
 
-  state.turnPerson = otherPerson(state, finishedPerson);
+  state.turnPerson = nextPerson(state, finishedPerson);
   state.turnPhase = "awaiting-draw";
   state.drawnCard = null;
   state.drawSource = null;
@@ -277,10 +287,18 @@ function choosePeekOwnTarget(state, person, slotIndex) {
   return next;
 }
 
-function chooseSpyTarget(state, person, slotIndex) {
+/* the target is someone else at the table: chooseSpyTarget(state, me, "Lena", 2);
+   with two players the short form chooseSpyTarget(state, me, 2) means the other one */
+function opponentTarget(state, person, targetOrSlot, slot) {
+  if (slot === undefined) return { target: otherPerson(state, person), slot: targetOrSlot };
+  if (targetOrSlot === person || !state.players.includes(targetOrSlot)) throw new Error("Wähle eine Karte von jemand anderem.");
+  return { target: targetOrSlot, slot };
+}
+
+function chooseSpyTarget(state, person, targetOrSlot, slot) {
   assertTurn(state, person);
   if (state.turnPhase !== "await-spy-target") throw new Error("Gerade ist kein Blick auf gegnerische Karten möglich.");
-  const target = otherPerson(state, person);
+  const { target, slot: slotIndex } = opponentTarget(state, person, targetOrSlot, slot);
   assertSlot(state.hands[target], slotIndex);
 
   const next = cloneState(state);
@@ -299,11 +317,12 @@ function finishPeek(state, person) {
   return next;
 }
 
-/* Swap power (11/12): blindly exchange one own card with one of the opponent's. */
-function swapWithOpponent(state, person, ownIndex, opponentIndex) {
+/* Swap power (11/12): blindly exchange one own card with one of another player's
+   (swapWithOpponent(state, me, ownIndex, "Lena", 2) – or (state, me, ownIndex, 2) with two players). */
+function swapWithOpponent(state, person, ownIndex, targetOrIndex, index) {
   assertTurn(state, person);
   if (state.turnPhase !== "await-swap-target") throw new Error("Gerade ist kein Kartentausch mit dem anderen möglich.");
-  const target = otherPerson(state, person);
+  const { target, slot: opponentIndex } = opponentTarget(state, person, targetOrIndex, index);
   assertSlot(state.hands[person], ownIndex);
   assertSlot(state.hands[target], opponentIndex);
 
@@ -330,16 +349,23 @@ function startNextRound(state) {
   if (!state.roundOver) throw new Error("Die laufende Runde ist noch nicht vorbei.");
   if (state.gameOver) throw new Error("Das Spiel ist bereits vorbei.");
 
-  const previousStarter = state.round % 2 === 1 ? state.players[0] : state.players[1];
-  const nextStarter = otherPerson(state, previousStarter) || state.players[0];
+  /* round 1 starts with the first player, round 2 with the second, … */
+  const nextStarter = state.players[state.round % state.players.length];
 
   return dealRound(state.players, nextStarter, state.scores, state.round + 1, state.moveSeq);
+}
+
+/* after a finished game the same people play again, with fresh scores */
+function newGame(state) {
+  if (!state.gameOver) throw new Error("Das Spiel läuft noch.");
+  return dealRound(state.players, state.players[0], null, 1, state.moveSeq);
 }
 
 const CaboEngine = {
   CARD_COUNTS,
   CABO_TARGET_SCORE,
   HAND_SIZE,
+  MAX_PLAYERS,
   buildDeck,
   shuffle,
   createInitialState,
@@ -355,7 +381,9 @@ const CaboEngine = {
   swapWithOpponent,
   skipSwap,
   startNextRound,
-  otherPerson
+  newGame,
+  otherPerson,
+  nextPerson
 };
 
 if (typeof module !== "undefined" && module.exports) {

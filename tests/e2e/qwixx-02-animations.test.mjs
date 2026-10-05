@@ -23,6 +23,8 @@ await isi.waitForTimeout(400);
 await isi.locator("#grStartBtn").click();
 await benji.waitForTimeout(700);
 await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 await isi.waitForTimeout(800);
 
 /* collects, for ~0.9 s, whether dice tumble and how many different faces a die shows */

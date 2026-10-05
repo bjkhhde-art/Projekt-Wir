@@ -167,8 +167,8 @@ T = Q.passWhite(T, "Benji");
 ok(T.phase === "finished", "the second locked row ends the game right after the white action");
 
 /* ---------- random full games: invariants ---------- */
-function playRandom(blockType) {
-  let st = Q.createInitialState("Isi", "Benji", blockType);
+function playRandom(blockType, players) {
+  let st = players ? Q.createInitialState(players, blockType) : Q.createInitialState("Isi", "Benji", blockType);
   let steps = 0;
   while (st.phase !== "finished") {
     if (++steps > 3000) throw new Error("game did not end");
@@ -196,5 +196,39 @@ for (const type of ["classic", "colors", "numbers", "random"]) {
   for (let i = 0; i < 100; i++) playRandom(type);
 }
 ok(true, "400 random games (100 per block) finished with all invariants holding");
+
+/* ---------- three and four players ---------- */
+let M = Q.createInitialState(["Isi", "Benji", "Lena", "Tom"], "colors");
+ok(M.players.length === 4 && M.blockType === "colors" && M.active === "Isi", "four players, the first one starts");
+M = Q.roll(M, "Isi");
+fixDice(M, { w1: 1, w2: 1, red: 6, yellow: 6, green: 6, blue: 6 });
+M = Q.passWhite(M, "Isi");
+M = Q.passWhite(M, "Benji");
+M = Q.passWhite(M, "Lena");
+ok(M.phase === "white", "the white sum waits for all four");
+M = Q.passWhite(M, "Tom");
+ok(M.phase === "color" && M.active === "Isi", "then the active player may combine colours");
+M = Q.passColor(M, "Isi");
+ok(M.active === "Benji" && M.sheets.Isi.penalties === 1, "turns go round: Benji after Isi");
+for (const p of ["Benji", "Lena", "Tom"]) {
+  M = Q.roll(M, p);
+  fixDice(M, { w1: 1, w2: 1, red: 6, yellow: 6, green: 6, blue: 6 });
+  for (const q of M.players) M = Q.passWhite(M, q);
+  M = Q.passColor(M, p);
+}
+ok(M.active === "Isi", "after Tom it is Isi's turn again");
+assert.throws(() => Q.createInitialState(["A", "B", "C", "D", "E"], "classic"), /2 bis 4/);
+ok(true, "at most four players");
+for (let i = 0; i < 100; i++) {
+  const players = i % 2 ? ["Isi", "Benji", "Lena"] : ["Isi", "Benji", "Lena", "Tom"];
+  const end = playRandom(["classic", "colors", "numbers", "random"][i % 4], players);
+  const best = Math.max(...players.map(p => end.result.scores[p].total));
+  const top = players.filter(p => end.result.scores[p].total === best);
+  assert.deepEqual(end.result.winners, top.length === players.length ? [] : top);
+  players.forEach(p => assert.equal(end.wins[p], end.result.winners.includes(p) ? 1 : 0));
+}
+ok(true, "100 random games with 3 and 4 players end properly and count every winner");
+const R4 = Q.rematch({ ...playRandom("classic", ["Isi", "Benji", "Lena"]) });
+ok(R4.active === "Benji", "a rematch is started by the next player in turn");
 
 console.log(`\n${assertions} assertions passed (qwixx-engine)`);

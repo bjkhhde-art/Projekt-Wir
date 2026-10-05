@@ -47,8 +47,10 @@ const settle = async () => { await isi.waitForTimeout(2600); await benji.waitFor
 await isi.locator("#grStartBtn").click();
 await benji.waitForTimeout(700);
 await benji.locator("#grJoinBtn").click();
-await benji.waitForTimeout(150);
-ok(await benji.locator("#nmBoard").evaluate(el => el.classList.contains("nm-dealing")), "joining deals the cards with an animation");
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
+await benji.waitForSelector("#nmBoard:not(.hidden)");
+ok(await benji.locator("#nmBoard").evaluate(el => el.classList.contains("nm-dealing")), "starting the round deals the cards with an animation");
 const running = await benji.locator(".nm-hand-card .nm-card").first().evaluate(el => el.getAnimations().length);
 ok(running > 0, "hand cards are animating in");
 await settle();

@@ -37,24 +37,31 @@ ok(isiErrors.length === 0, `Isi's page has no JS errors at load (got ${JSON.stri
 ok(benjiErrors.length === 0, `Benji's page has no JS errors at load (got ${JSON.stringify(benjiErrors)})`);
 
 /* --- Isi starts a game, Benji should see the invite appear via polling "realtime" --- */
-const startBtn = isi.locator("#startGameBtn");
+const startBtn = isi.locator("#grStartBtn");
 ok(await startBtn.count() === 1, "Isi sees 'start new round' button in empty lobby");
 await startBtn.click();
 await isi.waitForTimeout(400);
 
-ok(await isi.locator("#cancelGameBtn").count() === 1, "Isi now sees 'waiting for opponent' with cancel button");
+ok(await isi.locator("#grCancelBtn").count() === 1, "Isi now sees the lobby with a cancel button");
+ok(await isi.locator("#grBeginBtn").isDisabled(), "a round cannot start with Isi alone");
+ok((await isi.locator("#grInviteLink").inputValue()).includes("cabo.html?invite="), "the lobby offers an invite link for friends");
 
 await benji.waitForTimeout(600); // let polling pick up the new game
-const joinBtn = benji.locator("#joinGameBtn");
+const joinBtn = benji.locator("#grJoinBtn");
 ok(await joinBtn.count() === 1, "Benji sees Isi's invite and a join button, without reloading the page");
 
-const joinHeading = await benji.locator(".cabo-lobby-card h2").textContent();
+const joinHeading = await benji.locator(".gr-lobby-card h2").textContent();
 ok(joinHeading.includes("Isi"), `Benji's invite mentions Isi by name (got "${joinHeading}")`);
 
-/* --- Benji joins --- */
+/* --- Benji joins, Isi starts the round --- */
 await joinBtn.click();
 await benji.waitForTimeout(500);
 await isi.waitForTimeout(500);
+ok((await isi.locator(".gr-player-name").allTextContents()).join() === "Isi,Benji", "Isi sees Benji join the lobby live");
+ok(await benji.locator("#grBeginBtn").isEnabled(), "Benji could start the round too");
+await isi.locator("#grBeginBtn").click();
+await isi.waitForTimeout(500);
+await benji.waitForTimeout(600);
 
 ok(await benji.locator("#caboBoard").isVisible(), "Benji's board is now visible after joining");
 ok(await isi.locator("#caboBoard").isVisible(), "Isi's board also switched to active (picked up via polling)");

@@ -34,10 +34,12 @@ for (const id of ["initialPeekOverlay", "peekResultOverlay", "roundOverOverlay"]
   ok(await isi.locator(`#${id}`).count() === 0, `#${id} does not exist in the DOM`);
 }
 
-await isi.locator("#startGameBtn").click();
+await isi.locator("#grStartBtn").click();
 await isi.waitForTimeout(300);
 await benji.waitForTimeout(600);
-await benji.locator("#joinGameBtn").click();
+await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 await benji.waitForTimeout(500);
 
 ok(isiErrors.length === 0, `no JS errors on Isi's page so far (${JSON.stringify(isiErrors)})`);

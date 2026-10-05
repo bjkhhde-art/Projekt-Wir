@@ -23,7 +23,8 @@ const TYPES = {
 
 function prepareHtml(html) {
   return html
-    .replace("<head>", '<head>\n  <script>localStorage.setItem("pw_unlocked", "true");</script>')
+    /* a test can set sessionStorage.__pw_locked to see the real lock (password and invite tests) */
+    .replace("<head>", '<head>\n  <script>if (!sessionStorage.getItem("__pw_locked")) localStorage.setItem("pw_unlocked", "true");</script>')
     .replace(SUPABASE_CDN, '<script src="/tests/support/supabase-mock.js"></script>');
 }
 

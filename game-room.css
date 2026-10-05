@@ -116,3 +116,128 @@
   text-decoration: none;
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* ---------- players, invite link, friends joining ---------- */
+
+.gr-players {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.gr-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.gr-player.me {
+  border-color: var(--pink);
+}
+
+.gr-player.empty {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.gr-player-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gr-player-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--pink-deep);
+}
+
+.gr-player-tag.guest {
+  background: rgba(124, 92, 255, 0.12);
+  color: #7c5cff;
+}
+
+.gr-player-tag.me {
+  background: var(--surface-border);
+  color: var(--text-muted);
+}
+
+.gr-invite {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(236, 72, 153, 0.06);
+  text-align: left;
+}
+
+.gr-lobby-card .gr-invite p {
+  margin: 0 0 8px;
+}
+
+.gr-lobby-card .gr-invite p.gr-invite-title {
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.gr-lobby-card .gr-invite p.gr-invite-text {
+  font-size: 12.5px;
+}
+
+.gr-invite-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gr-invite-link {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.gr-invite .btn-block {
+  width: 100%;
+}
+
+.gr-guest-form input {
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.gr-lobby-card .btn-block + .btn-block {
+  margin-top: 8px;
+}
+
+.gr-lobby-card button[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* invited friends only see this one game */
+.guest-mode .app-nav,
+.guest-mode .page-back {
+  display: none !important;
+}
+
+.hidden.gr-leave-btn,
+.gr-leave-btn.hidden {
+  display: none;
+}

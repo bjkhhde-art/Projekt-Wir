@@ -24,10 +24,12 @@ await isi.goto("http://localhost:9091/cabo.html");
 await benji.goto("http://localhost:9091/cabo.html");
 await isi.waitForTimeout(300);
 
-await isi.locator("#startGameBtn").click();
+await isi.locator("#grStartBtn").click();
 await isi.waitForTimeout(300);
 await benji.waitForTimeout(600);
-await benji.locator("#joinGameBtn").click();
+await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 await benji.waitForTimeout(500);
 await isi.locator("#ownHand .cabo-card-slot").nth(0).click();
 await benji.locator("#ownHand .cabo-card-slot").nth(0).click();
@@ -118,8 +120,8 @@ await newGameBtn.click();
 await isi.waitForTimeout(400);
 await benji.waitForTimeout(600);
 
-ok(await isi.locator("#cancelGameBtn").count() === 1, "clicking 'Neues Spiel' creates a fresh waiting game (Isi sees the waiting lobby)");
-ok(await benji.locator("#joinGameBtn").count() === 1, "Benji sees a fresh join invite for the brand new game");
+ok(await isi.locator("#caboBoard").isVisible() && (await isi.locator("#caboScoreStrip").textContent()).replace(/\s+/g, " ").includes("Du: 0"), "'Neues Spiel' starts over at the same table with fresh scores");
+ok(await benji.locator("#caboBoard").isVisible() && await benji.locator("#ownHand .cabo-card-slot.flipped").count() === 2, "Benji is dealt in right away – nobody has to join again");
 
 await isi.close();
 await benji.close();

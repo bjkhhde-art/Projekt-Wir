@@ -1,21 +1,61 @@
-/* Shared plumbing for the live two-player games: who am I, lobby and invites,
-   version-guarded moves, live sync and leaving. Each game only renders its board. */
+/* Shared plumbing for the live games: who am I, lobby for up to four with invite links for
+   friends, version-guarded moves, live sync and leaving. Each game only renders its board.
+
+   Isi and Benji are members (unlocked phones). Friends open the game page with ?invite=<code>
+   (pin-lock.js lets exactly that through), pick a name and only ever see this one game. */
 
 const GameRoom = (() => {
   const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
   const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
   const LEAVE_CONFIRM_MS = 4000;
   const MAX_WRITE_ATTEMPTS = 4;
+  const MEMBERS = ["Isi", "Benji"];
+  const NAME_MAX = 20;
+
+  const isMember = name => MEMBERS.includes(name);
+  /* older Cabo rounds were saved as "finished" once over – they still count as the table in use */
+  const isRunning = status => status === "active" || status === "finished";
+
+  function newInviteCode() {
+    const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    return Array.from(bytes, b => alphabet[b % alphabet.length]).join("");
+  }
+
+  /* a friend's name: short, plain text, never "Isi"/"Benji" and not taken in this round */
+  function cleanGuestName(raw) {
+    return String(raw || "")
+      .normalize("NFC")
+      .replace(/[^\p{L}\p{N} .'-]+/gu, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, NAME_MAX);
+  }
+
+  function guestNameProblem(name, taken) {
+    if (!name) return "Bitte gib einen Namen ein.";
+    const lower = name.toLowerCase();
+    if (MEMBERS.some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
+    if (taken.some(t => t.toLowerCase() === lower)) return `„${name}“ spielt schon mit – nimm einen anderen Namen.`;
+    return null;
+  }
 
   /* config: { table, title, icon, url, lobbyEl, boardEl, leaveBtn,
-       createState(host, guest, option), renderBoard(game), isFinished(state),
-       startOptions?: [{ value, label, hint }] } */
+       createState(players, option), renderBoard(game), isFinished(state),
+       startOptions?: [{ value, label, hint }],
+       maxPlayers? (default 4), invites? (default true) } */
   function create(config) {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
+    const maxPlayers = config.maxPlayers || 4;
+    const invites = config.invites !== false;
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const personModal = document.getElementById("personModal");
 
-    let person = localStorage.getItem("pw_person");
+    const guestInvite = invites && window.PW_GUEST_INVITE ? window.PW_GUEST_INVITE : null;
+    const isGuest = Boolean(guestInvite);
+    const guestKey = guestInvite ? `pw_guest:${table}:${guestInvite}` : null;
+
+    let person = isGuest ? readGuestName() : localStorage.getItem("pw_person");
     let currentGame = null;
     let lastRenderedJson = null;
     let syncGeneration = 0;
@@ -23,22 +63,42 @@ const GameRoom = (() => {
     let leaveArmedTimer = null;
     let chosenOption = config.startOptions ? config.startOptions[0].value : null;
 
+    function readGuestName() {
+      try {
+        return localStorage.getItem(guestKey) || null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function storeGuestName(name) {
+      try {
+        localStorage.setItem(guestKey, name);
+      } catch (error) {
+        /* the name then only lives as long as this page */
+      }
+    }
+
     function requirePerson() {
       if (person) return true;
-      personModal.classList.remove("hidden");
+      if (!isGuest) personModal.classList.remove("hidden");
       return false;
     }
 
-    document.querySelectorAll(".person-choice-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        person = button.dataset.person;
-        localStorage.setItem("pw_person", person);
-        personModal.classList.add("hidden");
-        lastRenderedJson = null;
-        sync();
+    if (isGuest) {
+      leaveBtn.classList.add("hidden");
+    } else {
+      document.querySelectorAll(".person-choice-btn").forEach(button => {
+        button.addEventListener("click", () => {
+          person = button.dataset.person;
+          localStorage.setItem("pw_person", person);
+          personModal.classList.add("hidden");
+          lastRenderedJson = null;
+          sync();
+        });
       });
-    });
-    if (!person) personModal.classList.remove("hidden");
+      if (!person) personModal.classList.remove("hidden");
+    }
 
     /* ---------- data ---------- */
 
@@ -56,11 +116,47 @@ const GameRoom = (() => {
       return data;
     }
 
+    /* Several people may act at the same time, so every write is guarded by the row's version:
+       if another device saved in between, the change is recomputed on the fresh row.
+       change(fresh) returns the columns to write, or null to give up quietly; throwing shows the message. */
+    async function mutate(change) {
+      for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+        const fresh = await fetchCurrentGame();
+        if (!fresh) return false;
+
+        let patch;
+        try {
+          patch = change(fresh);
+        } catch (error) {
+          showToast(error.message, "error");
+          return false;
+        }
+        if (!patch) return false;
+
+        const version = fresh.version || 0;
+        if (patch.state && fresh.status === "finished") patch.status = "active";
+        const { data, error } = await client
+          .from(table)
+          .update({ ...patch, version: version + 1, updated_at: new Date().toISOString() })
+          .eq("id", fresh.id)
+          .eq("version", version)
+          .select();
+        if (error) {
+          console.error("Fehler beim Speichern:", error);
+          showToast("Konnte nicht gespeichert werden.", "error");
+          return false;
+        }
+        if (data && data.length > 0) return true;
+      }
+      showToast("Gleichzeitig getippt – bitte nochmal.", "error");
+      return false;
+    }
+
     async function createGame() {
       if (!requirePerson()) return;
-      const { error } = await client
-        .from(table)
-        .insert({ status: "waiting", host_person: person, guest_person: null, state: { option: chosenOption }, version: 0 });
+      const row = { status: "waiting", host_person: person, guest_person: null, state: { option: chosenOption, lobby: [person] }, version: 0 };
+      if (invites) row.invite_code = newInviteCode();
+      const { error } = await client.from(table).insert(row);
       if (error) {
         console.error("Fehler beim Erstellen:", error);
         showToast("Runde konnte nicht erstellt werden.", "error");
@@ -85,59 +181,64 @@ const GameRoom = (() => {
       await sync();
     }
 
-    async function joinGame(game) {
-      if (!requirePerson()) return;
-      const state = config.createState(game.host_person, person, game.state && game.state.option);
-      const { error } = await client
-        .from(table)
-        .update({ guest_person: person, status: "active", state, version: (game.version || 0) + 1, updated_at: new Date().toISOString() })
-        .eq("id", game.id);
-      if (error) {
-        console.error("Fehler beim Beitreten:", error);
-        showToast("Beitreten hat nicht geklappt.", "error");
-        return;
-      }
+    function lobbyOf(game) {
+      const lobby = game && game.state && Array.isArray(game.state.lobby) ? game.state.lobby : null;
+      if (lobby) return lobby;
+      return game ? [game.host_person, game.guest_person].filter(Boolean) : [];
+    }
+
+    function startPatch(fresh, lobby) {
+      return {
+        status: "active",
+        guest_person: lobby[1] || null,
+        state: config.createState(lobby.slice(), fresh.state && fresh.state.option)
+      };
+    }
+
+    async function joinLobby(name) {
+      if (!name) return;
+      await mutate(fresh => {
+        if (fresh.status !== "waiting" || (isGuest && fresh.invite_code !== guestInvite)) return null;
+        const lobby = lobbyOf(fresh);
+        if (lobby.includes(name)) return null;
+        if (lobby.length >= maxPlayers) throw new Error("Die Runde ist schon voll.");
+        const next = [...lobby, name];
+        /* a two-person game (Versus) starts as soon as the second one is in */
+        if (maxPlayers === 2 && next.length === 2) return startPatch(fresh, next);
+        return { state: { ...fresh.state, lobby: next } };
+      });
       await sync();
     }
 
-    /* Both players may act at the same time, so every write is guarded by the row's version:
-       if the other device saved in between, the move is recomputed on the fresh state. */
+    async function leaveLobby() {
+      await mutate(fresh => {
+        if (fresh.status !== "waiting") return null;
+        return { state: { ...fresh.state, lobby: lobbyOf(fresh).filter(p => p !== person) } };
+      });
+      await sync();
+    }
+
+    /* Isi or Benji starts once everybody who wants to play is in */
+    async function beginGame() {
+      if (!requirePerson() || !isMember(person)) return;
+      await mutate(fresh => {
+        if (fresh.status !== "waiting") return null;
+        const lobby = lobbyOf(fresh);
+        if (!lobby.includes(person)) return null;
+        if (lobby.length < 2) throw new Error("Es braucht mindestens zwei Personen.");
+        return startPatch(fresh, lobby);
+      });
+      await sync();
+    }
+
     async function dispatch(actionFn, ...args) {
       if (!requirePerson() || actionInFlight) return;
       actionInFlight = true;
       try {
-        for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
-          const fresh = await fetchCurrentGame();
-          if (!fresh || fresh.status !== "active") {
-            await sync();
-            return;
-          }
-
-          let nextState;
-          try {
-            nextState = actionFn(fresh.state, person, ...args);
-          } catch (error) {
-            showToast(error.message, "error");
-            return;
-          }
-
-          const { data, error } = await client
-            .from(table)
-            .update({ state: nextState, version: fresh.version + 1, updated_at: new Date().toISOString() })
-            .eq("id", fresh.id)
-            .eq("version", fresh.version)
-            .select();
-          if (error) {
-            console.error("Fehler beim Speichern des Spielzugs:", error);
-            showToast("Zug konnte nicht gespeichert werden.", "error");
-            return;
-          }
-          if (data && data.length > 0) {
-            await sync();
-            return;
-          }
-        }
-        showToast("Gleichzeitiger Zug – bitte nochmal tippen.", "error");
+        await mutate(fresh => {
+          if (!isRunning(fresh.status) || !fresh.state.players || !fresh.state.players.includes(person)) return null;
+          return { state: actionFn(fresh.state, person, ...args) };
+        });
         await sync();
       } finally {
         actionInFlight = false;
@@ -145,15 +246,15 @@ const GameRoom = (() => {
     }
 
     async function leaveGame() {
-      if (!requirePerson()) return;
+      if (!requirePerson() || isGuest) return;
       const fresh = await fetchCurrentGame();
-      if (!fresh || fresh.status !== "active") {
+      if (!fresh || !isRunning(fresh.status)) {
         await sync();
         return;
       }
       const { error } = await client
         .from(table)
-        .update({ status: "closed", state: { ...fresh.state, closedBy: person }, version: fresh.version + 1, updated_at: new Date().toISOString() })
+        .update({ status: "closed", state: { ...fresh.state, closedBy: person }, version: (fresh.version || 0) + 1, updated_at: new Date().toISOString() })
         .eq("id", fresh.id);
       if (error) {
         console.error("Fehler beim Beenden:", error);
@@ -212,11 +313,70 @@ const GameRoom = (() => {
         </button>`).join("")}</div>`;
     }
 
+    function optionLabel(game) {
+      if (!config.startOptions || !game.state) return "";
+      const option = config.startOptions.find(o => o.value === game.state.option);
+      return option ? option.label : "";
+    }
+
+    function playersHtml(names, host) {
+      const slots = names.map(name => `
+        <li class="gr-player${name === person ? " me" : ""}">
+          <span class="gr-player-name">${escapeHtml(name)}</span>
+          ${name === host ? `<span class="gr-player-tag">lädt ein</span>` : ""}
+          ${!isMember(name) ? `<span class="gr-player-tag guest">Gast</span>` : ""}
+          ${name === person ? `<span class="gr-player-tag me">du</span>` : ""}
+        </li>`).join("");
+      const free = Math.max(0, maxPlayers - names.length);
+      const empty = Array.from({ length: free }, () => `<li class="gr-player empty">frei</li>`).join("");
+      return `<ul class="gr-players" aria-label="Mitspieler">${slots}${empty}</ul>`;
+    }
+
+    function inviteLink(game) {
+      return `${location.origin}${location.pathname}?invite=${encodeURIComponent(game.invite_code)}`;
+    }
+
+    function inviteHtml(game) {
+      if (!invites || !game.invite_code) return "";
+      return `
+        <div class="gr-invite">
+          <p class="gr-invite-title">Freunde einladen</p>
+          <p class="gr-invite-text">Wer den Link hat, kann mit Namen beitreten und sieht nur dieses Spiel.</p>
+          <div class="gr-invite-row">
+            <input id="grInviteLink" class="gr-invite-link" type="text" readonly value="${escapeHtml(inviteLink(game))}" aria-label="Einladungslink">
+            <button id="grCopyInvite" type="button" class="btn btn-sm">📋 Kopieren</button>
+          </div>
+          ${navigator.share ? `<button id="grShareInvite" type="button" class="btn btn-secondary btn-sm btn-block">Link teilen …</button>` : ""}
+        </div>`;
+    }
+
+    function wireInvite(game) {
+      const copy = document.getElementById("grCopyInvite");
+      if (!copy) return;
+      const link = inviteLink(game);
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast("Einladungslink kopiert 💌", "success");
+        } catch (error) {
+          const input = document.getElementById("grInviteLink");
+          input.select();
+          window.prompt("Einladungslink kopieren:", link);
+        }
+      });
+      const share = document.getElementById("grShareInvite");
+      if (share) {
+        share.addEventListener("click", () => {
+          navigator.share({ title: `${title} mit uns`, text: `Spiel eine Runde ${title} mit uns!`, url: link }).catch(() => {});
+        });
+      }
+    }
+
     function renderLobbyNoGame(note) {
       showLobby(`
         ${note ? `<p class="gr-lobby-note">${escapeHtml(note)}</p>` : ""}
         <h2>Noch keine Runde</h2>
-        <p>Startet eine Runde ${escapeHtml(title)} &ndash; der andere kann direkt beitreten.</p>
+        <p>Startet eine Runde ${escapeHtml(title)} &ndash; ${maxPlayers > 2 ? `bis zu ${maxPlayers} können mitspielen, Freunde per Link.` : "der andere kann direkt beitreten."}</p>
         ${optionsHtml()}
         <button id="grStartBtn" class="btn btn-block">Neue Runde starten</button>
       `);
@@ -233,34 +393,140 @@ const GameRoom = (() => {
       document.getElementById("grStartBtn").addEventListener("click", createGame);
     }
 
-    function optionLabel(game) {
-      if (!config.startOptions || !game.state) return "";
-      const option = config.startOptions.find(o => o.value === game.state.option);
-      return option ? option.label : "";
-    }
-
-    function renderLobbyWaitingAsHost(game) {
+    /* a member who is in the lobby: players, invite link, start */
+    function renderLobbyRoom(game) {
+      const lobby = lobbyOf(game);
       const label = optionLabel(game);
+      const host = game.host_person === person;
+      const canBegin = lobby.length >= 2;
       showLobby(`
-        <h2>Warte auf Mitspieler:in</h2>
+        <h2>${maxPlayers > 2 ? "Wer spielt mit?" : "Warte auf Mitspieler:in"}</h2>
         ${label ? `<p>${escapeHtml(label)}</p>` : ""}
-        <div class="gr-lobby-waiting"><span class="gr-spinner"></span> Einladung ist raus...</div>
-        <button id="grCancelBtn" class="btn btn-secondary btn-block">Abbrechen</button>
+        ${maxPlayers > 2 ? playersHtml(lobby, game.host_person) : `<div class="gr-lobby-waiting"><span class="gr-spinner"></span> Einladung ist raus...</div>`}
+        ${inviteHtml(game)}
+        ${maxPlayers > 2 ? `<button id="grBeginBtn" class="btn btn-block"${canBegin ? "" : " disabled"}>${canBegin ? `Runde starten (${lobby.length} Personen)` : "Warte auf Mitspieler …"}</button>` : ""}
+        <button id="${host ? "grCancelBtn" : "grLeaveLobbyBtn"}" class="btn btn-secondary btn-block">${host ? "Abbrechen" : "Doch nicht mitspielen"}</button>
       `);
-      document.getElementById("grCancelBtn").addEventListener("click", () => cancelWaitingGame(game.id));
+      wireInvite(game);
+      const begin = document.getElementById("grBeginBtn");
+      if (begin) begin.addEventListener("click", beginGame);
+      if (host) document.getElementById("grCancelBtn").addEventListener("click", () => cancelWaitingGame(game.id));
+      else document.getElementById("grLeaveLobbyBtn").addEventListener("click", leaveLobby);
     }
 
-    function renderLobbyWaitingAsGuest(game) {
+    /* a member who is not in the lobby yet */
+    function renderLobbyInvited(game) {
+      const lobby = lobbyOf(game);
       const label = optionLabel(game);
+      const full = lobby.length >= maxPlayers;
       showLobby(`
         <h2>${escapeHtml(game.host_person)} lädt dich ein!</h2>
         <p>Bereit für eine Runde ${escapeHtml(title)}${label ? ` (${escapeHtml(label)})` : ""}?</p>
-        <button id="grJoinBtn" class="btn btn-block">Beitreten</button>
+        ${maxPlayers > 2 ? playersHtml(lobby, game.host_person) : ""}
+        ${full ? `<p class="gr-lobby-note">Die Runde ist schon voll.</p>` : `<button id="grJoinBtn" class="btn btn-block">Beitreten</button>`}
       `);
-      document.getElementById("grJoinBtn").addEventListener("click", () => joinGame(game));
+      const join = document.getElementById("grJoinBtn");
+      if (join) join.addEventListener("click", () => {
+        if (requirePerson()) joinLobby(person);
+      });
+    }
+
+    /* a member while others play without them */
+    function renderLobbyBusy(game) {
+      const players = (game.state && game.state.players) || [];
+      showLobby(`
+        <h2>Gerade läuft eine Runde</h2>
+        <p>${escapeHtml(players.join(", "))} ${players.length === 1 ? "spielt" : "spielen"} ${escapeHtml(title)} &ndash; du bist diesmal nicht dabei.</p>
+        <button id="grEndOthersBtn" class="btn btn-secondary btn-block">Runde beenden</button>
+      `);
+      const end = document.getElementById("grEndOthersBtn");
+      end.addEventListener("click", async () => {
+        if (await confirmDialog("Die laufende Runde wird für alle beendet.")) leaveGame();
+      });
+    }
+
+    /* ---------- lobby for invited friends ---------- */
+
+    function renderGuestMessage(heading, text) {
+      showLobby(`<h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p>`);
+    }
+
+    function renderGuestJoin(game, problem) {
+      const lobby = lobbyOf(game);
+      if (lobby.length >= maxPlayers) {
+        renderGuestMessage("Die Runde ist schon voll", "Vielleicht beim nächsten Mal 💛");
+        return;
+      }
+      showLobby(`
+        <h2>${escapeHtml(game.host_person)} lädt dich zu ${escapeHtml(title)} ein!</h2>
+        <p>Wie sollen dich die anderen nennen?</p>
+        ${playersHtml(lobby, game.host_person)}
+        <form id="grGuestForm" class="gr-guest-form">
+          <input id="grGuestName" type="text" maxlength="${NAME_MAX}" autocomplete="nickname" placeholder="Dein Name" aria-label="Dein Name">
+          ${problem ? `<p class="gr-lobby-note" role="alert">${escapeHtml(problem)}</p>` : ""}
+          <button id="grGuestJoinBtn" type="submit" class="btn btn-block">Mitspielen</button>
+        </form>
+      `);
+      const input = document.getElementById("grGuestName");
+      document.getElementById("grGuestForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const name = cleanGuestName(input.value);
+        const fresh = await fetchCurrentGame();
+        const issue = guestNameProblem(name, fresh ? lobbyOf(fresh) : []);
+        if (issue) {
+          lastRenderedJson = null;
+          renderGuestJoin(fresh || game, issue);
+          return;
+        }
+        person = name;
+        storeGuestName(name);
+        await joinLobby(name);
+        lastRenderedJson = null;
+        await sync();
+      });
+    }
+
+    function renderGuestWaiting(game) {
+      const lobby = lobbyOf(game);
+      showLobby(`
+        <h2>Du bist dabei, ${escapeHtml(person)}!</h2>
+        <div class="gr-lobby-waiting"><span class="gr-spinner"></span> Warte, bis Isi oder Benji die Runde startet …</div>
+        ${playersHtml(lobby, game.host_person)}
+        <button id="grLeaveLobbyBtn" class="btn btn-secondary btn-block">Doch nicht mitspielen</button>
+      `);
+      document.getElementById("grLeaveLobbyBtn").addEventListener("click", leaveLobby);
+    }
+
+    function renderGuest(game) {
+      if (!game || game.invite_code !== guestInvite) {
+        renderGuestMessage("Diese Einladung gilt nicht mehr", "Frag nach einem neuen Link 💌");
+        return;
+      }
+      if (game.status === "closed") {
+        renderGuestMessage("Die Runde ist vorbei", "Danke fürs Mitspielen! 💛");
+        return;
+      }
+      if (game.status === "waiting") {
+        if (person && lobbyOf(game).includes(person)) renderGuestWaiting(game);
+        else renderGuestJoin(game);
+        return;
+      }
+      const players = (game.state && game.state.players) || [];
+      if (!person || !players.includes(person)) {
+        renderGuestMessage("Die Runde läuft schon", "Sie hat ohne dich angefangen – frag nach der nächsten 💌");
+        return;
+      }
+      showBoard(game);
     }
 
     /* ---------- sync ---------- */
+
+    function showBoard(game) {
+      lobbyEl.classList.add("hidden");
+      boardEl.classList.remove("hidden");
+      config.renderBoard(game);
+      if (!isGuest) renderLeave(game.state);
+    }
 
     async function sync() {
       const generation = ++syncGeneration;
@@ -273,6 +539,10 @@ const GameRoom = (() => {
       lastRenderedJson = json;
       currentGame = game;
 
+      if (isGuest) {
+        renderGuest(game);
+        return;
+      }
       if (!game) {
         renderLobbyNoGame("");
         return;
@@ -284,18 +554,16 @@ const GameRoom = (() => {
         return;
       }
       if (game.status === "waiting") {
-        if (game.host_person === person) {
-          renderLobbyWaitingAsHost(game);
-        } else {
-          renderLobbyWaitingAsGuest(game);
-        }
+        if (person && lobbyOf(game).includes(person)) renderLobbyRoom(game);
+        else renderLobbyInvited(game);
         return;
       }
-
-      lobbyEl.classList.add("hidden");
-      boardEl.classList.remove("hidden");
-      config.renderBoard(game);
-      renderLeave(game.state);
+      const players = (game.state && game.state.players) || [];
+      if (person && !players.includes(person)) {
+        renderLobbyBusy(game);
+        return;
+      }
+      showBoard(game);
     }
 
     function start() {
@@ -309,13 +577,23 @@ const GameRoom = (() => {
     return {
       get person() { return person; },
       get game() { return currentGame; },
-      opponentOf(game) {
-        return game.host_person === person ? game.guest_person : game.host_person;
+      get isGuest() { return isGuest; },
+      /* everybody at the table except me, in turn order starting after me */
+      others(state) {
+        const players = (state && state.players) || [];
+        const index = players.indexOf(person);
+        if (index === -1) return players.slice();
+        return [...players.slice(index + 1), ...players.slice(0, index)];
       },
+      opponentOf(game) {
+        const players = (game.state && game.state.players) || [game.host_person, game.guest_person];
+        return players.find(p => p !== person);
+      },
+      isMember,
       dispatch,
       start
     };
   }
 
-  return { create };
+  return { create, cleanGuestName, guestNameProblem };
 })();

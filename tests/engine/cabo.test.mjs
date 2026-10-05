@@ -247,4 +247,71 @@ ok(m.roundOver, "round over after Isi's final turn");
 const next = Engine.startNextRound(m);
 ok(next.lastMove.type === "deal" && next.moveSeq === m.moveSeq + 1 && next.moveSeq > seqBeforeCabo, "the next round's deal continues the sequence");
 
+
+/* ---------- three and four players ---------- */
+let q = Engine.createInitialState(["Isi", "Benji", "Lena", "Tom"]);
+ok(q.players.length === 4 && q.players.every(p => q.hands[p].length === 4) && q.deck.length === 52 - 16 - 1, "four players get four cards each");
+ok(q.turnPerson === "Isi", "the first player starts");
+for (const p of ["Isi", "Benji", "Lena"]) q = Engine.performInitialPeek(q, p);
+ok(q.turnPhase === "initial-peek", "the game waits until all four have looked at their cards");
+q = Engine.performInitialPeek(q, "Tom");
+ok(q.turnPhase === "awaiting-draw", "then the first turn begins");
+function plainTurn(st, p) {
+  st = Engine.drawFromDeck(st, p);
+  st.drawnCard = 0;
+  return Engine.discardDrawn(st, p);
+}
+q = plainTurn(q, "Isi");
+ok(q.turnPerson === "Benji", "Benji follows Isi");
+q = plainTurn(q, "Benji");
+q = plainTurn(q, "Lena");
+ok(q.turnPerson === "Tom", "Tom follows Lena");
+q = plainTurn(q, "Tom");
+ok(q.turnPerson === "Isi", "after Tom it is Isi's turn again");
+
+/* spy and swap pick any other player */
+let sp = Engine.drawFromDeck(q, "Isi");
+sp.drawnCard = 9;
+sp = Engine.discardDrawn(sp, "Isi");
+assert.throws(() => Engine.chooseSpyTarget(sp, "Isi", "Isi", 0), /jemand anderem/);
+assert.throws(() => Engine.chooseSpyTarget(sp, "Isi", "Nobody", 0), /jemand anderem/);
+sp = Engine.chooseSpyTarget(sp, "Isi", "Lena", 2);
+ok(sp.lastPeekResult.targetPerson === "Lena" && sp.lastPeekResult.slot === 2, "spy looks at a card of the chosen player");
+let sw = Engine.drawFromDeck(q, "Isi");
+sw.drawnCard = 12;
+sw = Engine.discardDrawn(sw, "Isi");
+const isiCard = sw.hands.Isi[1];
+const tomCard = sw.hands.Tom[3];
+sw = Engine.swapWithOpponent(sw, "Isi", 1, "Tom", 3);
+ok(sw.hands.Isi[1] === tomCard && sw.hands.Tom[3] === isiCard && sw.lastEvent.targetPerson === "Tom", "swap exchanges with the chosen player");
+ok(sw.turnPerson === "Benji", "and the turn passes on");
+
+/* cabo: everybody else gets exactly one more turn */
+let cb = Engine.callCabo(q, "Isi");
+ok(cb.turnPerson === "Benji" && cb.finalTurnsRemaining.length === 3, "after Cabo the other three get one last turn each");
+cb = plainTurn(cb, "Benji");
+cb = plainTurn(cb, "Lena");
+ok(!cb.roundOver && cb.turnPerson === "Tom", "the round goes on until the last of them");
+cb = plainTurn(cb, "Tom");
+ok(cb.roundOver && Object.keys(cb.roundScores).length === 4, "then the round ends and all four are scored");
+
+/* starters rotate through all players */
+let rot = cb;
+const starters = [];
+for (let round = 0; round < 4; round++) {
+  rot = Engine.startNextRound(rot);
+  starters.push(rot.turnPerson);
+  rot.roundOver = true;
+}
+ok(starters.join() === "Benji,Lena,Tom,Isi", `each round the next player starts (${starters.join()})`);
+
+/* a finished game can start over with the same people */
+const over = { ...cb, gameOver: true, winner: "Lena" };
+const again = Engine.newGame(over);
+ok(again.round === 1 && again.players.join() === "Isi,Benji,Lena,Tom" && again.players.every(p => again.scores[p].length === 0), "a new game keeps the players and resets the scores");
+ok(again.moveSeq === over.moveSeq + 1 && again.lastMove.type === "deal", "its deal continues the move sequence");
+assert.throws(() => Engine.newGame(q), /läuft noch/);
+assert.throws(() => Engine.createInitialState(["A", "B", "C", "D", "E"]), /2 bis 4/);
+ok(true, "no new game while one is running, at most four players");
+
 console.log(`\n${assertions} assertions passed (cabo-engine unit tests)`);

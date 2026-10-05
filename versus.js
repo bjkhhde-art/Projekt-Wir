@@ -53,7 +53,9 @@ const versusRoom = GameRoom.create({
   lobbyEl: document.getElementById("vsLobby"),
   boardEl: vsBoard,
   leaveBtn: document.getElementById("vsLeaveBtn"),
-  createState: (host, guest, option) => V.createInitialState(host, guest, option),
+  createState: (players, option) => V.createInitialState(players[0], players[1], option),
+  maxPlayers: 2,
+  invites: false,
   isFinished: () => false,
   renderBoard: game => {
     currentVersusGame = game;

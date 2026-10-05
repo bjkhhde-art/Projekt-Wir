@@ -64,9 +64,11 @@ async function setup(mutate) {
 }
 
 /* ================= deal ================= */
-await isi.locator("#startGameBtn").click();
+await isi.locator("#grStartBtn").click();
 await benji.waitForTimeout(700);
-await benji.locator("#joinGameBtn").click();
+await benji.locator("#grJoinBtn").click();
+await isi.waitForTimeout(600);
+await isi.locator("#grBeginBtn").click();
 
 ok(await ghostAppears(benji), "joining deals the cards: flying cards appear on Benji's screen");
 ok(await ghostAppears(isi), "Isi sees the deal animation too");

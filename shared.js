@@ -6,6 +6,21 @@ window.MILESTONES = {
   anniversary: { date: "2026-01-05", place: "Botanischer Garten Hamburg Nienstedten" }
 };
 
+/* "Lena", "Lena und Tom", "Lena, Tom und Ben" */
+window.listNames = function (names) {
+  if (names.length <= 1) return names[0] || "";
+  return `${names.slice(0, -1).join(", ")} und ${names[names.length - 1]}`;
+};
+
+/* game results: result.winners (or the older result.winner) seen from "me" */
+window.describeWinners = function (result, me) {
+  const winners = result.winners || (result.winner ? [result.winner] : []);
+  if (winners.length === 0) return "Unentschieden!";
+  if (winners.length === 1) return winners[0] === me ? "🏆 Du hast gewonnen!" : `🏆 ${winners[0]} hat gewonnen!`;
+  const names = winners.map(w => (w === me ? "Du" : w)).sort((a, b) => (b === "Du") - (a === "Du"));
+  return `🏆 ${window.listNames(names)} teilen sich den Sieg!`;
+};
+
 window.formatDate = function (dateString) {
   if (!dateString) return "";
   return new Date(dateString).toLocaleDateString("de-DE");
