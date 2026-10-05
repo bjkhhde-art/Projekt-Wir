@@ -27,9 +27,9 @@ ok(E.sumBulls(all) === 171, `the whole deck has 171 bulls (got ${E.sumBulls(all)
 /* ---------- setup ---------- */
 let s = E.createInitialState("Isi", "Benji");
 ok(s.hands.Isi.length === 10 && s.hands.Benji.length === 10, "each player gets 10 cards");
-ok(s.rows.length === 4 && s.rows.every(r => r.length === 1), "four rows with one card each, as in the box");
+ok(s.rows.length === 3 && s.rows.every(r => r.length === 1), "two players: three rows with one card each");
 const inPlay = [...s.hands.Isi, ...s.hands.Benji, ...s.rows.flat()];
-ok(new Set(inPlay).size === 24 && inPlay.every(c => c >= 1 && c <= 104), "24 distinct cards from 1-104 are in play");
+ok(new Set(inPlay).size === 23 && inPlay.every(c => c >= 1 && c <= 104), "23 distinct cards from 1-104 are in play");
 ok(s.phase === "choose" && s.trick === 1, "the game starts with everyone choosing a card");
 ok(s.lastMove.type === "deal", "the deal is recorded for the animation");
 
@@ -107,9 +107,10 @@ function playRandomGame(st) {
       st = E.pickRow(st, st.pickPerson, Math.floor(Math.random() * st.rows.length));
     }
     const cards = [...st.players.flatMap(p => st.hands[p]), ...st.rows.flat(), ...st.players.flatMap(p => st.penalties[p]), ...(st.revealed || []).map(r => r.card)];
-    const inGame = st.players.length * E.HAND_SIZE + E.ROW_COUNT;
+    const rowCount = E.rowCountFor(st.players.length);
+    const inGame = st.players.length * E.HAND_SIZE + rowCount;
     assert.equal(cards.length, inGame, `card conservation: always ${inGame} cards in play`);
-    assert.equal(st.rows.length, 4, "always four rows");
+    assert.equal(st.rows.length, rowCount, `always ${rowCount} rows`);
     assert.equal(new Set(cards).size, inGame, "no card duplicated");
     assert.ok(st.rows.every(r => r.length >= 1 && r.length <= 5), "rows hold 1-5 cards");
     assert.ok(st.rows.every(r => r.every((c, i) => i === 0 || c > r[i - 1])), "rows are always ascending");
@@ -144,6 +145,12 @@ ok(true, `300 random games played with all invariants holding (${ties} ties)`);
 /* ---------- three and four players ---------- */
 const four = E.createInitialState(["Isi", "Benji", "Lena", "Tom"]);
 ok(four.players.length === 4 && four.players.every(p => four.hands[p].length === 10) && four.rows.length === 4, "four players get 10 cards each, four rows");
+const three = E.createInitialState(["Isi", "Benji", "Lena"]);
+ok(three.rows.length === 4, "three players also play with four rows");
+ok(E.rowCountFor(2) === 3 && E.rowCountFor(3) === 4 && E.rowCountFor(4) === 4, "rows: three for two players, four for three or four");
+const rematch3 = E.rematch({ ...three, phase: "finished" });
+const rematch2 = E.rematch({ ...E.createInitialState("Isi", "Benji"), phase: "finished" });
+ok(rematch3.rows.length === 4 && rematch2.rows.length === 3, "a rematch keeps the number of rows for the table");
 const fourCards = [...four.players.flatMap(p => four.hands[p]), ...four.rows.flat()];
 ok(new Set(fourCards).size === 44, "44 different cards are dealt");
 let f = four;
