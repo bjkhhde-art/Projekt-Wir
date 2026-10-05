@@ -59,6 +59,26 @@ ok((await page.locator(".home-card", { hasText: "Ziele" }).textContent()).includ
 ok((await page.locator(".home-card", { hasText: "Games" }).textContent()).includes("Fragen"), "the Games card mentions the questions");
 ok(await page.locator('a[href="questions.html"]').count() >= 1, "'Mehr Fragen' leads to the questions page");
 
+/* every single game has a back arrow to the games overview */
+for (const game of ["nimmt", "cabo", "qwixx", "questions"]) {
+  await page.goto(`http://localhost:9091/${game}.html`);
+  await page.waitForTimeout(400);
+  const back = page.locator(".page-back");
+  const box = await back.boundingBox();
+  ok(await back.isVisible() && box.x < 40 && box.y < 80, `${game}: a back arrow sits in the top left corner`);
+  /* the heading is a full-width block – measure the text itself */
+  const title = await page.locator(".page-title").evaluate(el => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const r = range.getBoundingClientRect();
+    return { x: r.left, y: r.top };
+  });
+  ok(box.x + box.width <= title.x || box.y + box.height <= title.y, `${game}: the arrow does not cover the title`);
+  await back.click();
+  await page.waitForURL(/games\.html$/);
+  ok(true, `${game}: the arrow leads back to the games`);
+}
+
 ok(errors.length === 0, `no JS errors (${JSON.stringify(errors)})`);
 await browser.close();
 console.log(`\n${n} assertions passed (navigation: quest in Ziele, questions in Games)`);

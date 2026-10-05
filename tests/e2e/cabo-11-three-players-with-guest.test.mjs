@@ -46,7 +46,7 @@ const lena = await friend("Lena");
 await lena.goto(link);
 await lena.waitForSelector("#grGuestName");
 ok(await lena.locator("#pin-gate").count() === 0, "the friend is not asked for our password");
-ok(await lena.locator(".app-nav").isHidden(), "the friend sees no navigation to the rest of the app");
+ok(await lena.locator(".app-nav").isHidden() && await lena.locator(".page-back").isHidden(), "the friend sees no navigation and no back arrow to the rest of the app");
 ok(await lena.locator("#personModal").isHidden(), "and is not asked whether they are Isi or Benji");
 ok((await lena.locator(".gr-lobby-card h2").textContent()).includes("Isi lädt dich"), "the friend is greeted with who invites");
 await lena.fill("#grGuestName", "isi");

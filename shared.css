@@ -98,6 +98,41 @@ body {
   animation: page-in 0.45s ease both;
 }
 
+/* sub pages (the single games) get a round back arrow in the top left corner */
+.page-with-back {
+  position: relative;
+}
+
+.page-back {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  z-index: 5;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  color: var(--pink-deep);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: transform 0.15s ease;
+}
+
+.page-back:active {
+  transform: scale(0.92);
+}
+
+.page-back svg {
+  width: 22px;
+  height: 22px;
+  margin-left: -2px;
+}
+
 /* Opt-in: for pages whose content can be shorter than the viewport, so it
    doesn't sit pinned to the top with dead space above the nav bar.
    Gotcha: a direct child using `display:grid` + `margin:0 auto` to center
