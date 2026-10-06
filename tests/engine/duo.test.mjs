@@ -77,4 +77,16 @@ many = E.nextRound(E.submitAnswers(E.submitAnswers(many, "Isi", Array(6).fill("h
 ok(many.items.length === 6 && new Set(many.items).size === 6, "when the list runs out it starts over");
 ok(E.verdict(6, 6).includes("Seelenverwandte") && E.verdict(0, 6).includes("Gegensätze"), "the verdict fits the score");
 
+/* ---------- Frage des Tages in the lobby ---------- */
+let daily = E.createDailyState("Isi", "Benji", new Date("2026-10-06T10:00:00Z"));
+ok(daily.mode === "daily" && daily.day === "2026-10-06" && E.dailyQuestion(daily).id === D.questionFor("2026-10-06", C.DAILY).id, "a daily game holds today's question");
+ok(E.createInitialState("Isi", "Benji", "daily").mode === "daily", "the lobby option 'daily' starts it");
+assert.throws(() => E.submitDaily(daily, "Isi", 4, 0), /Antwort und deinen Tipp/);
+assert.throws(() => E.submitDaily(daily, "Lena", 1, 1), /nicht mit/);
+daily = E.submitDaily(daily, "Isi", 1, 2);
+ok(daily.phase === "answer" && !daily.results, "nothing is revealed until both answered");
+assert.throws(() => E.submitDaily(daily, "Isi", 0, 0), /schon geantwortet/);
+daily = E.submitDaily(daily, "Benji", 2, 3);
+ok(daily.phase === "reveal" && daily.results.hits.Isi === true && daily.results.hits.Benji === false, "then both are revealed: Isi guessed right, Benji did not");
+
 console.log(`\n${assertions} assertions passed (duo: daily question + who/hot-or-not)`);

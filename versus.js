@@ -3,6 +3,7 @@
 
 const V = VersusEngine;
 const talkMode = document.getElementById("talkMode");
+const otherMode = document.getElementById("otherMode");
 const versusMode = document.getElementById("versusMode");
 const modeButtons = document.querySelectorAll(".mode-btn");
 const vsBoard = document.getElementById("vsBoard");
@@ -17,13 +18,16 @@ let draftKey = null;
 let draft = [];
 let celebratedRound = null;
 
-/* ---------- talk / versus switch ---------- */
+/* ---------- talk / other games (Versus is one of them) ---------- */
+
+const MODES = ["talk", "other", "versus"];
 
 function showMode(mode) {
-  const versus = mode === "versus";
-  talkMode.hidden = versus;
-  versusMode.hidden = !versus;
-  modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
+  talkMode.hidden = mode !== "talk";
+  otherMode.hidden = mode !== "other";
+  versusMode.hidden = mode !== "versus";
+  const tab = mode === "talk" ? "talk" : "other";
+  modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === tab));
   try {
     localStorage.setItem(MODE_KEY, mode);
   } catch (error) {
@@ -31,13 +35,14 @@ function showMode(mode) {
   }
 }
 
-modeButtons.forEach(btn => btn.addEventListener("click", () => showMode(btn.dataset.mode)));
+document.querySelectorAll(".mode-btn, .other-versus, .vs-back").forEach(btn => btn.addEventListener("click", () => showMode(btn.dataset.mode)));
 
 function initialMode() {
   const fromQuery = new URLSearchParams(location.search).get("mode");
-  if (fromQuery === "versus" || fromQuery === "talk") return fromQuery;
+  if (MODES.includes(fromQuery)) return fromQuery;
   try {
-    return localStorage.getItem(MODE_KEY) === "versus" ? "versus" : "talk";
+    const stored = localStorage.getItem(MODE_KEY);
+    return MODES.includes(stored) ? stored : "talk";
   } catch (error) {
     return "talk";
   }

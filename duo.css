@@ -495,3 +495,18 @@
     animation: none;
   }
 }
+
+.duo-q-hidden {
+  font-style: italic;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.duo-daily-start {
+  margin-top: 14px;
+}
+
+.duo-daily-game {
+  text-align: left;
+}

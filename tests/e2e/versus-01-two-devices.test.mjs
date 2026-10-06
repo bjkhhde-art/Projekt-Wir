@@ -52,8 +52,13 @@ const benji = await open("Benji", "");
 /* mode switch */
 ok(await isi.locator("#versusMode").isVisible() && await isi.locator("#talkMode").isHidden(), "?mode=versus opens the Versus tab");
 ok(await benji.locator("#talkMode").isVisible(), "without a hint the questions page opens on the conversation questions");
-await benji.click('.mode-btn[data-mode="versus"]');
-ok(await benji.locator("#versusMode").isVisible(), "the switch opens Versus");
+ok((await benji.locator(".mode-btn").allTextContents()).join("|") === "💬 Gesprächsfragen|✨ Andere", "the tabs are 'Gesprächsfragen' and 'Andere'");
+await benji.click('.mode-btn[data-mode="other"]');
+const others = (await benji.locator(".other-card strong").allTextContents()).join("|");
+ok(others === "Frage des Tages|Wer von uns beiden?|Hot oder Not?|Versus", `'Andere' lists the other question games (${others})`);
+ok(await benji.locator('.other-card[href="duo.html?mode=daily"]').count() === 1 && await benji.locator('.other-card[href="duo.html?mode=hotnot"]').count() === 1, "the daily question and hot-or-not lead to their lobby");
+await benji.click(".other-versus");
+ok(await benji.locator("#versusMode").isVisible() && await benji.locator('.mode-btn[data-mode="other"]').evaluate(el => el.classList.contains("active")), "Versus opens under 'Andere'");
 
 /* lobby + invite */
 ok((await isi.locator(".gr-option-label").allTextContents()).includes("Essen & Trinken"), "the lobby offers question categories");
@@ -143,7 +148,8 @@ await isi.click('.mode-btn[data-mode="talk"]');
 ok(await isi.locator("#talkMode").isVisible() && await isi.locator("#newQuestionBtn").isVisible(), "the conversation questions are still there");
 await isi.goto("http://localhost:9091/questions.html"); await isi.waitForTimeout(600);
 ok(await isi.locator("#talkMode").isVisible(), "the chosen tab is remembered");
-await isi.click('.mode-btn[data-mode="versus"]');
+await isi.click('.mode-btn[data-mode="other"]');
+await isi.click(".other-versus");
 
 /* leaving */
 await isi.click("#vsLeaveBtn");

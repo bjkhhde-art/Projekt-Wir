@@ -9,8 +9,9 @@ const dailyEl = document.getElementById("duoDaily");
 const boardEl = document.getElementById("duoBoard");
 const stageEl = document.getElementById("duoStage");
 
-const MODE_LABELS = { who: "Wer von uns beiden?", hotnot: "Hot oder Not?" };
+const MODE_LABELS = { daily: "Frage des Tages", who: "Wer von uns beiden?", hotnot: "Hot oder Not?" };
 const VOTE_LABELS = { hot: "🔥 Hot", not: "❄️ Not" };
+const START_MODE = new URLSearchParams(location.search).get("mode");
 
 const room = GameRoom.create({
   table: "duo_games",
@@ -21,11 +22,13 @@ const room = GameRoom.create({
   boardEl,
   leaveBtn: document.getElementById("duoLeaveBtn"),
   createState: (players, option) => DuoEngine.createInitialState(players[0], players[1], option),
-  isFinished: () => false,
+  isFinished: state => state.mode === "daily" && state.phase === "reveal",
   renderBoard,
   maxPlayers: 2,
   invites: false,
+  initialOption: START_MODE,
   startOptions: [
+    { value: "daily", label: "🔥 Frage des Tages", hint: "Zusammen beantworten, Flamme am Leben halten" },
     { value: "who", label: "Wer von uns beiden?", hint: "Isi oder Benji – seid ihr euch einig?" },
     { value: "hotnot", label: "Hot oder Not?", hint: "🔥 oder ❄️ – tickt ihr gleich?" }
   ]
@@ -34,12 +37,10 @@ const room = GameRoom.create({
 const me = () => room.person;
 const partnerOf = person => (person === "Isi" ? "Benji" : "Isi");
 
-/* =================== Frage des Tages =================== */
+/* =================== Frage des Tages: flame, countdown, result of today =================== */
 
 let dailyRows = [];
 let dailyDay = DuoDaily.dayKey();
-let dailyDraft = { day: null, answer: null };
-let dailySaving = false;
 
 async function loadDaily() {
   const { data, error } = await db.from("daily_answers").select("*").order("day", { ascending: true });
@@ -66,11 +67,32 @@ function countdownHtml(info) {
     </div>`;
 }
 
+/* both answers side by side, with who guessed right */
+function dailyRevealHtml(question, person, mineAnswer, mineGuess, theirAnswer, theirGuess) {
+  const partner = partnerOf(person);
+  const option = i => escapeHtml(question.options[i] || "–");
+  const myHit = mineGuess === theirAnswer;
+  const theirHit = theirGuess === mineAnswer;
+  return `
+    <div class="duo-reveal">
+      <div class="duo-reveal-col">
+        <p class="duo-reveal-name">Du</p>
+        <p class="duo-reveal-answer">${option(mineAnswer)}</p>
+        <p class="duo-reveal-guess ${theirHit ? "hit" : "miss"}">${escapeHtml(partner)} hat getippt: ${option(theirGuess)} ${theirHit ? "✓" : "✗"}</p>
+      </div>
+      <div class="duo-reveal-col">
+        <p class="duo-reveal-name">${escapeHtml(partner)}</p>
+        <p class="duo-reveal-answer">${option(theirAnswer)}</p>
+        <p class="duo-reveal-guess ${myHit ? "hit" : "miss"}">Du hast getippt: ${option(mineGuess)} ${myHit ? "✓" : "✗"}</p>
+      </div>
+    </div>
+    <p class="duo-wait">${myHit && theirHit ? "Ihr kennt euch einfach 💞" : myHit || theirHit ? "Einer von euch lag richtig 😊" : "Heute habt ihr euch überrascht 😄"}</p>`;
+}
+
 function renderDaily() {
   dailyDay = DuoDaily.dayKey();
   const person = me();
   const info = DuoDaily.streakInfo(dailyRows, dailyDay);
-  const question = DuoDaily.questionFor(dailyDay, DuoContent.DAILY);
   const header = `
     <div class="duo-streak">
       <div class="duo-streak-flame" aria-hidden="true">🔥</div>
@@ -80,102 +102,51 @@ function renderDaily() {
     <h2 id="duoDailyTitle" class="duo-headline">${escapeHtml(DuoDaily.streakHeadline(info))}</h2>
     <div class="duo-flames" aria-label="Die letzten sieben Tage">${flameRow(info)}</div>`;
 
-  if (!person) {
-    dailyEl.innerHTML = `${header}<div class="duo-q"><p class="duo-q-label">Frage des Tages</p><p class="duo-q-text">${escapeHtml(question.text)}</p></div>`;
-    return;
-  }
-
-  const partner = partnerOf(person);
-  const mine = dailyRows.find(r => r.day === dailyDay && r.person === person);
-  const theirs = dailyRows.find(r => r.day === dailyDay && r.person === partner);
-  const option = i => escapeHtml(question.options[i] || "–");
   let body;
-
-  if (!mine) {
-    if (dailyDraft.day !== dailyDay) dailyDraft = { day: dailyDay, answer: null };
-    const guessing = dailyDraft.answer !== null;
+  const rowsToday = dailyRows.filter(r => r.day === dailyDay);
+  const mine = person && rowsToday.find(r => r.person === person);
+  const theirs = person && rowsToday.find(r => r.person === partnerOf(person));
+  const question = mine ? DuoContent.DAILY.find(q => q.id === mine.question_id) : null;
+  if (info.doneToday && mine && theirs && question) {
     body = `
-      <p class="duo-q-step">${guessing ? `Schritt 2 von 2 · Was antwortet ${escapeHtml(partner)}?` : "Schritt 1 von 2 · Deine Antwort"}</p>
-      <div class="duo-options" role="group">
-        ${question.options.map((text, i) => `<button type="button" class="duo-option" data-index="${i}">${escapeHtml(text)}</button>`).join("")}
-      </div>
-      ${guessing ? `<p class="duo-q-note">Deine Antwort: <strong>${option(dailyDraft.answer)}</strong> · <button type="button" class="duo-link" id="duoDailyBack">ändern</button></p>` : ""}
-      ${theirs ? `<p class="duo-q-note">💌 ${escapeHtml(partner)} hat schon geantwortet – du bist dran!</p>` : ""}`;
-  } else if (!theirs) {
-    body = `
-      <div class="duo-mine">
-        <p>Deine Antwort: <strong>${option(mine.answer)}</strong></p>
-        <p>Dein Tipp für ${escapeHtml(partner)}: <strong>${option(mine.guess)}</strong></p>
-      </div>
-      <p class="duo-wait">⏳ Warte auf ${escapeHtml(partner)} – dann deckt ihr gemeinsam auf.</p>`;
-  } else {
-    const myHit = mine.guess === theirs.answer;
-    const theirHit = theirs.guess === mine.answer;
-    body = `
-      <div class="duo-reveal">
-        <div class="duo-reveal-col">
-          <p class="duo-reveal-name">Du</p>
-          <p class="duo-reveal-answer">${option(mine.answer)}</p>
-          <p class="duo-reveal-guess ${theirHit ? "hit" : "miss"}">${escapeHtml(partner)} hat getippt: ${option(theirs.guess)} ${theirHit ? "✓" : "✗"}</p>
-        </div>
-        <div class="duo-reveal-col">
-          <p class="duo-reveal-name">${escapeHtml(partner)}</p>
-          <p class="duo-reveal-answer">${option(theirs.answer)}</p>
-          <p class="duo-reveal-guess ${myHit ? "hit" : "miss"}">Du hast getippt: ${option(mine.guess)} ${myHit ? "✓" : "✗"}</p>
-        </div>
-      </div>
-      <p class="duo-wait">${myHit && theirHit ? "Ihr kennt euch einfach 💞" : myHit || theirHit ? "Einer von euch lag richtig 😊" : "Heute habt ihr euch überrascht 😄"} Morgen gibt's die nächste Frage.</p>`;
-  }
-
-  dailyEl.innerHTML = `
-    ${header}
-    <div class="duo-q">
       <p class="duo-q-label">Frage des Tages</p>
       <p class="duo-q-text">${escapeHtml(question.text)}</p>
-      ${body}
-    </div>
-    ${countdownHtml(info)}`;
+      ${dailyRevealHtml(question, person, mine.answer, mine.guess, theirs.answer, theirs.guess)}
+      <p class="duo-q-note">Morgen gibt's die nächste Frage.</p>`;
+  } else {
+    body = `
+      <p class="duo-q-label">Frage des Tages</p>
+      <p class="duo-q-text duo-q-hidden">Die Frage seht ihr erst, wenn ihr beide da seid.</p>
+      <p class="duo-q-note">Startet eine Runde, der andere tritt bei – dann beantwortet ihr sie gleichzeitig und deckt zusammen auf.</p>
+      <button type="button" class="btn btn-block duo-daily-start" id="duoDailyStart">🔥 Frage des Tages zusammen spielen</button>`;
+  }
 
-  dailyEl.querySelectorAll(".duo-option").forEach(button => {
-    button.addEventListener("click", () => chooseDaily(Number(button.dataset.index), question));
-  });
-  const back = document.getElementById("duoDailyBack");
-  if (back) back.addEventListener("click", () => {
-    dailyDraft.answer = null;
-    renderDaily();
-  });
+  dailyEl.innerHTML = `${header}<div class="duo-q">${body}</div>${countdownHtml(info)}`;
+  const start = document.getElementById("duoDailyStart");
+  if (start) start.addEventListener("click", startDailyGame);
 }
 
-async function chooseDaily(index, question) {
-  if (dailyDraft.answer === null) {
-    dailyDraft = { day: dailyDay, answer: index };
-    renderDaily();
-    return;
-  }
-  if (dailySaving) return;
-  dailySaving = true;
+function startDailyGame() {
+  const game = room.game;
+  if (!game || game.status === "closed") room.startWith("daily");
+  document.getElementById("duoLobby").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* the answer also lands in daily_answers – that is what the flame counts (saved once per day) */
+const dailySaving = new Set();
+
+async function saveDailyRow(state, answer, guess) {
   const person = me();
-  const partner = partnerOf(person);
-  const { error } = await db.from("daily_answers").insert({
-    day: dailyDay, person, question_id: question.id, answer: dailyDraft.answer, guess: index
-  });
-  dailySaving = false;
+  const key = `${state.day}:${person}`;
+  if (dailySaving.has(key) || dailyRows.some(r => r.day === state.day && r.person === person)) return;
+  dailySaving.add(key);
+  const { error } = await db.from("daily_answers").insert({ day: state.day, person, question_id: state.questionId, answer, guess });
   if (error && error.code !== "23505") {
     console.error("Antwort konnte nicht gespeichert werden:", error);
-    showToast("Antwort konnte nicht gespeichert werden.", "error");
+    dailySaving.delete(key);
     return;
   }
-  dailyDraft = { day: dailyDay, answer: null };
   await loadDaily();
-  const theirs = dailyRows.find(r => r.day === dailyDay && r.person === partner);
-  if (theirs) celebrate(18);
-  sendAppNotification(db, {
-    title: "Frage des Tages 🔥",
-    body: theirs ? `${person} hat geantwortet – ihr könnt aufdecken!` : `${person} hat die Frage des Tages beantwortet – du bist dran!`,
-    excludePerson: person,
-    category: "games",
-    url: "duo.html"
-  });
 }
 
 /* the countdown ticks every second; at midnight the next question appears */
@@ -197,7 +168,76 @@ db.channel("daily_answers_changes")
   .on("postgres_changes", { event: "*", schema: "public", table: "daily_answers" }, () => loadDaily())
   .subscribe();
 
-/* =================== Wer von uns beiden? / Hot oder Not? =================== */
+/* =================== the lobby game: daily / who / hot-or-not =================== */
+
+let dailyDraft = { key: null, answer: null };
+
+function renderDailyGame(game, head, person, partner) {
+  const state = game.state;
+  const question = DuoEngine.dailyQuestion(state);
+  if (!question) {
+    stageEl.innerHTML = `${head}<div class="duo-card card"><p>Diese Frage gibt es nicht mehr.</p></div>`;
+    return;
+  }
+  const option = i => escapeHtml(question.options[i] || "–");
+  const myAnswers = state.answers[person];
+
+  if (state.phase === "reveal") {
+    const theirs = state.answers[partner];
+    stageEl.innerHTML = `${head}
+      <div class="duo-card card duo-daily-game">
+        <p class="duo-q-label">Frage des Tages</p>
+        <p class="duo-card-text">${escapeHtml(question.text)}</p>
+        ${dailyRevealHtml(question, person, myAnswers.answer, myAnswers.guess, theirs.answer, theirs.guess)}
+      </div>`;
+    saveDailyRow(state, myAnswers.answer, myAnswers.guess);
+    return;
+  }
+
+  if (myAnswers) {
+    stageEl.innerHTML = `${head}
+      <div class="duo-card duo-waiting card">
+        <div class="duo-waiting-icon">✓</div>
+        <h3>Fertig!</h3>
+        <p>Warte auf ${escapeHtml(partner)} – dann deckt ihr gemeinsam auf.</p>
+      </div>`;
+    return;
+  }
+
+  const key = `${game.id}`;
+  if (dailyDraft.key !== key) dailyDraft = { key, answer: null };
+  const guessing = dailyDraft.answer !== null;
+  stageEl.innerHTML = `${head}
+    <div class="duo-card card duo-daily-game">
+      <p class="duo-q-label">Frage des Tages</p>
+      <p class="duo-card-text">${escapeHtml(question.text)}</p>
+      <p class="duo-q-step">${guessing ? `Schritt 2 von 2 · Was antwortet ${escapeHtml(partner)}?` : "Schritt 1 von 2 · Deine Antwort"}</p>
+      <div class="duo-options" role="group">
+        ${question.options.map((text, i) => `<button type="button" class="duo-option" data-index="${i}">${escapeHtml(text)}</button>`).join("")}
+      </div>
+      ${guessing ? `<p class="duo-q-note">Deine Antwort: <strong>${option(dailyDraft.answer)}</strong> · <button type="button" class="duo-link" id="duoDailyBack">ändern</button></p>` : ""}
+      <p class="duo-q-note">${state.answers[partner] ? `💌 ${escapeHtml(partner)} ist schon fertig.` : `${escapeHtml(partner)} überlegt noch …`}</p>
+    </div>`;
+
+  stageEl.querySelectorAll(".duo-option").forEach(button => {
+    button.addEventListener("click", async () => {
+      const index = Number(button.dataset.index);
+      if (dailyDraft.answer === null) {
+        dailyDraft.answer = index;
+        renderDailyGame(game, head, person, partner);
+        return;
+      }
+      const answer = dailyDraft.answer;
+      await room.dispatch(DuoEngine.submitDaily, answer, index);
+      saveDailyRow(state, answer, index);
+    });
+  });
+  const back = document.getElementById("duoDailyBack");
+  if (back) back.addEventListener("click", () => {
+    dailyDraft.answer = null;
+    renderDailyGame(game, head, person, partner);
+  });
+}
 
 let draft = { key: null, answers: [], index: 0 };
 
@@ -211,6 +251,11 @@ function renderBoard(game) {
   const partner = state.players.find(p => p !== person);
   const total = (state.history || []).reduce((sum, h) => sum + h.matches, 0);
   const played = (state.history || []).length;
+  if (state.mode === "daily") {
+    const dailyHead = `<div class="duo-round-head"><span class="duo-mode">🔥 Frage des Tages</span><span>${escapeHtml(state.day.split("-").reverse().join("."))}</span></div>`;
+    renderDailyGame(game, dailyHead, person, partner);
+    return;
+  }
   const head = `
     <div class="duo-round-head">
       <span class="duo-mode">${escapeHtml(MODE_LABELS[state.mode])}</span>
