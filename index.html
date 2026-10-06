@@ -52,6 +52,17 @@
 
       <div class="dashboard-grid">
 
+        <a href="duo.html" id="dashDailyTile" class="dash-tile dash-tile-wide dash-daily card card-hover">
+          <div class="dash-tile-head">
+            <span class="dash-tile-icon">🔥</span>
+            <span class="dash-tile-title">Frage des Tages</span>
+            <span id="dashDailyStreak" class="dash-daily-streak"></span>
+          </div>
+          <p id="dashDailyQuestion" class="dash-question-text">Lädt …</p>
+          <p id="dashDailyStatus" class="dash-daily-status"></p>
+          <span class="dash-daily-cta" id="dashDailyCta">Spiel starten →</span>
+        </a>
+
         <a href="mochi.html" class="dash-tile card card-hover">
           <div class="dash-tile-head">
             <span class="dash-tile-icon">🎂</span>
@@ -190,6 +201,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
+  <script src="duo-content.js"></script>
+  <script src="duo-daily.js"></script>
   <script src="index.js"></script>
 </body>
 </html>

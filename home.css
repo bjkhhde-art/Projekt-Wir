@@ -343,3 +343,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Frage des Tages ---------- */
+
+.dash-daily {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(248, 201, 74, 0.28), rgba(124, 92, 255, 0.14));
+  text-decoration: none;
+  color: inherit;
+}
+
+.dash-daily-streak {
+  margin-left: auto;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.dash-daily-status {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dash-daily-cta {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+}
