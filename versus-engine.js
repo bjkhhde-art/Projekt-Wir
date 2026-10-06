@@ -1,8 +1,9 @@
 /* Versus – who knows the other better? Pure rules without DOM, shared by questions.js
    (window.VersusEngine) and the node tests (module.exports).
 
-   A round: both answer three questions about themselves (in secret, at the same time),
-   then both guess the other's three answers, then both answers are revealed. */
+   A round has six questions: three about the first player, three about the second. Both type
+   at the same time – their own answers to their three and a guess for each of the other's three.
+   Then each judges the other's guesses on their own questions (right or wrong), and all is revealed. */
 (function () {
   const bank = typeof module !== "undefined" && module.exports
     ? require("./versus-questions.js")
@@ -10,6 +11,7 @@
 
   const PER_ROUND = 3;
   const MIXED = "mixed";
+  const FORMAT = 2;
 
   function questionById(id) {
     return bank.QUESTIONS.find(q => q.id === id);
@@ -44,6 +46,7 @@
     const category = bank.CATEGORIES[option] ? option : MIXED;
     const drawn = drawQuestions(category, [], rand);
     return {
+      v: FORMAT,
       players: [host, guest],
       category,
       round: 1,
@@ -51,6 +54,7 @@
       questions: { [host]: drawn.first, [guest]: drawn.second },
       answers: {},
       guesses: {},
+      verdicts: {},
       results: null,
       scores: { [host]: 0, [guest]: 0 },
       used: drawn.used,
@@ -59,61 +63,56 @@
     };
   }
 
-  function validAnswer(question, value) {
-    if (question.type === "pick") return value === 0 || value === 1;
-    if (question.type === "scale") return Number.isInteger(value) && value >= 1 && value <= 5;
-    if (question.type === "rank") {
-      return Array.isArray(value) && value.length === 3 && [0, 1, 2].every(i => value.includes(i));
-    }
-    return false;
+  const MAX_TEXT = 140;
+
+  function cleanText(value) {
+    return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, MAX_TEXT) : "";
   }
 
-  function checkSet(questionIds, values) {
-    if (!Array.isArray(values) || values.length !== questionIds.length) throw new Error("Bitte alle drei Fragen beantworten.");
-    questionIds.forEach((id, i) => {
-      if (!validAnswer(questionById(id), values[i])) throw new Error("Bitte alle drei Fragen beantworten.");
-    });
+  function checkTexts(values) {
+    if (!Array.isArray(values) || values.length !== PER_ROUND) throw new Error("Bitte alle sechs Fragen beantworten.");
+    const texts = values.map(cleanText);
+    if (texts.some(text => !text)) throw new Error("Bitte alle sechs Fragen beantworten.");
+    return texts;
   }
 
-  /* 1 point for a hit; half a point when close (scale off by one, rank with the right favourite) */
-  function scoreGuess(question, answer, guess) {
-    if (question.type === "pick") return answer === guess ? 1 : 0;
-    if (question.type === "scale") {
-      const diff = Math.abs(answer - guess);
-      return diff === 0 ? 1 : diff === 1 ? 0.5 : 0;
-    }
-    if (answer.every((value, i) => value === guess[i])) return 1;
-    return answer[0] === guess[0] ? 0.5 : 0;
-  }
-
-  function submitAnswers(state, person, answers) {
+  /* both type at the same time: three answers about themselves, three guesses about the other */
+  function submitAnswers(state, person, answers, guesses) {
     assertPlayer(state, person);
     if (state.phase !== "answer") throw new Error("Die Antworten sind schon abgegeben.");
     if (state.answers[person]) throw new Error("Du hast schon geantwortet.");
-    checkSet(state.questions[person], answers);
+    const ownTexts = checkTexts(answers);
+    const guessTexts = checkTexts(guesses);
 
-    const next = { ...state, answers: { ...state.answers, [person]: answers }, moveSeq: (state.moveSeq || 0) + 1 };
-    if (state.players.every(p => next.answers[p])) next.phase = "guess";
+    const next = {
+      ...state,
+      answers: { ...state.answers, [person]: ownTexts },
+      guesses: { ...state.guesses, [person]: guessTexts },
+      moveSeq: (state.moveSeq || 0) + 1
+    };
+    if (state.players.every(p => next.answers[p])) next.phase = "judge";
     return next;
   }
 
-  function submitGuesses(state, person, guesses) {
+  /* the one the questions are about decides whether the other one was right:
+     the first three are judged by the first player, the second three by the second */
+  function submitVerdicts(state, person, verdicts) {
     assertPlayer(state, person);
-    if (state.phase !== "guess") throw new Error("Gerade wird nicht geraten.");
-    if (state.guesses[person]) throw new Error("Du hast schon getippt.");
-    const partner = partnerOf(state, person);
-    checkSet(state.questions[partner], guesses);
+    if (state.phase !== "judge") throw new Error("Gerade wird nicht bewertet.");
+    if ((state.verdicts || {})[person]) throw new Error("Du hast schon bewertet.");
+    if (!Array.isArray(verdicts) || verdicts.length !== PER_ROUND || verdicts.some(v => typeof v !== "boolean")) {
+      throw new Error("Bitte alle drei Tipps bewerten.");
+    }
 
-    const next = { ...state, guesses: { ...state.guesses, [person]: guesses }, moveSeq: (state.moveSeq || 0) + 1 };
-    if (!state.players.every(p => next.guesses[p])) return next;
+    const next = { ...state, verdicts: { ...(state.verdicts || {}), [person]: verdicts.slice() }, moveSeq: (state.moveSeq || 0) + 1 };
+    if (!state.players.every(p => next.verdicts[p])) return next;
 
-    /* both guessed: score each guesser on the partner's questions */
+    /* both judged: the guesser scores a point for every tip the other one called right */
     const results = {};
     const scores = { ...state.scores };
     state.players.forEach(guesser => {
       const owner = partnerOf(state, guesser);
-      const points = state.questions[owner].map((id, i) =>
-        scoreGuess(questionById(id), next.answers[owner][i], next.guesses[guesser][i]));
+      const points = next.verdicts[owner].map(right => (right ? 1 : 0));
       const total = points.reduce((sum, p) => sum + p, 0);
       results[guesser] = { points, total };
       scores[guesser] = (scores[guesser] || 0) + total;
@@ -140,13 +139,19 @@
       questions: { [a]: drawn.first, [b]: drawn.second },
       answers: {},
       guesses: {},
+      verdicts: {},
       results: null,
       used: drawn.used,
       moveSeq: (state.moveSeq || 0) + 1
     };
   }
 
-  /* the guesser sees the partner's question with names filled in */
+  /* a round from before typed answers (picked options) cannot be played on */
+  function isCurrentFormat(state) {
+    return Boolean(state) && state.v === FORMAT;
+  }
+
+  /* the options of the old question bank are shown as a hint, with names filled in */
   function optionLabels(question, owner, viewer) {
     if (question.type === "scale") return [];
     return question.options.map(option => {
@@ -172,11 +177,12 @@
     questionById,
     partnerOf,
     createInitialState,
-    validAnswer,
-    scoreGuess,
+    MAX_TEXT,
+    cleanText,
     submitAnswers,
-    submitGuesses,
+    submitVerdicts,
     nextRound,
+    isCurrentFormat,
     optionLabels,
     leader
   };
