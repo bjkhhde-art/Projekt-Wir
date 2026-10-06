@@ -57,7 +57,7 @@ for (const game of ["cabo.html", "nimmt.html", "qwixx.html"]) {
 await page.goto(base + "index.html"); await page.waitForTimeout(500);
 ok((await page.locator(".home-card", { hasText: "Ziele" }).textContent()).includes("Couple Quest"), "the Ziele card mentions the Couple Quest again");
 ok((await page.locator(".home-card", { hasText: "Games" }).textContent()).includes("Fragen"), "the Games card mentions the questions");
-ok(await page.locator('a[href="questions.html"]').count() >= 1, "'Mehr Fragen' leads to the questions page");
+ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator("main").textContent()).includes("Frage für uns"), "the 'Frage für uns' card is gone from the start page");
 
 /* every single game has a back arrow to the games overview */
 for (const game of ["nimmt", "cabo", "qwixx", "questions"]) {

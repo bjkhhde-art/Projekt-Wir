@@ -73,11 +73,7 @@ const dashTripImg = document.getElementById("dashTripImg");
 const dashTripTitle = document.getElementById("dashTripTitle");
 const dashTripMeta = document.getElementById("dashTripMeta");
 
-const dashQuestionText = document.getElementById("dashQuestionText");
-const dashNewQuestionBtn = document.getElementById("dashNewQuestionBtn");
-
 let currentPerson = localStorage.getItem("pw_person");
-let dashQuestionPool = [];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -278,41 +274,11 @@ async function loadDashTrip() {
   }
 }
 
-/* ---------- dashboard: zufällige Frage ---------- */
-
-async function loadDashQuestion() {
-  const { data, error } = await supabaseClient
-    .from("questions")
-    .select("id, question, category, active");
-
-  if (error) {
-    console.error("Fehler beim Laden der Frage:", error);
-    dashQuestionText.textContent = "Frage konnte nicht geladen werden.";
-    return;
-  }
-
-  dashQuestionPool = (data || []).filter(question => question.active !== false);
-  showRandomDashQuestion();
-}
-
-function showRandomDashQuestion() {
-  if (!dashQuestionPool.length) {
-    dashQuestionText.textContent = "Noch keine Fragen vorhanden.";
-    return;
-  }
-
-  const question = dashQuestionPool[Math.floor(Math.random() * dashQuestionPool.length)];
-  dashQuestionText.textContent = question.question;
-}
-
-dashNewQuestionBtn.addEventListener("click", showRandomDashQuestion);
-
 /* ---------- init ---------- */
 
 loadDashMochi();
 loadDashBattery();
 loadDashTrip();
-loadDashQuestion();
 
 /* ---------- hero parallax ---------- */
 

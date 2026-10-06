@@ -321,23 +321,6 @@
   opacity: 0.9;
 }
 
-.dash-tile-question {
-  cursor: default;
-}
-
-.dash-question-text {
-  margin: 0 0 14px;
-  font-size: 15px;
-  line-height: 1.5;
-  min-height: 44px;
-}
-
-.dash-question-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 @media (max-width: 400px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
