@@ -59,7 +59,8 @@ const GameRoom = (() => {
 
   /* config: { table, title, icon, url, lobbyEl, boardEl, leaveBtn,
        createState(players, option), renderBoard(game), isFinished(state),
-       startOptions?: [{ value, label, hint }],
+       startOptions?: [{ value, label, hint }], hideOptions? (the option comes from outside, no picker),
+       url may also be a function of the chosen option, onSync?(game) runs after every render,
        maxPlayers? (default 4), invites? (default true) } */
   function create(config) {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
@@ -191,7 +192,7 @@ const GameRoom = (() => {
         body: `${person} lädt dich zu einer Runde ${title} ein.`,
         excludePerson: normalizePerson(person),
         category: "games",
-        url
+        url: typeof url === "function" ? url(chosenOption) : url
       });
       await sync();
     }
@@ -490,6 +491,17 @@ const GameRoom = (() => {
     }
 
     function renderLobbyNoGame(note) {
+      if (config.hideOptions) {
+        const option = (config.startOptions || []).find(o => o.value === chosenOption);
+        showLobby(`
+          ${note ? `<p class="gr-lobby-note">${escapeHtml(note)}</p>` : ""}
+          <h2>${option ? escapeHtml(option.label) : "Noch keine Runde"}</h2>
+          <p>Startet eine Runde &ndash; der andere kann direkt beitreten.</p>
+          <button id="grStartBtn" class="btn btn-block">Neue Runde starten</button>
+        `);
+        document.getElementById("grStartBtn").addEventListener("click", createGame);
+        return;
+      }
       showLobby(`
         ${note ? `<p class="gr-lobby-note">${escapeHtml(note)}</p>` : ""}
         <h2>Noch keine Runde</h2>
@@ -648,6 +660,11 @@ const GameRoom = (() => {
     }
 
     async function sync() {
+      await render();
+      if (config.onSync) config.onSync(currentGame);
+    }
+
+    async function render() {
       const generation = ++syncGeneration;
       const game = await fetchCurrentGame();
       if (generation !== syncGeneration) return;
@@ -720,6 +737,21 @@ const GameRoom = (() => {
         if (!optionValues.includes(value)) return;
         chosenOption = value;
         if (!currentGame || currentGame.status === "closed") createGame();
+      },
+      /* step into the waiting round */
+      join() {
+        if (requirePerson()) joinLobby(person);
+      },
+      /* still alone in my own lobby: switch what we are going to play */
+      async switchOption(value) {
+        if (!optionValues.includes(value)) return;
+        chosenOption = value;
+        await mutate(fresh => {
+          if (fresh.status !== "waiting" || fresh.host_person !== person) return null;
+          if (lobbyOf(fresh).some(p => p !== person) || (fresh.state && fresh.state.option === value)) return null;
+          return { state: { ...fresh.state, option: value } };
+        });
+        await sync();
       },
       dispatch,
       renderReady,

@@ -11,13 +11,20 @@ const stageEl = document.getElementById("duoStage");
 
 const MODE_LABELS = { daily: "Frage des Tages", who: "Wer von uns beiden?", hotnot: "Hot oder Not?" };
 const VOTE_LABELS = { hot: "🔥 Hot", not: "❄️ Not" };
-const START_MODE = new URLSearchParams(location.search).get("mode");
+const MODE_TITLES = { daily: "Frage des Tages 🔥", who: "Wer von uns beiden? 🤔", hotnot: "Hot oder Not? 🌶️" };
+const MODE_SUBTITLES = {
+  daily: "Jeden Tag eine neue Frage – zusammen beantworten und die Flamme am Leben halten.",
+  who: "Isi oder Benji? Seht, wo ihr euch einig seid.",
+  hotnot: "🔥 oder ❄️ – tickt ihr gleich?"
+};
+const queryMode = new URLSearchParams(location.search).get("mode");
+const START_MODE = MODE_LABELS[queryMode] ? queryMode : "daily";
 
 const room = GameRoom.create({
   table: "duo_games",
   title: "Wir zwei",
   icon: "💞",
-  url: "duo.html",
+  url: option => `duo.html?mode=${option}`,
   lobbyEl: document.getElementById("duoLobby"),
   boardEl,
   leaveBtn: document.getElementById("duoLeaveBtn"),
@@ -27,6 +34,8 @@ const room = GameRoom.create({
   maxPlayers: 2,
   invites: false,
   initialOption: START_MODE,
+  hideOptions: true,
+  onSync: onRoomSync,
   startOptions: [
     { value: "daily", label: "🔥 Frage des Tages", hint: "Zusammen beantworten, Flamme am Leben halten" },
     { value: "who", label: "Wer von uns beiden?", hint: "Isi oder Benji – seid ihr euch einig?" },
@@ -42,6 +51,9 @@ const partnerOf = person => (person === "Isi" ? "Benji" : "Isi");
 let dailyRows = [];
 let dailyDay = DuoDaily.dayKey();
 
+let dailyLoaded;
+const dailyReady = new Promise(resolve => { dailyLoaded = resolve; });
+
 async function loadDaily() {
   const { data, error } = await db.from("daily_answers").select("*").order("day", { ascending: true });
   if (error) {
@@ -51,6 +63,7 @@ async function loadDaily() {
   }
   dailyRows = data || [];
   renderDaily();
+  dailyLoaded();
 }
 
 function flameRow(info) {
@@ -122,14 +135,69 @@ function renderDaily() {
   }
 
   dailyEl.innerHTML = `${header}<div class="duo-q">${body}</div>${countdownHtml(info)}`;
+  updateLayout();
   const start = document.getElementById("duoDailyStart");
   if (start) start.addEventListener("click", startDailyGame);
 }
 
 function startDailyGame() {
-  const game = room.game;
-  if (!game || game.status === "closed") room.startWith("daily");
+  if (!roomRunning(room.game)) room.startWith("daily");
   document.getElementById("duoLobby").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* =================== one mode per page: the colourful cards lead straight into a round =================== */
+
+function roomRunning(game) {
+  return Boolean(game && game.status !== "closed");
+}
+
+function currentMode() {
+  const game = room.game;
+  if (roomRunning(game) && game.state) return game.state.option || game.state.mode || START_MODE;
+  return START_MODE;
+}
+
+function dailyDoneToday() {
+  return DuoDaily.streakInfo([...DuoDaily.historyRows(), ...dailyRows], DuoDaily.dayKey(), DuoDaily.HISTORY).doneToday;
+}
+
+function updateLayout() {
+  const mode = currentMode();
+  document.getElementById("duoTitle").textContent = MODE_TITLES[mode];
+  document.getElementById("duoSubtitle").textContent = MODE_SUBTITLES[mode];
+  document.getElementById("daily").classList.toggle("hidden", mode !== "daily");
+  /* today's question is done: the card at the top shows the result, no new round needed */
+  const dailyStart = document.getElementById("duoDailyStart");
+  if (dailyStart) dailyStart.classList.toggle("hidden", roomRunning(room.game));
+  document.getElementById("duoLobby").classList.toggle("duo-lobby-off", mode === "daily" && !roomRunning(room.game) && dailyDoneToday());
+}
+
+let entered = false;
+
+async function enterMode(game) {
+  await dailyReady;
+  const person = me();
+  if (!person) return;
+  if (!roomRunning(game)) {
+    if (START_MODE === "daily" && dailyDoneToday()) return;
+    room.startWith(START_MODE);
+    return;
+  }
+  if (game.status !== "waiting" || !game.state) return;
+  const lobby = game.state.lobby || [game.host_person];
+  if (!lobby.includes(person)) {
+    /* the other one is already waiting for exactly this game: step straight in */
+    if (game.state.option === START_MODE) room.join();
+    return;
+  }
+  if (game.state.option !== START_MODE) room.switchOption(START_MODE);
+}
+
+function onRoomSync(game) {
+  updateLayout();
+  if (entered) return;
+  entered = true;
+  enterMode(game);
 }
 
 /* the answer also lands in daily_answers – that is what the flame counts (saved once per day) */
