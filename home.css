@@ -375,3 +375,15 @@
   font-weight: 800;
   color: var(--text);
 }
+
+.dash-daily-state {
+  margin: 2px 0 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  color: #f2a93b;
+}
+
+.dash-daily-state.done {
+  color: var(--success);
+}

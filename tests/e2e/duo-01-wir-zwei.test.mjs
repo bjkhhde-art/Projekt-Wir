@@ -21,6 +21,10 @@ await post("/t/daily_answers/seed", { rows: [
   row(3, D.shiftDay(today, -1), "Isi"), row(4, D.shiftDay(today, -1), "Benji")
 ] });
 await fetch(`${API}/t/duo_games/reset`, { method: "POST" });
+/* what the flame should show: the carried-over LovBirdz days plus the seeded ones */
+const seeded = [D.shiftDay(today, -2), D.shiftDay(today, -1)].flatMap(day => [{ day, person: "Isi" }, { day, person: "Benji" }]);
+const before = D.streakInfo([...D.historyRows(), ...seeded], today, D.HISTORY);
+const after = D.streakInfo([...D.historyRows(), ...seeded, { day: today, person: "Isi" }, { day: today, person: "Benji" }], today, D.HISTORY);
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const errors = [];
@@ -37,9 +41,10 @@ const benji = await phone("Benji");
 /* the start page shows the question of the day */
 await benji.goto("http://localhost:9091/index.html");
 await benji.waitForTimeout(900);
-ok((await benji.locator("#dashDailyQuestion").textContent()) === question.text, "the start page shows today's question");
-ok((await benji.locator("#dashDailyStreak").textContent()).includes("2"), "with our flame: 2 days");
-ok((await benji.locator("#dashDailyStatus").textContent()).includes("damit eure Flamme weiterbrennt"), "and asks us both to answer");
+ok((await benji.locator("#dashDailyState").textContent()).includes("Heute noch offen"), "the start page says today is still open");
+ok(!(await benji.locator("#dashDailyTile").textContent()).includes(question.text), "without giving the question away");
+ok((await benji.locator("#dashDailyStreak").textContent()) === `🔥 ${before.current}`, `with our flame: ${before.current} days`);
+ok((await benji.locator("#dashDailyStatus").textContent()).includes(`Rekord: ${before.record} Tage`) && before.record >= 19, "and our record (at least the 19 days from LovBirdz)");
 ok(await benji.locator("#dashDailyTile").getAttribute("href") === "duo.html?mode=daily", "the tile leads to the question of the day");
 
 /* the games page has the new tile */
@@ -49,8 +54,9 @@ ok(await isi.locator('a[href="duo.html"]', { hasText: "Wir zwei" }).count() === 
 /* the question of the day is answered together, in a lobby */
 await isi.goto("http://localhost:9091/duo.html?mode=daily");
 await isi.waitForSelector("#duoDailyStart");
-ok((await isi.locator(".duo-streak-number").textContent()) === "2" && (await isi.locator(".duo-headline").textContent()).includes("braucht euch heute"), "the flame shows 2 and needs us today");
-ok(await isi.locator(".duo-flame.done").count() === 2 && await isi.locator(".duo-flame").count() === 7, "seven flames, two lit");
+ok((await isi.locator(".duo-streak-number").textContent()) === String(before.current) && (await isi.locator(".duo-headline").textContent()).includes("braucht euch heute"), `the flame shows ${before.current} and needs us today`);
+ok((await isi.locator(".duo-record").textContent()).includes(`${before.record} Tage`), "the record is shown");
+ok(await isi.locator(".duo-flame.done").count() === before.lastSeven.filter(d => d.status === "done").length && await isi.locator(".duo-flame").count() === 7, "seven flames, the done days lit");
 ok(await isi.locator("#duoCountdown span").count() === 3, "the time left today counts down");
 ok(!(await isi.locator("#duoDaily").textContent()).includes(question.text), "the question stays hidden until both are there");
 ok(await isi.locator('.gr-option[data-option="daily"]').evaluate(el => el.classList.contains("selected")), "coming from 'Frage des Tages' preselects it in the lobby");
@@ -83,7 +89,7 @@ ok((await benji.locator(".duo-daily-game .duo-reveal-guess.hit").count()) === 2,
 await wait(800);
 const rows = (await answers()).filter(r => r.day === today);
 ok(rows.length === 2 && rows.find(r => r.person === "Isi").answer === 1 && rows.find(r => r.person === "Benji").guess === 1 && rows.every(r => r.question_id === question.id), "both answers are stored for the flame");
-ok((await benji.locator(".duo-streak-number").textContent()) === "3" && await benji.locator("#duoCountdown").count() === 0, "the flame grows to 3, no countdown needed");
+ok((await benji.locator(".duo-streak-number").textContent()) === String(after.current) && after.current === before.current + 1 && await benji.locator("#duoCountdown").count() === 0, `the flame grows to ${after.current}, no countdown needed`);
 ok((await isi.locator("#duoDaily .duo-reveal").count()) === 1, "the card at the top now shows today's result");
 ok((await isi.locator("#duoLeaveBtn").textContent()).includes("Zurück"), "afterwards the round is simply closed");
 await isi.locator("#duoLeaveBtn").click();

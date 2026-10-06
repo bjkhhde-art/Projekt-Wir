@@ -340,7 +340,7 @@ loadDashQuestion();
 
 /* ---------- Frage des Tages (answered on duo.html) ---------- */
 
-const dashDailyQuestion = document.getElementById("dashDailyQuestion");
+const dashDailyState = document.getElementById("dashDailyState");
 const dashDailyStatus = document.getElementById("dashDailyStatus");
 const dashDailyStreak = document.getElementById("dashDailyStreak");
 const dashDailyCta = document.getElementById("dashDailyCta");
@@ -366,10 +366,12 @@ async function loadDashDaily() {
 
 function renderDashDaily() {
   const today = DuoDaily.dayKey();
-  const info = DuoDaily.streakInfo(dashDailyRows, today);
+  const info = DuoDaily.streakInfo([...DuoDaily.historyRows(), ...dashDailyRows], today, DuoDaily.HISTORY);
   const me = localStorage.getItem("pw_person");
   const partner = me === "Isi" ? "Benji" : "Isi";
-  dashDailyQuestion.textContent = DuoDaily.questionFor(today, DuoContent.DAILY).text;
+  /* the tile only shows where we stand – the question itself waits for the lobby */
+  dashDailyState.textContent = info.doneToday ? "✓ Heute erledigt" : "⏳ Heute noch offen";
+  dashDailyState.classList.toggle("done", info.doneToday);
   dashDailyStreak.textContent = info.current ? `🔥 ${info.current}` : "";
   dashDailyStreak.title = info.record ? `Rekord: ${info.record} Tage` : "";
 
@@ -377,16 +379,16 @@ function renderDashDaily() {
   const theirs = me && info.answeredToday.includes(partner);
   const [h, m] = DuoDaily.formatCountdown(DuoDaily.secondsLeftToday());
   if (info.doneToday) {
-    dashDailyStatus.textContent = "Ihr habt beide geantwortet – schaut euch an, wer richtig lag ✓";
+    dashDailyStatus.textContent = `Rekord: ${info.record} Tage · morgen kommt die nächste Frage.`;
     dashDailyCta.textContent = "Ergebnis ansehen →";
   } else if (dashDailyLobby && dashDailyLobby !== me) {
     dashDailyStatus.textContent = `💌 ${dashDailyLobby} wartet in der Lobby auf dich! Noch ${h}:${m} Std.`;
     dashDailyCta.textContent = "Beitreten →";
   } else if (mine || theirs) {
-    dashDailyStatus.textContent = `Heute noch nicht zusammen aufgedeckt. Noch ${h}:${m} Std.`;
+    dashDailyStatus.textContent = `Noch ${h}:${m} Std. · Rekord: ${info.record} Tage`;
     dashDailyCta.textContent = "Spiel starten →";
   } else {
-    dashDailyStatus.textContent = `Beantwortet sie heute zusammen, damit eure Flamme weiterbrennt. Noch ${h}:${m} Std.`;
+    dashDailyStatus.textContent = `Noch ${h}:${m} Std. · Rekord: ${info.record} Tage`;
     dashDailyCta.textContent = "Spiel starten →";
   }
 }

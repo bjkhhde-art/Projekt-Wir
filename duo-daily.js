@@ -5,6 +5,8 @@
   const PERSONS = ["Isi", "Benji"];
   const TZ = "Europe/Berlin";
   const DAY_MS = 86400000;
+  /* our flame from LovBirdz before this page existed: 14 days in a row up to 5 Oct 2026, record 19 */
+  const HISTORY = { record: 19, from: "2026-09-22", to: "2026-10-05" };
 
   function parts(date) {
     const out = {};
@@ -47,9 +49,19 @@
     return questions[sequence[((n % questions.length) + questions.length) % questions.length]];
   }
 
+  /* the carried-over days as if both of us had answered them */
+  function historyRows(history = HISTORY) {
+    const rows = [];
+    for (let day = history.from; day <= history.to; day = shiftDay(day, 1)) {
+      PERSONS.forEach(person => rows.push({ day, person, history: true }));
+    }
+    return rows;
+  }
+
   /* rows: [{ day, person }] – a day counts when both of us answered.
-     The flame stays alive until midnight if yesterday was complete and today is not yet. */
-  function streakInfo(rows, today) {
+     The flame stays alive until midnight if yesterday was complete and today is not yet.
+     options.record: a record carried over from before (it only ever goes up). */
+  function streakInfo(rows, today, options = {}) {
     const byDay = new Map();
     (rows || []).forEach(row => {
       if (!PERSONS.includes(row.person)) return;
@@ -81,7 +93,7 @@
     });
     const answeredToday = PERSONS.filter(p => byDay.has(today) && byDay.get(today).has(p));
 
-    return { current, record: Math.max(record, current), lastSeven, answeredToday, doneToday: complete(today), atRisk: current > 0 && !complete(today) };
+    return { current, record: Math.max(record, current, options.record || 0), lastSeven, answeredToday, doneToday: complete(today), atRisk: current > 0 && !complete(today) };
   }
 
   /* seconds until midnight in Germany */
@@ -106,7 +118,7 @@
     return "Schön weitermachen – jeden Tag ein bisschen mehr wir.";
   }
 
-  const api = { PERSONS, dayKey, dayNumber, shiftDay, questionFor, streakInfo, secondsLeftToday, formatCountdown, streakHeadline };
+  const api = { PERSONS, HISTORY, historyRows, dayKey, dayNumber, shiftDay, questionFor, streakInfo, secondsLeftToday, formatCountdown, streakHeadline };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") window.DuoDaily = api;
 })();
