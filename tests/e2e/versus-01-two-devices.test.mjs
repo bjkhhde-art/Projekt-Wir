@@ -129,6 +129,9 @@ ok((await isi.locator(".vs-player-points").first().textContent()) === "0" && (aw
 
 /* next round */
 await isi.click("#vsNext");
+await wait(700);
+ok((await benji.locator(".vs-round").textContent()).includes("Runde 1") && (await isi.locator("#vsNext").textContent()).includes("warte auf Benji"), "the next round waits until Benji is ready too");
+await benji.click("#vsNext");
 await until(async () => (await benji.locator(".vs-question").count()) === 3, 4000, "round 2");
 ok((await benji.locator(".vs-round").textContent()).includes("Runde 2"), "a new round starts for both");
 const round2 = await isi.locator(".vs-q-text").allTextContents();

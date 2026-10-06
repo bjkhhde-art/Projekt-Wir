@@ -318,12 +318,10 @@ function renderResult(state, opponents) {
   `;
   actionsEl.appendChild(table);
 
-  const again = document.createElement("button");
-  again.type = "button";
-  again.className = "btn btn-block";
-  again.textContent = state.blockType === "random" ? "Revanche mit neuem Zufallsblock 🎲" : "Revanche 🎲";
-  again.addEventListener("click", () => room.dispatch(Q.rematch));
-  actionsEl.appendChild(again);
+  room.renderReady(actionsEl, state, {
+    label: state.blockType === "random" ? "Revanche mit neuem Zufallsblock 🎲" : "Revanche 🎲",
+    nextFn: Q.rematch
+  });
 }
 
 /* ---------- own sheet ---------- */

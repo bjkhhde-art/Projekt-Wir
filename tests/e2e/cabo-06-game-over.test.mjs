@@ -77,6 +77,8 @@ const nextRoundBtn = isi.locator(".cabo-actions button", { hasText: "Nächste Ru
 ok(await nextRoundBtn.count() === 1, "inline 'Nächste Runde' button present");
 
 await nextRoundBtn.click();
+await benji.waitForTimeout(600);
+await benji.locator(".cabo-actions button", { hasText: "Nächste Runde" }).click();
 await isi.waitForTimeout(400);
 await benji.waitForTimeout(600);
 
@@ -117,6 +119,8 @@ const newGameBtn = isi.locator(".cabo-actions button", { hasText: "Neues Spiel" 
 ok(await newGameBtn.count() === 1, "inline 'Neues Spiel' button shown once the game is fully over");
 
 await newGameBtn.click();
+await benji.waitForTimeout(600);
+await benji.locator(".cabo-actions button", { hasText: "Neues Spiel" }).click();
 await isi.waitForTimeout(400);
 await benji.waitForTimeout(600);
 

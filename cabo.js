@@ -737,12 +737,10 @@ function renderRoundOverInline(state, game, opponents) {
   `;
   caboActions.appendChild(table);
 
-  const actionBtn = document.createElement("button");
-  actionBtn.type = "button";
-  actionBtn.className = "btn btn-block";
-  actionBtn.textContent = state.gameOver ? "Neues Spiel" : "Nächste Runde";
-  actionBtn.addEventListener("click", () => dispatchAction(state.gameOver ? CaboEngine.newGame : CaboEngine.startNextRound));
-  caboActions.appendChild(actionBtn);
+  room.renderReady(caboActions, state, {
+    label: state.gameOver ? "Neues Spiel" : "Nächste Runde",
+    nextFn: state.gameOver ? CaboEngine.newGame : CaboEngine.startNextRound
+  });
 }
 
 room.start();

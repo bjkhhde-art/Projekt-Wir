@@ -11,6 +11,9 @@ const GameRoom = (() => {
   const MAX_WRITE_ATTEMPTS = 4;
   const MEMBERS = ["Isi", "Benji"];
   const NAME_MAX = 20;
+  const REACTIONS = ["😂", "😭", "😍", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
+  const REACTION_GAP_MS = 700;
+  const REACTION_SHOW_MS = 2600;
 
   const isMember = name => MEMBERS.includes(name);
   /* older Cabo rounds were saved as "finished" once over – they still count as the table in use */
@@ -30,6 +33,20 @@ const GameRoom = (() => {
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, NAME_MAX);
+  }
+
+  /* Wraps a "next round" step: each player marks themselves ready (tapping again takes it back);
+     the step only runs once everybody at the table is ready. */
+  function readyFor(nextFn) {
+    return (state, who, ...args) => {
+      const players = state.players || [];
+      const ready = new Set(state.readyNext || []);
+      if (ready.has(who)) ready.delete(who);
+      else ready.add(who);
+      const list = players.filter(p => ready.has(p));
+      if (players.length > 0 && list.length === players.length) return nextFn(state, who, ...args);
+      return { ...state, readyNext: list };
+    };
   }
 
   function guestNameProblem(name, taken) {
@@ -62,6 +79,10 @@ const GameRoom = (() => {
     let actionInFlight = false;
     let leaveArmedTimer = null;
     let chosenOption = config.startOptions ? config.startOptions[0].value : null;
+    let reactionChannel = null;
+    let reactionGameId = null;
+    let lastReactionAt = 0;
+    const reactionUi = buildReactionUi();
 
     function readGuestName() {
       try {
@@ -296,7 +317,100 @@ const GameRoom = (() => {
 
     /* ---------- lobby ---------- */
 
+    /* ---------- emoji reactions: short, live, never stored ---------- */
+
+    function buildReactionUi() {
+      const wrap = document.createElement("div");
+      wrap.className = "gr-react hidden";
+      wrap.innerHTML = `
+        <div class="gr-react-tray hidden" id="grReactTray" role="group" aria-label="Emoji schicken">
+          ${REACTIONS.map(e => `<button type="button" class="gr-react-emoji" data-emoji="${e}" aria-label="${e} schicken">${e}</button>`).join("")}
+        </div>
+        <button type="button" class="gr-react-toggle" id="grReactBtn" aria-label="Emoji schicken" aria-expanded="false">😊</button>
+      `;
+      const layer = document.createElement("div");
+      layer.className = "gr-react-layer";
+      layer.setAttribute("aria-live", "polite");
+      document.body.append(wrap, layer);
+      const tray = wrap.querySelector(".gr-react-tray");
+      const toggle = wrap.querySelector(".gr-react-toggle");
+      const setOpen = open => {
+        tray.classList.toggle("hidden", !open);
+        toggle.setAttribute("aria-expanded", String(open));
+      };
+      toggle.addEventListener("click", () => setOpen(tray.classList.contains("hidden")));
+      tray.querySelectorAll(".gr-react-emoji").forEach(button => {
+        button.addEventListener("click", () => {
+          sendReaction(button.dataset.emoji);
+          setOpen(false);
+        });
+      });
+      return { wrap, layer, setOpen };
+    }
+
+    function joinReactions(game) {
+      if (!person || reactionGameId === game.id) return;
+      if (reactionChannel) client.removeChannel(reactionChannel);
+      reactionGameId = game.id;
+      reactionChannel = client
+        .channel(`${table}-reactions-${game.id}`, { config: { presence: { key: person }, broadcast: { self: false } } })
+        .on("broadcast", { event: "reaction" }, ({ payload }) => showReaction(payload))
+        .subscribe();
+    }
+
+    function sendReaction(emoji) {
+      if (!REACTIONS.includes(emoji) || !reactionChannel) return;
+      const now = Date.now();
+      if (now - lastReactionAt < REACTION_GAP_MS) return;
+      lastReactionAt = now;
+      showReaction({ from: person, emoji });
+      reactionChannel.send({ type: "broadcast", event: "reaction", payload: { from: person, emoji } });
+    }
+
+    /* only known emojis and a short name from the others are shown – everything else is ignored */
+    function showReaction(payload) {
+      if (!payload || !REACTIONS.includes(payload.emoji) || typeof payload.from !== "string") return;
+      const from = payload.from.slice(0, NAME_MAX);
+      const bubble = document.createElement("div");
+      bubble.className = "gr-reaction";
+      bubble.style.left = `${12 + Math.random() * 64}%`;
+      bubble.innerHTML = `<span class="gr-reaction-emoji">${payload.emoji}</span><span class="gr-reaction-name">${escapeHtml(from === person ? "Du" : from)}</span>`;
+      reactionUi.layer.appendChild(bubble);
+      if (from !== person && navigator.vibrate) navigator.vibrate(12);
+      setTimeout(() => bubble.remove(), REACTION_SHOW_MS);
+    }
+
+    /* the next-round button: everybody taps "ready", the round starts when all are */
+    function renderReady(container, state, { label, nextFn }) {
+      const players = state.players || [];
+      const ready = state.readyNext || [];
+      const mine = ready.includes(person);
+      const waiting = players.filter(p => p !== person && !ready.includes(p));
+      const wrap = document.createElement("div");
+      wrap.className = "gr-ready";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `btn btn-block gr-ready-btn${mine ? " btn-secondary is-ready" : ""}`;
+      button.textContent = mine ? `✓ Bereit – warte auf ${listNames(waiting)}` : label;
+      button.setAttribute("aria-pressed", String(mine));
+      button.addEventListener("click", () => dispatch(readyFor(nextFn)));
+      const list = document.createElement("div");
+      list.className = "gr-ready-list";
+      list.innerHTML = players.map(p => {
+        const isReady = ready.includes(p);
+        return `<span class="gr-ready-chip${isReady ? " ready" : ""}">${isReady ? "✓" : "…"} ${escapeHtml(p === person ? "Du" : p)}</span>`;
+      }).join("");
+      const hint = document.createElement("p");
+      hint.className = "gr-ready-hint";
+      hint.textContent = mine ? "Nochmal tippen, um doch noch zu warten." : "Weiter geht's, sobald alle bereit sind.";
+      wrap.append(button, list, hint);
+      container.appendChild(wrap);
+      return button;
+    }
+
     function showLobby(html) {
+      reactionUi.wrap.classList.add("hidden");
+      reactionUi.setOpen(false);
       disarmLeave();
       if (window.GameAnim) GameAnim.revealAll();
       boardEl.classList.add("hidden");
@@ -524,6 +638,8 @@ const GameRoom = (() => {
     function showBoard(game) {
       lobbyEl.classList.add("hidden");
       boardEl.classList.remove("hidden");
+      joinReactions(game);
+      reactionUi.wrap.classList.toggle("hidden", !reactionChannel);
       config.renderBoard(game);
       if (!isGuest) renderLeave(game.state);
     }
@@ -591,9 +707,11 @@ const GameRoom = (() => {
       },
       isMember,
       dispatch,
+      renderReady,
+      sendReaction,
       start
     };
   }
 
-  return { create, cleanGuestName, guestNameProblem };
+  return { create, cleanGuestName, guestNameProblem, readyFor, REACTIONS };
 })();
