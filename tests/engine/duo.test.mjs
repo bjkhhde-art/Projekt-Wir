@@ -41,6 +41,16 @@ ok(D.streakInfo([...both(today)], today).lastSeven.map(d => d.status).join() ===
 ok(D.streakInfo([{ day: today, person: "Lena" }, { day: today, person: "Isi" }], today).answeredToday.join() === "Isi", "only Isi and Benji count");
 ok(D.streakHeadline({ current: 14, atRisk: false }) === "Nichts kann euch aufhalten!", "a long streak gets the big cheer");
 
+/* our LovBirdz flame carried over: 14 days up to 5 Oct, record 19 */
+const history = D.historyRows();
+ok(history.length === 28 && history[0].day === "2026-09-22" && history[history.length - 1].day === "2026-10-05", "the 14 days 22.09.–05.10. count for both of us");
+info = D.streakInfo(history, "2026-10-06", D.HISTORY);
+ok(info.current === 14 && info.atRisk && info.record === 19, "on 6 Oct the flame stands at 14, waits for today, record 19");
+info = D.streakInfo([...history, ...both("2026-10-06")], "2026-10-06", D.HISTORY);
+ok(info.current === 15 && info.record === 19, "answering today makes it 15");
+const longRun = Array.from({ length: 6 }, (_, i) => both(D.shiftDay("2026-10-06", i))).flat();
+ok(D.streakInfo([...history, ...longRun], "2026-10-11", D.HISTORY).record === 20, "the record grows once the flame passes 19");
+
 /* ---------- Wer von uns beiden? / Hot oder Not? ---------- */
 let s = E.createInitialState("Isi", "Benji", "who");
 ok(s.items.length === 6 && new Set(s.items).size === 6 && s.phase === "answer", "a round has six different questions");

@@ -92,7 +92,7 @@ function dailyRevealHtml(question, person, mineAnswer, mineGuess, theirAnswer, t
 function renderDaily() {
   dailyDay = DuoDaily.dayKey();
   const person = me();
-  const info = DuoDaily.streakInfo(dailyRows, dailyDay);
+  const info = DuoDaily.streakInfo([...DuoDaily.historyRows(), ...dailyRows], dailyDay, DuoDaily.HISTORY);
   const header = `
     <div class="duo-streak">
       <div class="duo-streak-flame" aria-hidden="true">🔥</div>
