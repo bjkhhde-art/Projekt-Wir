@@ -35,7 +35,7 @@ ok(page.url().includes("ziele.html") && await page.locator('.hub-tab.active').ge
 /* Games: the questions instead of the quest */
 await page.goto(base + "games.html"); await page.waitForTimeout(400);
 const tiles = await page.locator(".game-tile h2").allTextContents();
-ok(JSON.stringify(tiles) === JSON.stringify(["Cabo", "6 nimmt!", "Qwixx", "Fragen"]), `Games lists the questions next to the games (${tiles.join(", ")})`);
+ok(JSON.stringify(tiles) === JSON.stringify(["Wir zwei", "Cabo", "6 nimmt!", "Qwixx", "Fragen"]), `Games lists the questions next to the games (${tiles.join(", ")})`);
 await page.locator(".game-tile", { hasText: "Fragen" }).click(); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html") && (await page.locator("h1").textContent()).startsWith("Fragen"), "the tile opens the questions page");
 ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuestionBtn"), "the questions page has its four categories and the next button");
