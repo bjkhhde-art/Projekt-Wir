@@ -78,7 +78,10 @@ const GameRoom = (() => {
     let syncGeneration = 0;
     let actionInFlight = false;
     let leaveArmedTimer = null;
-    let chosenOption = config.startOptions ? config.startOptions[0].value : null;
+    const optionValues = (config.startOptions || []).map(o => o.value);
+    let chosenOption = config.startOptions
+      ? (optionValues.includes(config.initialOption) ? config.initialOption : optionValues[0])
+      : null;
     let reactionChannel = null;
     let reactionGameId = null;
     let lastReactionAt = 0;
@@ -706,6 +709,18 @@ const GameRoom = (() => {
         return players.find(p => p !== person);
       },
       isMember,
+      /* pick a start option from outside the lobby, e.g. a "start the question of the day" button */
+      chooseOption(value) {
+        if (!optionValues.includes(value)) return;
+        chosenOption = value;
+        lastRenderedJson = null;
+        sync();
+      },
+      startWith(value) {
+        if (!optionValues.includes(value)) return;
+        chosenOption = value;
+        if (!currentGame || currentGame.status === "closed") createGame();
+      },
       dispatch,
       renderReady,
       sendReaction,

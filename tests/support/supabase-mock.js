@@ -99,7 +99,6 @@
             await fetch(`${base}/games/${encodeURIComponent(idFilter())}`, { method: "DELETE" });
             return { data: null, error: null };
           }
-          if (isGameTable(table)) return { data: [], error: null };
           return { data: await selectRows(), error: null };
         };
         return run().then(resolve, reject);

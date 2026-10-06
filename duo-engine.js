@@ -1,9 +1,14 @@
-/* "Wer von uns beiden?" and "Hot oder Not?": a round of six, both answer secretly, then we see
-   where we agree. Pure logic – used by duo.js through game-room.js and by the node tests. */
+/* "Wir zwei" in a lobby for the two of us:
+   - "daily": today's question, both answer at the same time (own answer + guess), then reveal
+   - "who" / "hotnot": a round of six, both answer secretly, then we see where we agree.
+   Pure logic – used by duo.js through game-room.js and by the node tests. */
 (function () {
-  const Content = typeof module !== "undefined" && module.exports ? require("./duo-content.js") : window.DuoContent;
+  const inNode = typeof module !== "undefined" && module.exports;
+  const Content = inNode ? require("./duo-content.js") : window.DuoContent;
+  const Daily = inNode ? require("./duo-daily.js") : window.DuoDaily;
   const ROUND_SIZE = 6;
   const MODES = {
+    daily: { label: "Frage des Tages", pool: () => Content.DAILY },
     who: { label: "Wer von uns beiden?", pool: () => Content.WHO },
     hotnot: { label: "Hot oder Not?", pool: () => Content.HOTNOT }
   };
@@ -23,7 +28,49 @@
     return { chosen, reset };
   }
 
+  /* today's question, answered together */
+  function createDailyState(host, guest, now) {
+    const day = Daily.dayKey(now);
+    const question = Daily.questionFor(day, Content.DAILY);
+    return {
+      players: [host, guest],
+      mode: "daily",
+      day,
+      questionId: question.id,
+      answers: {},
+      phase: "answer",
+      results: null,
+      moveSeq: 1,
+      lastMove: { type: "deal", seq: 1 }
+    };
+  }
+
+  function dailyQuestion(state) {
+    return Content.DAILY.find(q => q.id === state.questionId) || null;
+  }
+
+  function submitDaily(state, person, answer, guess) {
+    if (!state.players.includes(person)) throw new Error("Du spielst in dieser Runde nicht mit.");
+    if (state.phase !== "answer") throw new Error("Die Frage ist schon aufgedeckt.");
+    if (state.answers[person]) throw new Error("Du hast schon geantwortet.");
+    const valid = v => Number.isInteger(v) && v >= 0 && v <= 3;
+    if (!valid(answer) || !valid(guess)) throw new Error("Bitte wähle deine Antwort und deinen Tipp.");
+    const next = JSON.parse(JSON.stringify(state));
+    next.answers[person] = { answer, guess };
+    next.moveSeq = (next.moveSeq || 0) + 1;
+    next.lastMove = { type: "answer", person, seq: next.moveSeq };
+    if (next.players.every(p => next.answers[p])) {
+      const [a, b] = next.players;
+      next.results = {
+        hits: { [a]: next.answers[a].guess === next.answers[b].answer, [b]: next.answers[b].guess === next.answers[a].answer }
+      };
+      next.phase = "reveal";
+    }
+    return next;
+  }
+
   function createInitialState(host, guest, mode, rand = Math.random) {
+    if (mode === "daily") return createDailyState(host, guest);
     const type = MODES[mode] ? mode : "who";
     const { chosen } = pick(ROUND_SIZE, MODES[type].pool().length, [], rand);
     return {
@@ -96,7 +143,7 @@
     return "Gegensätze ziehen sich an! 😂";
   }
 
-  const api = { ROUND_SIZE, MODES, createInitialState, submitAnswers, nextRound, itemText, verdict };
+  const api = { ROUND_SIZE, MODES, createInitialState, createDailyState, dailyQuestion, submitDaily, submitAnswers, nextRound, itemText, verdict };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") window.DuoEngine = api;
 })();

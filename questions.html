@@ -32,7 +32,7 @@
 
     <div class="hub-tabs mode-switch" role="tablist">
       <button class="hub-tab mode-btn active" data-mode="talk" role="tab" type="button">💬 Gesprächsfragen</button>
-      <button class="hub-tab mode-btn" data-mode="versus" role="tab" type="button">⚔️ Versus</button>
+      <button class="hub-tab mode-btn" data-mode="other" role="tab" type="button">✨ Andere</button>
     </div>
 
     <section id="talkMode">
@@ -62,7 +62,34 @@
     </div>
     </section>
 
+    <section id="otherMode" hidden>
+      <p class="other-intro">Spiele nur für uns zwei &ndash; jeweils live zusammen in einer Lobby.</p>
+      <div class="other-list">
+        <a href="duo.html?mode=daily" class="other-card card card-hover other-daily">
+          <span class="other-icon">🔥</span>
+          <span class="other-text"><strong>Frage des Tages</strong><span>Jeden Tag eine neue Frage &ndash; gemeinsam beantworten und die Flamme am Leben halten.</span></span>
+          <span class="other-arrow" aria-hidden="true">›</span>
+        </a>
+        <a href="duo.html?mode=who" class="other-card card card-hover other-who">
+          <span class="other-icon">🤔</span>
+          <span class="other-text"><strong>Wer von uns beiden?</strong><span>Isi oder Benji? Seht, wo ihr euch einig seid.</span></span>
+          <span class="other-arrow" aria-hidden="true">›</span>
+        </a>
+        <a href="duo.html?mode=hotnot" class="other-card card card-hover other-hotnot">
+          <span class="other-icon">🌶️</span>
+          <span class="other-text"><strong>Hot oder Not?</strong><span>🔥 oder ❄️ &ndash; tickt ihr gleich?</span></span>
+          <span class="other-arrow" aria-hidden="true">›</span>
+        </a>
+        <button type="button" class="other-card card card-hover other-versus" data-mode="versus">
+          <span class="other-icon">⚔️</span>
+          <span class="other-text"><strong>Versus</strong><span>Wer kennt wen besser? Antwortet über euch und tippt, was der andere sagt.</span></span>
+          <span class="other-arrow" aria-hidden="true">›</span>
+        </button>
+      </div>
+    </section>
+
     <section id="versusMode" hidden>
+      <button type="button" class="vs-back duo-link" data-mode="other">← Alle Spiele</button>
       <p class="vs-intro">Jede:r beantwortet heimlich 3 Fragen über sich &ndash; dann tippt ihr, was der andere gewählt hat. Wer kennt wen besser?</p>
 
       <div id="vsLobby"></div>

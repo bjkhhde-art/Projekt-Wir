@@ -40,43 +40,54 @@ await benji.waitForTimeout(900);
 ok((await benji.locator("#dashDailyQuestion").textContent()) === question.text, "the start page shows today's question");
 ok((await benji.locator("#dashDailyStreak").textContent()).includes("2"), "with our flame: 2 days");
 ok((await benji.locator("#dashDailyStatus").textContent()).includes("damit eure Flamme weiterbrennt"), "and asks us both to answer");
-ok(await benji.locator("#dashDailyTile").getAttribute("href") === "duo.html", "the tile leads to 'Wir zwei'");
+ok(await benji.locator("#dashDailyTile").getAttribute("href") === "duo.html?mode=daily", "the tile leads to the question of the day");
 
 /* the games page has the new tile */
 await isi.goto("http://localhost:9091/games.html");
 ok(await isi.locator('a[href="duo.html"]', { hasText: "Wir zwei" }).count() === 1, "'Wir zwei' is on the games page");
 
-/* Isi answers */
-await isi.goto("http://localhost:9091/duo.html");
-await isi.waitForSelector(".duo-option");
+/* the question of the day is answered together, in a lobby */
+await isi.goto("http://localhost:9091/duo.html?mode=daily");
+await isi.waitForSelector("#duoDailyStart");
 ok((await isi.locator(".duo-streak-number").textContent()) === "2" && (await isi.locator(".duo-headline").textContent()).includes("braucht euch heute"), "the flame shows 2 and needs us today");
 ok(await isi.locator(".duo-flame.done").count() === 2 && await isi.locator(".duo-flame").count() === 7, "seven flames, two lit");
 ok(await isi.locator("#duoCountdown span").count() === 3, "the time left today counts down");
-ok((await isi.locator(".duo-q-text").textContent()) === question.text, "the same question as on the start page");
+ok(!(await isi.locator("#duoDaily").textContent()).includes(question.text), "the question stays hidden until both are there");
+ok(await isi.locator('.gr-option[data-option="daily"]').evaluate(el => el.classList.contains("selected")), "coming from 'Frage des Tages' preselects it in the lobby");
+await isi.click("#duoDailyStart");
+await wait(800);
+ok((await latest()).status === "waiting" && (await latest()).state.option === "daily", "Isi opens a lobby for the question of the day");
+ok(await isi.evaluate(() => (window.__mockInvocations || []).some(i => i.body && i.body.url === "duo.html" && i.body.excludePerson === "Isi")), "Benji gets an invitation");
+
+await benji.reload();
+await benji.waitForTimeout(1000);
+ok((await benji.locator("#dashDailyStatus").textContent()).includes("Isi wartet in der Lobby auf dich"), "Benji's start page says Isi is waiting in the lobby");
+ok((await benji.locator("#dashDailyCta").textContent()).includes("Beitreten"), "with a button to join");
+if (await benji.locator("#pushModal").isVisible()) await benji.click("#dismissPushModal");
+await benji.click("#dashDailyTile");
+await benji.waitForSelector("#grJoinBtn");
+await benji.click("#grJoinBtn");
+await wait(1000);
+ok((await isi.locator(".duo-card-text").textContent()) === question.text && (await benji.locator(".duo-card-text").textContent()) === question.text, "now both see today's question at the same time");
 await isi.locator(".duo-option").nth(1).click();
 ok((await isi.locator(".duo-q-step").textContent()).includes("Was antwortet Benji"), "after her own answer Isi guesses Benji's");
 await isi.locator(".duo-option").nth(2).click();
-await wait(700);
-let stored = (await answers()).find(r => r.day === today && r.person === "Isi");
-ok(stored && stored.answer === 1 && stored.guess === 2 && stored.question_id === question.id, "Isi's answer and guess are stored");
-ok((await isi.locator(".duo-wait").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
-ok(await isi.evaluate(() => (window.__mockInvocations || []).some(i => i.body && i.body.url === "duo.html" && i.body.excludePerson === "Isi")), "Benji gets a notification");
-
-/* Benji: start page knows, then he answers too */
-await benji.reload();
-await benji.waitForTimeout(900);
-ok((await benji.locator("#dashDailyStatus").textContent()).includes("Isi hat schon geantwortet"), "Benji's start page says Isi answered");
-await benji.goto("http://localhost:9091/duo.html");
-await benji.waitForSelector(".duo-option");
-ok((await benji.locator(".duo-q-note").textContent()).includes("Isi hat schon geantwortet"), "and so does the game");
+await wait(900);
+ok((await isi.locator(".duo-waiting").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
+ok((await benji.locator(".duo-daily-game").textContent()).includes("Isi ist schon fertig"), "Benji sees that Isi is done");
 await benji.locator(".duo-option").nth(2).click();
 await benji.locator(".duo-option").nth(1).click();
-await wait(900);
-ok(await benji.locator(".duo-reveal").count() === 1, "with both answers the results are revealed");
-ok((await benji.locator(".duo-reveal-guess.hit").count()) === 2, "both guessed right");
+await wait(1200);
+ok(await benji.locator(".duo-daily-game .duo-reveal").count() === 1 && await isi.locator(".duo-daily-game .duo-reveal").count() === 1, "with both answers they are revealed together");
+ok((await benji.locator(".duo-daily-game .duo-reveal-guess.hit").count()) === 2, "both guessed right");
+await wait(800);
+const rows = (await answers()).filter(r => r.day === today);
+ok(rows.length === 2 && rows.find(r => r.person === "Isi").answer === 1 && rows.find(r => r.person === "Benji").guess === 1 && rows.every(r => r.question_id === question.id), "both answers are stored for the flame");
 ok((await benji.locator(".duo-streak-number").textContent()) === "3" && await benji.locator("#duoCountdown").count() === 0, "the flame grows to 3, no countdown needed");
-await isi.waitForSelector(".duo-reveal", { timeout: 4000 });
-ok(true, "Isi sees the reveal live");
+ok((await isi.locator("#duoDaily .duo-reveal").count()) === 1, "the card at the top now shows today's result");
+ok((await isi.locator("#duoLeaveBtn").textContent()).includes("Zurück"), "afterwards the round is simply closed");
+await isi.locator("#duoLeaveBtn").click();
+await wait(900);
 
 /* Hot oder Not */
 await isi.locator('.gr-option[data-option="hotnot"]').click();

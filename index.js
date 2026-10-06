@@ -345,15 +345,22 @@ const dashDailyStatus = document.getElementById("dashDailyStatus");
 const dashDailyStreak = document.getElementById("dashDailyStreak");
 const dashDailyCta = document.getElementById("dashDailyCta");
 let dashDailyRows = [];
+let dashDailyLobby = null;
 
 async function loadDashDaily() {
-  const { data, error } = await supabaseClient.from("daily_answers").select("day, person").order("day", { ascending: true });
-  if (error) {
-    console.error("Frage des Tages konnte nicht geladen werden:", error);
+  const [answers, games] = await Promise.all([
+    supabaseClient.from("daily_answers").select("day, person").order("day", { ascending: true }),
+    supabaseClient.from("duo_games").select("status, host_person, state").order("created_at", { ascending: false }).limit(1)
+  ]);
+  if (answers.error) {
+    console.error("Frage des Tages konnte nicht geladen werden:", answers.error);
     dashDailyStatus.textContent = "";
     return;
   }
-  dashDailyRows = data || [];
+  dashDailyRows = answers.data || [];
+  const game = games.data && games.data[0];
+  /* someone is waiting in the lobby for today's question */
+  dashDailyLobby = game && game.status === "waiting" && game.state && game.state.option === "daily" ? game.host_person : null;
   renderDashDaily();
 }
 
@@ -372,13 +379,14 @@ function renderDashDaily() {
   if (info.doneToday) {
     dashDailyStatus.textContent = "Ihr habt beide geantwortet – schaut euch an, wer richtig lag ✓";
     dashDailyCta.textContent = "Ergebnis ansehen →";
-  } else if (mine) {
-    dashDailyStatus.textContent = `Du bist fertig – warte auf ${partner}. Noch ${h}:${m} Std.`;
-    dashDailyCta.textContent = "Ansehen →";
+  } else if (dashDailyLobby && dashDailyLobby !== me) {
+    dashDailyStatus.textContent = `💌 ${dashDailyLobby} wartet in der Lobby auf dich! Noch ${h}:${m} Std.`;
+    dashDailyCta.textContent = "Beitreten →";
+  } else if (mine || theirs) {
+    dashDailyStatus.textContent = `Heute noch nicht zusammen aufgedeckt. Noch ${h}:${m} Std.`;
+    dashDailyCta.textContent = "Spiel starten →";
   } else {
-    dashDailyStatus.textContent = theirs
-      ? `💌 ${partner} hat schon geantwortet – du bist dran! Noch ${h}:${m} Std.`
-      : `Beantwortet sie beide, damit eure Flamme weiterbrennt. Noch ${h}:${m} Std.`;
+    dashDailyStatus.textContent = `Beantwortet sie heute zusammen, damit eure Flamme weiterbrennt. Noch ${h}:${m} Std.`;
     dashDailyCta.textContent = "Spiel starten →";
   }
 }
@@ -387,5 +395,9 @@ setInterval(renderDashDaily, 30000);
 supabaseClient
   .channel("dash_daily_answers")
   .on("postgres_changes", { event: "*", schema: "public", table: "daily_answers" }, () => loadDashDaily())
+  .subscribe();
+supabaseClient
+  .channel("dash_duo_games")
+  .on("postgres_changes", { event: "*", schema: "public", table: "duo_games" }, () => loadDashDaily())
   .subscribe();
 loadDashDaily();
