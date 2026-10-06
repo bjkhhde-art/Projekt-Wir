@@ -93,6 +93,12 @@ ok((await lena.locator("#qxStatus").textContent()).includes("Isi und Benji teile
 ok(await isi.locator(".qx-result thead th").count() === 4, "the result has a column per player");
 ok(await lena.locator(".qx-actions button", { hasText: "Revanche" }).count() === 1, "everyone can ask for a rematch");
 await lena.locator(".qx-actions button", { hasText: "Revanche" }).click();
+await wait(800);
+await isi.locator(".qx-actions button", { hasText: "Revanche" }).click();
+await wait(800);
+ok((await latest()).state.phase === "finished" && (await benji.locator(".gr-ready-chip.ready").count()) === 2, "with two of three ready the game still waits");
+ok((await lena.locator(".gr-ready-btn").textContent()).includes("warte auf Benji"), "Lena sees who is missing");
+await benji.locator(".qx-actions button", { hasText: "Revanche" }).click();
 await wait(1000);
 const again = (await latest()).state;
 ok(again.phase === "roll" && again.active === "Lena" && again.gameNo === 2, "the rematch is started by the next one in the round");

@@ -241,3 +241,173 @@
 .gr-leave-btn.hidden {
   display: none;
 }
+
+/* ---------- next round: everybody taps "ready" ---------- */
+
+.gr-ready {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.gr-ready-btn.is-ready {
+  border-color: var(--success, #22c55e);
+  color: var(--text);
+}
+
+.gr-ready-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gr-ready-chip {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.gr-ready-chip.ready {
+  border-color: var(--success, #22c55e);
+  color: var(--text);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.gr-ready-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* ---------- emoji reactions ---------- */
+
+.gr-react {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--nav-height) + 18px);
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.guest-mode .gr-react {
+  bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+.gr-react.hidden,
+.gr-react-tray.hidden {
+  display: none;
+}
+
+.gr-react-toggle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid, var(--surface));
+  box-shadow: var(--shadow-soft);
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.gr-react-toggle:active {
+  transform: scale(0.9);
+}
+
+.gr-react-tray {
+  display: grid;
+  grid-template-columns: repeat(5, 40px);
+  gap: 4px;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--surface-solid, var(--surface));
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-soft);
+  animation: gr-tray-in 0.18s ease-out;
+}
+
+.gr-react-emoji {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.gr-react-emoji:active {
+  background: rgba(236, 72, 153, 0.12);
+  transform: scale(0.9);
+}
+
+@keyframes gr-tray-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.gr-react-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 96;
+  overflow: hidden;
+}
+
+.gr-reaction {
+  position: absolute;
+  bottom: calc(var(--nav-height) + 60px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: gr-reaction-float 2.6s ease-out forwards;
+}
+
+.gr-reaction-emoji {
+  font-size: 54px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+}
+
+.gr-reaction-name {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid, var(--surface));
+  border: 1px solid var(--surface-border);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+@keyframes gr-reaction-float {
+  0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+  12% { opacity: 1; transform: translateY(0) scale(1.15); }
+  20% { transform: translateY(-10px) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-260px) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-reaction {
+    animation: gr-reaction-fade 2.6s ease forwards;
+  }
+}
+
+@keyframes gr-reaction-fade {
+  0%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* room to scroll the last buttons above the floating 😊 */
+body:has(.gr-react:not(.hidden)) .page {
+  padding-bottom: 90px;
+}

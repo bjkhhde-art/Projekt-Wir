@@ -380,12 +380,7 @@ function renderResult(state, opponents) {
   `;
   actionsEl.appendChild(table);
 
-  const again = document.createElement("button");
-  again.type = "button";
-  again.className = "btn btn-block";
-  again.textContent = "Revanche 🐮";
-  again.addEventListener("click", () => room.dispatch(NimmtEngine.rematch));
-  actionsEl.appendChild(again);
+  room.renderReady(actionsEl, state, { label: "Revanche 🐮", nextFn: NimmtEngine.rematch });
 }
 
 /* ---------- animations ---------- */

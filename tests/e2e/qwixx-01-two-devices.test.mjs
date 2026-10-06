@@ -165,6 +165,8 @@ ok((await isi.locator(".qx-result").textContent()).includes(String(scores.Isi.to
 /* ================= rematch keeps the block ================= */
 await isi.locator(".qx-actions button", { hasText: "Revanche" }).click();
 await settle();
+await benji.locator(".qx-actions button", { hasText: "Revanche" }).click();
+await settle();
 game = await latest();
 ok(game.state.gameNo === 2 && game.state.phase === "roll" && game.state.active === "Benji", "rematch: game 2, Benji starts");
 ok(game.state.blockType === "classic", "the block type is kept");
@@ -193,6 +195,8 @@ const benjiCells = await benji.locator(".qx-row").first().locator(".qx-cell").al
 ok(JSON.stringify(isiCells) === JSON.stringify(benjiCells), "both play the same random block");
 await setup(s => { s.phase = "finished"; s.result = { scores: { Isi: { rows: [0, 0, 0, 0], penalties: 0, total: 0 }, Benji: { rows: [0, 0, 0, 0], penalties: 0, total: 0 } }, winner: null }; });
 await benji.locator(".qx-actions button", { hasText: "neuem Zufallsblock" }).click();
+await settle();
+await isi.locator(".qx-actions button", { hasText: "neuem Zufallsblock" }).click();
 await settle();
 game = await latest();
 ok(JSON.stringify(game.state.layout) !== firstRandom, "a rematch with the random block draws a new block");

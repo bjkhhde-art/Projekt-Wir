@@ -255,8 +255,10 @@ function renderReveal(game, me, partner) {
     <ul class="vs-results">${resultList(state, me, partner, me)}</ul>
     <h3 class="vs-section-title">${escapeHtml(partner)}s Tipps über dich · ${fmtPoints(theirs)}/3</h3>
     <ul class="vs-results">${resultList(state, partner, me, me)}</ul>
-    <button type="button" id="vsNext" class="btn btn-block vs-submit">Nächste Runde ▶</button>`;
-  document.getElementById("vsNext").addEventListener("click", () => versusRoom.dispatch(V.nextRound));
+    <div id="vsNextWrap"></div>`;
+  const next = versusRoom.renderReady(document.getElementById("vsNextWrap"), state, { label: "Nächste Runde ▶", nextFn: V.nextRound });
+  next.id = "vsNext";
+  next.classList.add("vs-submit");
 
   const roundKey = `${game.id}:${state.round}`;
   if (celebratedRound !== roundKey) {

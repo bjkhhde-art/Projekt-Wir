@@ -144,10 +144,15 @@ ok(isiOppRevealedCount === 4, "opponent's hand also fully revealed to Isi at rou
 const nextRoundBtn = isi.locator(".cabo-actions button", { hasText: "Nächste Runde" });
 ok(await nextRoundBtn.count() === 1, "inline 'Nächste Runde' button offered");
 
-/* ---------- start next round ---------- */
+/* ---------- start next round: both have to be ready ---------- */
 await nextRoundBtn.click();
 await isi.waitForTimeout(500);
 await benji.waitForTimeout(700);
+ok(await isi.locator(".cabo-scoreboard").count() === 1 && (await isi.locator(".gr-ready-btn").textContent()).includes("warte auf Benji"), "Isi is ready, the round waits for Benji");
+ok((await benji.locator(".gr-ready-chip.ready").textContent()).includes("Isi"), "Benji sees that Isi is ready");
+await benji.locator(".cabo-actions button", { hasText: "Nächste Runde" }).click();
+await benji.waitForTimeout(500);
+await isi.waitForTimeout(700);
 
 ok(await isi.locator(".cabo-scoreboard").count() === 0, "inline scoreboard disappears once the next round starts");
 const isiFreshFlipped = await isi.locator("#ownHand .cabo-card-slot.flipped").count();
