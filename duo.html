@@ -23,17 +23,16 @@
 <body data-nav="games.html">
 
   <main class="page page-with-back">
-    <a href="games.html" class="page-back" aria-label="Zurück zu den Spielen">
+    <a href="questions.html?mode=other" class="page-back" aria-label="Zurück zu den Spielmodi">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
-    <h1 class="page-title">Wir zwei 💞</h1>
-    <p class="page-subtitle">Nur für uns beide &ndash; wie gut kennt ihr euch?</p>
+    <h1 id="duoTitle" class="page-title">Wir zwei 💞</h1>
+    <p id="duoSubtitle" class="page-subtitle">Nur für uns beide &ndash; wie gut kennt ihr euch?</p>
 
     <section id="daily" class="duo-daily card" aria-labelledby="duoDailyTitle">
       <div id="duoDaily"><p class="duo-loading">Lädt …</p></div>
     </section>
 
-    <h2 class="section-heading duo-section-heading">Spiele für uns zwei</h2>
     <div id="duoLobby"></div>
     <div id="duoBoard" class="duo-board hidden">
       <div id="duoStage"></div>
@@ -41,15 +40,6 @@
         <button type="button" id="duoLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
       </div>
     </div>
-
-    <a href="questions.html?mode=versus" class="duo-versus card card-hover">
-      <span class="duo-versus-icon">⚔️</span>
-      <span class="duo-versus-text">
-        <strong>Versus-Modus</strong>
-        <span>Wer kennt wen besser? Antwortet über euch und tippt, was der andere sagt.</span>
-      </span>
-      <span class="duo-versus-arrow" aria-hidden="true">›</span>
-    </a>
   </main>
 
   <div id="personModal" class="modal hidden">
