@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>I + B | Nicht gefunden</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fdf5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191220" media="(prefers-color-scheme: dark)">
+  <script>
+    /* GitHub Pages shows this page for every unknown address. Pages that were merged into the
+       hubs keep working from old bookmarks and home-screen shortcuts. */
+    (function () {
+      var MOVED = {
+        "couple-quest.html": "ziele.html?tab=quest",
+        "vision.html": "ziele.html?tab=vision",
+        "erinnerungen.html": "reise.html?tab=erinnerungen",
+        "vergleich.html": "reise.html?tab=vergleich",
+        "liebesbriefe.html": "wir.html?tab=briefe",
+        "reflexion.html": "wir.html"
+      };
+      var page = location.pathname.split("/").pop();
+      if (MOVED[page]) location.replace(MOVED[page]);
+    })();
+  </script>
+  <style>
+    :root { color-scheme: light dark; --bg: #fdf5f9; --text: #2a1f2d; --muted: #7a6b80; --accent: #e8457a; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #191220; --text: #f4ecf6; --muted: #b3a5b9; } }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+      background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; }
+    .icon { font-size: 56px; }
+    h1 { margin: 12px 0 6px; font-size: 22px; }
+    p { margin: 0 0 20px; color: var(--muted); }
+    a { display: inline-block; padding: 12px 22px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">💭</div>
+    <h1>Diese Seite gibt es nicht</h1>
+    <p>Vielleicht ist sie umgezogen.</p>
+    <a href="index.html">Zur Startseite</a>
+  </main>
+</body>
+</html>

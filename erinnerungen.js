@@ -173,6 +173,11 @@ function renderMemories() {
 /* ---------- world map ---------- */
 
 function initTripsMap() {
+  /* without the map library (bad network) only the map is missing, not the memories */
+  if (typeof L === "undefined") {
+    document.getElementById("tripsMap").classList.add("hidden");
+    return;
+  }
   tripsMapInstance = L.map("tripsMap", {
     worldCopyJump: true
   }).setView([20, 10], 2);

@@ -45,8 +45,15 @@ export function startStaticServer(port = 9091) {
       res.writeHead(200, { "Content-Type": TYPES[ext] || "application/octet-stream", "Cache-Control": "no-store" });
       res.end(body);
     } catch {
-      res.writeHead(404);
-      res.end("not found");
+      /* like GitHub Pages: unknown addresses get 404.html */
+      try {
+        const page = prepareHtml((await readFile(path.join(ROOT, "404.html"))).toString());
+        res.writeHead(404, { "Content-Type": TYPES[".html"], "Cache-Control": "no-store" });
+        res.end(page);
+      } catch {
+        res.writeHead(404);
+        res.end("not found");
+      }
     }
   });
   return new Promise(resolve => server.listen(port, () => resolve(server)));
