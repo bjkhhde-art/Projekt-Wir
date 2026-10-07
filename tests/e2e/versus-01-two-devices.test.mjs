@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 
-/* Versus on two phones like LovBirdz: roles, question by question, swap after three, summary, next round */
+/* Versus on two phones like LovBirdz, full screen: roles, own pace, swap after three, reveal at the end */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991";
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -29,22 +29,27 @@ async function open(person, query = "?mode=versus") {
   return page;
 }
 
-/* one question: both type, the answerer judges; both phones then see the result and tap "Weiter" */
-async function playQuestion(answerer, guesser, right, label) {
-  await until(async () => (await answerer.locator("#vsInput").count()) === 1 && (await guesser.locator("#vsInput").count()) === 1, 4000, "input " + label);
-  await answerer.fill("#vsInput", `Antwort ${label}`);
-  await answerer.click("#vsSubmit");
-  await guesser.fill("#vsInput", `Tipp ${label}`);
-  await guesser.click("#vsSubmit");
-  await until(async () => (await answerer.locator(".vs-verdict-btn").count()) === 2, 4000, "judge " + label);
-  await answerer.click(right ? ".vs-verdict-btn.right" : ".vs-verdict-btn.wrong");
-  await until(async () => (await answerer.locator(".vs-outcome").count()) === 1 && (await guesser.locator(".vs-outcome").count()) === 1, 4000, "outcome " + label);
+/* type the next question (and confirm the role card when it comes) */
+async function typeNext(page, text) {
+  await until(async () => (await page.locator("#vsInput").count()) === 1 || (await page.locator("#vsRolesGo").count()) === 1, 4000, "next question");
+  if (await page.locator("#vsRolesGo").count()) await page.click("#vsRolesGo");
+  await until(async () => (await page.locator("#vsInput").count()) === 1, 4000, "input");
+  await page.fill("#vsInput", text);
+  await page.click("#vsSubmit");
+  await wait(250);
+}
+
+/* the reveal card: the answerer decides, then both tap "Weiter" */
+async function judgeAndGoOn(page, right) {
+  await until(async () => (await page.locator(".qz-verdict .qz-option").count()) === 2, 4000, "verdict buttons");
+  await page.click(right ? ".qz-verdict .right" : ".qz-verdict .wrong");
+  await until(async () => (await page.locator("#vsContinue:not([disabled])").count()) === 1, 4000, "continue");
+  await page.click("#vsContinue");
 }
 
 async function goOn(page) {
+  await until(async () => (await page.locator("#vsContinue:not([disabled])").count()) === 1, 4000, "continue after verdict");
   await page.click("#vsContinue");
-  await wait(150);
-  if (await page.locator("#vsRolesGo").count()) await page.click("#vsRolesGo");
 }
 
 const isi = await open("Isi");
@@ -70,107 +75,130 @@ const invites = await isi.evaluate(() => window.__mockInvocations || []);
 ok(invites.some(i => i.body.category === "games" && i.body.url === "questions.html?mode=versus" && i.body.title.includes("Versus")), "starting sends a Versus invitation");
 await until(async () => await benji.locator("#grJoinBtn").count() > 0, 4000, "Benji sees the invite");
 await benji.click("#grJoinBtn");
-/* roles first, like LovBirdz */
-await until(async () => (await isi.locator(".vs-role-card").count()) === 2 && (await benji.locator(".vs-role-card").count()) === 2, 4000, "role cards");
-ok((await isi.locator(".vs-roles-title").textContent()).includes("Rollenverteilung"), "a round starts with the role assignment");
-ok((await isi.locator(".vs-role-card.answer").textContent()).includes("Du bist dran mit Antworten") && (await isi.locator(".vs-role-card.guess").textContent()).includes("Benji ist dran mit Raten"), "Isi answers first, Benji guesses");
-ok((await benji.locator(".vs-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "Benji's phone tells him he guesses");
-ok((await isi.locator(".vs-round").textContent()).includes("Essen & Trinken"), "the chosen category is shown");
+/* full screen, roles first – like LovBirdz */
+await until(async () => (await isi.locator(".qz-role-card").count()) === 2 && (await benji.locator(".qz-role-card").count()) === 2, 4000, "role cards");
+ok(await isi.evaluate(() => {
+  const r = document.getElementById("vsBoard").getBoundingClientRect();
+  return r.top === 0 && r.left === 0 && r.width === innerWidth && r.height === innerHeight;
+}), "a running round fills the whole screen");
+ok(await isi.evaluate(() => {
+  const nav = document.querySelector(".app-nav").getBoundingClientRect();
+  return document.elementFromPoint(nav.left + 10, nav.top + 10)?.closest("#vsBoard") !== null;
+}), "the navigation is covered by the round");
+ok((await isi.locator(".qz-head").textContent()).includes("Rollenverteilung"), "a round starts with the role assignment");
+ok((await isi.locator(".qz-role-card.answer").textContent()).includes("Du bist dran mit Antworten") && (await isi.locator(".qz-role-card.guess").textContent()).includes("Benji ist dran mit Raten"), "Isi answers first, Benji guesses");
+ok((await benji.locator(".qz-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "Benji's phone tells him he guesses");
 await isi.click("#vsRolesGo");
 await benji.click("#vsRolesGo");
 
-/* question 1, step by step */
+/* question 1: upper half the question, lower half the text field */
 await until(async () => (await isi.locator("#vsInput").count()) === 1 && (await benji.locator("#vsInput").count()) === 1, 4000, "question 1");
-const q1 = await isi.locator(".vs-q-text").textContent();
-ok(q1 === await benji.locator(".vs-q-text").textContent(), "both see the same question");
-ok((await isi.locator(".vs-role").textContent()).includes("Antworten") && (await benji.locator(".vs-role").textContent()).includes("Raten"), "each phone shows its role");
-ok((await benji.locator(".vs-q-lead").textContent()).includes("Was antwortet Isi"), "Benji guesses what Isi answers");
-ok(await isi.locator(".vs-step").count() === 6 && await isi.locator(".vs-swap").count() === 1, "six steps with the role swap in the middle");
+const q1 = await isi.locator(".qz-text").textContent();
+ok(q1 === await benji.locator(".qz-text").textContent(), "both see the same first question");
+ok(await isi.evaluate(() => {
+  const q = document.querySelector(".qz-question").getBoundingClientRect();
+  const a = document.querySelector(".qz-answers").getBoundingClientRect();
+  return q.bottom <= a.top + 1 && q.height > 100 && a.height > 100;
+}), "question on top, answer field below");
+ok((await isi.locator(".qz-head").textContent()).includes("Antworten") && (await benji.locator(".qz-head").textContent()).includes("Raten"), "each phone shows its role");
+ok((await benji.locator(".qz-lead").textContent()).includes("Was antwortet Isi"), "Benji guesses what Isi answers");
+ok(await isi.locator(".qz-progress-half").count() === 2 && await isi.locator(".qz-progress-swap").count() === 1, "the progress bar has the role swap in the middle");
 ok(await isi.locator("#vsSubmit").isDisabled(), "confirming needs some text");
-if (await isi.locator(".vs-chip").count()) {
-  await isi.locator(".vs-chip").first().click();
-  ok((await isi.locator("#vsInput").inputValue()) === (await isi.locator(".vs-chip").first().textContent()), "a suggestion fills the text field");
+if (await isi.locator(".qz-chip-btn").count()) {
+  await isi.locator(".qz-chip-btn").first().click();
+  ok((await isi.locator("#vsInput").inputValue()) === (await isi.locator(".qz-chip-btn").first().textContent()), "a suggestion fills the text field");
 }
-await isi.fill("#vsInput", "Pasta, ganz klar");
 
-/* Benji types while Isi confirms: his text and focus survive the live update */
+/* Benji types while Isi moves on: his text and focus survive the live update */
 await benji.click("#vsInput");
 await benji.keyboard.type("Pas");
+await isi.fill("#vsInput", "Antwort 1");
 await isi.click("#vsSubmit");
-await until(async () => (await isi.locator(".vs-wait").count()) === 1, 4000, "Isi waits");
-ok((await isi.locator(".vs-wait").textContent()).includes("Benji rät noch"), "Isi waits for Benji's guess");
-await until(async () => (await benji.locator("#vsPartnerStatus").textContent()).includes("Isi ist schon fertig"), 4000, "Benji sees Isi done");
+await until(async () => (await isi.locator(".qz-lead").textContent()).includes("Frage 2"), 4000, "Isi at question 2");
+ok(true, "after confirming, Isi goes straight to the next question – no waiting");
+await until(async () => (await benji.locator("#vsPartnerStatus").textContent()).includes("Frage 2"), 4000, "Benji sees Isi's progress");
 await benji.keyboard.type("ta");
-ok(await benji.locator("#vsInput").inputValue() === "Pasta", "Benji keeps typing undisturbed");
+ok(await benji.locator("#vsInput").inputValue() === "Pasta", "Benji keeps typing undisturbed and sees how far Isi is");
 await benji.click("#vsSubmit");
 
-/* resolved right away: Isi judges */
-await until(async () => (await isi.locator(".vs-verdict-btn").count()) === 2, 4000, "Isi judges");
-ok((await isi.locator(".vs-judge").textContent()).includes("Pasta, ganz klar") && (await isi.locator(".vs-judge").textContent()).includes("Tipp von Benji:"), "Isi sees her answer and Benji's tip");
-await until(async () => (await benji.locator(".vs-wait").count()) === 1, 4000, "Benji waits for verdict");
-ok((await benji.locator(".vs-wait").textContent()).includes("Isi entscheidet"), "Benji waits for Isi's verdict");
-ok(await benji.locator(".vs-verdict-btn").count() === 0, "only the one who answered can judge");
-await isi.click(".vs-verdict-btn.right");
-await until(async () => (await benji.locator(".vs-outcome").count()) === 1, 4000, "Benji sees outcome");
-ok((await benji.locator(".vs-outcome h2").textContent()).includes("Richtig") && (await benji.locator(".vs-outcome-text").textContent()).includes("+1 Punkt für dich"), "Benji sees right away that he was right");
-ok((await isi.locator(".vs-outcome-text").textContent()).includes("+1 Punkt für Benji"), "Isi sees it too");
-ok((await isi.locator(".vs-player-points").last().textContent()) === "1", "the score updates at once");
-await goOn(isi);
+/* Isi races ahead: question 2 and 3, then the swap */
+await typeNext(isi, "Antwort 2");
+await typeNext(isi, "Antwort 3");
+await until(async () => (await isi.locator(".qz-head").textContent()).includes("Rollenwechsel"), 4000, "swap");
+ok((await isi.locator(".qz-role-card.answer").textContent()).includes("Benji ist dran mit Antworten") && (await isi.locator(".qz-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "after three questions the roles swap");
+await isi.click("#vsRolesGo");
+ok((await isi.locator(".qz-head").textContent()).includes("Raten") && (await isi.locator(".qz-lead").textContent()).includes("Frage 4 von 6 · Was antwortet Benji"), "Isi now guesses Benji's answers");
+await typeNext(isi, "Tipp 4");
+await typeNext(isi, "Tipp 5");
+await typeNext(isi, "Tipp 6");
+await until(async () => (await isi.locator(".qz-center h2").count()) === 1, 4000, "Isi waits");
+ok((await isi.locator(".qz-center").textContent()).includes("Warte auf Benji"), "Isi is done and waits for Benji");
+ok((await latest()).state.phase === "play", "no reveal before both are done");
+
+await typeNext(benji, "Tipp 2");
+await typeNext(benji, "Tipp 3");
+await typeNext(benji, "Antwort 4");
+await typeNext(benji, "Antwort 5");
+await typeNext(benji, "Antwort 6");
+
+/* the reveal, question by question */
+await until(async () => (await isi.locator(".qz-head").textContent()).includes("Aufklärung 1/6") && (await benji.locator(".qz-head").textContent()).includes("Aufklärung 1/6"), 5000, "reveal");
+ok(true, "when both are done, the reveal starts on both phones");
+ok((await isi.locator(".qz-pair").textContent()).includes("Antwort 1") && (await isi.locator(".qz-pair").textContent()).includes("Pasta"), "Isi sees her answer and Benji's tip");
+ok(await benji.locator(".qz-verdict").count() === 0 && (await benji.locator(".qz-result.open").textContent()).includes("Isi entscheidet"), "Benji waits for Isi's verdict");
+ok(await benji.locator("#vsContinue").isDisabled(), "and cannot skip ahead");
+await isi.click(".qz-verdict .right");
+await until(async () => (await benji.locator(".qz-result.hit").count()) === 1, 4000, "Benji sees the verdict");
+ok((await benji.locator(".qz-result.hit").textContent()).includes("Richtig") && (await benji.locator(".qz-points").textContent()).includes("+1 Punkt für dich"), "Benji sees right away that he was right");
+await goOn(isi); await goOn(benji);
+await judgeAndGoOn(isi, false);
+await until(async () => (await benji.locator(".qz-result.miss").count()) === 1, 4000, "miss");
+ok((await benji.locator(".qz-result.miss h3").textContent()).includes("Oh je"), "a wrong guess: 'Oh je!'");
 await goOn(benji);
-
-/* questions 2 and 3 */
-await playQuestion(isi, benji, false, "2");
-ok((await benji.locator(".vs-outcome h2").textContent()).includes("Oh je"), "a wrong guess: 'Oh je!'");
-await goOn(isi); await goOn(benji);
-await playQuestion(isi, benji, true, "3");
-await isi.click("#vsContinue");
-await benji.click("#vsContinue");
-
-/* the role swap */
-await until(async () => (await isi.locator(".vs-roles-title").count()) === 1 && (await benji.locator(".vs-roles-title").count()) === 1, 4000, "swap");
-ok((await benji.locator(".vs-roles-title").textContent()).includes("Rollenwechsel"), "after three questions: role swap");
-ok((await benji.locator(".vs-role-card.answer").textContent()).includes("Du bist dran mit Antworten") && (await isi.locator(".vs-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "now Benji answers and Isi guesses");
-await isi.click("#vsRolesGo"); await benji.click("#vsRolesGo");
-await until(async () => (await benji.locator(".vs-role").count()) === 1, 4000, "q4");
-ok((await benji.locator(".vs-role").textContent()).includes("Antworten") && (await isi.locator(".vs-q-lead").textContent()).includes("Was antwortet Benji"), "Benji answers question 4");
-await playQuestion(benji, isi, true, "4");
-ok(await isi.locator(".vs-verdict-btn").count() === 0, "Benji judges the second half");
-await goOn(isi); await goOn(benji);
-await playQuestion(benji, isi, false, "5");
-await goOn(isi); await goOn(benji);
-await playQuestion(benji, isi, false, "6");
-await goOn(isi); await goOn(benji);
+await judgeAndGoOn(isi, true);
+await goOn(benji);
+/* 4–6: Benji decides */
+ok((await isi.locator(".qz-lead").textContent()).includes("Über Benji") && await isi.locator(".qz-verdict").count() === 0, "for 4–6 Benji decides");
+await judgeAndGoOn(benji, true); await goOn(isi);
+await judgeAndGoOn(benji, false); await goOn(isi);
+await judgeAndGoOn(benji, false); await goOn(isi);
 
 /* summary */
-await until(async () => (await isi.locator(".vs-headline").count()) === 1 && (await benji.locator(".vs-headline").count()) === 1, 5000, "summary");
+await until(async () => (await isi.locator("#vsSummary").count()) === 1 && (await benji.locator("#vsSummary").count()) === 1, 5000, "summary");
 const state = (await latest()).state;
 ok(state.phase === "reveal" && state.scores.Benji === 2 && state.scores.Isi === 1, `Benji knows Isi better (Isi ${state.scores.Isi} : ${state.scores.Benji} Benji)`);
-ok((await benji.locator(".vs-headline").textContent()).includes("Du kennst Isi diese Runde besser"), "Benji's phone celebrates");
-ok((await isi.locator(".vs-headline").textContent()).includes("Benji kennt dich diese Runde besser"), "Isi's phone says Benji won the round");
-ok(await isi.locator(".vs-result").count() === 6 && await benji.locator(".vs-result.hit").count() === 3, "all six questions with their verdicts");
-ok((await isi.locator(".vs-result").first().textContent()).includes("Antwort 4") || (await isi.locator(".vs-result").first().textContent()).includes("Tipp 4"), "the typed texts are shown");
-ok((await isi.locator(".vs-player:not(.me) .vs-player-name").textContent()).includes("👑"), "the leader wears the crown");
-ok((await isi.locator(".vs-player-points").first().textContent()) === "1" && (await isi.locator(".vs-player-points").last().textContent()) === "2", "the running score shows 1 : 2");
+ok((await benji.locator("#vsSummary").textContent()).includes("Du kennst Isi diese Runde besser"), "Benji's phone celebrates");
+ok((await isi.locator("#vsSummary").textContent()).includes("Benji kennt dich diese Runde besser"), "Isi's phone says Benji won the round");
+ok(await isi.locator(".qz-item").count() === 6 && await benji.locator(".qz-item.hit").count() === 3, "all six questions with their verdicts");
+ok((await isi.locator(".qz-list").first().textContent()).includes("Antwort 4") && (await isi.locator(".qz-list").first().textContent()).includes("Tipp 4"), "the typed texts are shown");
+ok((await isi.locator(".qz-chip:not(.me)").textContent()).includes("👑"), "the leader wears the crown");
+ok((await isi.locator(".qz-chip.me").textContent()).includes("Du 1") && (await isi.locator(".qz-chip:not(.me)").textContent()).includes("Benji 2"), "the running score shows 1 : 2");
 const questionsRound1 = state.questions.slice();
 
 /* next round */
 await isi.click("#vsNext");
 await wait(700);
-ok((await benji.locator(".vs-round").textContent()).includes("Runde 1") && (await isi.locator("#vsNext").textContent()).includes("warte auf Benji"), "the next round waits until Benji is ready too");
+ok((await isi.locator("#vsNext").textContent()).includes("warte auf Benji"), "the next round waits until Benji is ready too");
 await benji.click("#vsNext");
-await until(async () => (await benji.locator(".vs-roles-title").count()) === 1, 4000, "round 2");
-ok((await benji.locator(".vs-round").textContent()).includes("Runde 2"), "a new round starts for both");
+await until(async () => (await benji.locator(".qz-role-card").count()) === 2, 4000, "round 2");
+ok((await latest()).state.round === 2, "a new round starts for both");
 const round2 = (await latest()).state.questions;
 ok(round2.every(q => !questionsRound1.includes(q)), "round 2 brings new questions");
-ok((await isi.locator(".vs-player-points").last().textContent()) === "2", "the score carries over");
+ok((await isi.locator(".qz-chip:not(.me)").textContent()).includes("Benji 2"), "the score carries over");
 
-/* switching back to the conversation questions keeps working */
+/* "‹" leaves the full screen without ending the round */
+await isi.click("#vsBackBtn");
+await wait(300);
+ok(await isi.locator("#otherMode").isVisible() && await isi.locator("#vsBoard").isHidden(), "the back arrow shows the list of modes again");
+ok((await latest()).status === "active", "the round keeps running");
 await isi.click('.mode-btn[data-mode="talk"]');
 ok(await isi.locator("#talkMode").isVisible() && await isi.locator("#newQuestionBtn").isVisible(), "the conversation questions are still there");
 await isi.goto("http://localhost:9091/questions.html"); await isi.waitForTimeout(600);
-ok(await isi.locator("#talkMode").isVisible(), "the chosen tab is remembered");
+ok(await isi.locator("#talkMode").isVisible() && await isi.locator("#vsBoard").isHidden(), "the chosen tab is remembered – no full screen over the conversation questions");
 await isi.click('.mode-btn[data-mode="other"]');
 await isi.click(".other-versus");
+await until(async () => await isi.locator("#vsBoard").isVisible(), 3000, "back in the round");
+ok(true, "opening Versus again continues the round");
 
 /* leaving */
 await isi.click("#vsLeaveBtn");

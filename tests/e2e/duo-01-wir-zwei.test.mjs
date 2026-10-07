@@ -73,30 +73,41 @@ ok((await benji.locator("#dashDailyStatus").textContent()).includes("Isi wartet 
 ok((await benji.locator("#dashDailyCta").textContent()).includes("Beitreten"), "with a button to join");
 if (await benji.locator("#pushModal").isVisible()) await benji.click("#dismissPushModal");
 await benji.click("#dashDailyTile");
-await benji.waitForSelector(".duo-card-text", { timeout: 5000 });
+await benji.waitForSelector(".qz-text", { timeout: 5000 });
 await wait(600);
 ok(true, "tapping the tile puts Benji straight into Isi's lobby");
-ok((await isi.locator(".duo-card-text").textContent()) === question.text && (await benji.locator(".duo-card-text").textContent()) === question.text, "now both see today's question at the same time");
-await isi.locator(".duo-option").nth(1).click();
-ok((await isi.locator(".duo-q-step").textContent()).includes("Was antwortet Benji"), "after her own answer Isi guesses Benji's");
-await isi.locator(".duo-option").nth(2).click();
+ok(await isi.evaluate(() => {
+  const r = document.getElementById("duoBoard").getBoundingClientRect();
+  return r.top === 0 && r.left === 0 && r.width === innerWidth && r.height === innerHeight;
+}), "the round fills the whole screen");
+ok((await isi.locator(".qz-text").textContent()) === question.text && (await benji.locator(".qz-text").textContent()) === question.text, "now both see today's question at the same time");
+ok(await isi.locator(".qz-answers .qz-option").count() === 4, "four possible answers below the question");
+ok(await isi.locator("#duoConfirm").isDisabled(), "confirming needs a choice");
+await isi.locator(".qz-answers .qz-option").nth(1).click();
+ok(await isi.locator(".qz-option.selected").count() === 1 && await isi.locator("#duoConfirm").isEnabled(), "tapping an answer selects it");
+await isi.click("#duoConfirm");
+ok((await isi.locator(".qz-lead").textContent()).includes("Was antwortet Benji") && (await isi.locator(".qz-head").textContent()).includes("Raten"), "after her own answer Isi guesses Benji's");
+await isi.locator(".qz-answers .qz-option").nth(2).click();
+await isi.click("#duoConfirm");
 await wait(900);
-ok((await isi.locator(".duo-waiting").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
-ok((await benji.locator(".duo-daily-game").textContent()).includes("Isi ist schon fertig"), "Benji sees that Isi is done");
-await benji.locator(".duo-option").nth(2).click();
-await benji.locator(".duo-option").nth(1).click();
+ok((await isi.locator(".qz-center").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
+ok((await benji.locator(".qz-note").textContent()).includes("Isi ist schon fertig"), "Benji sees that Isi is done");
+await benji.locator(".qz-answers .qz-option").nth(2).click();
+await benji.click("#duoConfirm");
+await benji.locator(".qz-answers .qz-option").nth(1).click();
+await benji.click("#duoConfirm");
 await wait(1200);
-ok(await benji.locator(".duo-daily-game .duo-reveal").count() === 1 && await isi.locator(".duo-daily-game .duo-reveal").count() === 1, "with both answers they are revealed together");
-ok((await benji.locator(".duo-daily-game .duo-reveal-guess.hit").count()) === 2, "both guessed right");
+ok(await benji.locator("#duoDailyResult").count() === 1 && await isi.locator("#duoDailyResult").count() === 1, "with both answers they are revealed together");
+ok((await benji.locator(".qz-pair-tip.hit").count()) === 2 && (await benji.locator("#duoDailyResult").textContent()).includes("Ihr kennt euch"), "both guessed right");
 await wait(800);
 const rows = (await answers()).filter(r => r.day === today);
 ok(rows.length === 2 && rows.find(r => r.person === "Isi").answer === 1 && rows.find(r => r.person === "Benji").guess === 1 && rows.every(r => r.question_id === question.id), "both answers are stored for the flame");
 ok((await benji.locator(".duo-streak-number").textContent()) === String(after.current) && after.current === before.current + 1 && await benji.locator("#duoCountdown").count() === 0, `the flame grows to ${after.current}, no countdown needed`);
 ok((await isi.locator("#duoDaily .duo-reveal").count()) === 1, "the card at the top now shows today's result");
 ok((await isi.locator("#duoLeaveBtn").textContent()).includes("Zurück"), "afterwards the round is simply closed");
-await isi.locator("#duoLeaveBtn").click();
+await isi.click("#duoDone");
 await wait(900);
-ok(await isi.locator("#duoLobby").isHidden() && (await isi.locator("#duoDaily .duo-reveal").count()) === 1, "today is done – no new lobby, just today's result");
+ok(await isi.locator("#duoBoard").isHidden() && await isi.locator("#duoLobby").isHidden() && (await isi.locator("#duoDaily .duo-reveal").count()) === 1, "'Fertig' closes it – today is done, no new lobby, just today's result");
 await isi.goto("http://localhost:9091/duo.html?mode=daily");
 await wait(1200);
 ok((await latest()).status === "closed", "opening it again today does not start another round");
@@ -109,27 +120,44 @@ await wait(1000);
 ok((await latest()).status === "waiting" && (await latest()).state.option === "hotnot", "the Hot-oder-Not card opens its lobby directly");
 ok(await isi.locator("#daily").isHidden() && (await isi.locator("#duoTitle").textContent()).includes("Hot oder Not"), "the page is only about Hot oder Not");
 await benji.goto("http://localhost:9091/duo.html?mode=hotnot");
-await benji.waitForSelector(".duo-choice.hot", { timeout: 5000 });
+await benji.waitForSelector(".qz-option.hot", { timeout: 5000 });
 await wait(600);
-ok(await isi.locator(".duo-card").isVisible() && await benji.locator(".duo-choice.hot").count() === 1, "Benji opening the same mode joins and starts the round right away – only for us two");
+ok(await isi.locator(".qz-card").isVisible() && await benji.locator(".qz-option.hot").count() === 1, "Benji opening the same mode joins and starts the round right away – only for us two");
 ok(await isi.locator("#grInviteLink").count() === 0, "no invite link for friends here");
-for (let i = 0; i < 6; i++) await isi.locator(".duo-choice.hot").click();
+ok((await isi.locator(".qz-or").textContent()) === "ODER", "two answers with 'ODER' between them");
+for (let i = 0; i < 6; i++) {
+  await isi.locator(".qz-option.hot").click();
+  await isi.click("#duoConfirm");
+}
 await wait(700);
-ok((await isi.locator(".duo-waiting").textContent()).includes("Warte auf Benji"), "Isi is done and waits");
+ok((await isi.locator(".qz-center").textContent()).includes("Warte auf Benji"), "Isi is done and waits");
 const pattern = ["hot", "not", "hot", "not", "hot", "hot"];
 for (let i = 0; i < 6; i++) {
   if (i === 1) await benji.locator("#duoBack").count().then(c => ok(c === 1, "Benji can go back a question"));
-  await benji.locator(`.duo-choice.${pattern[i]}`).click();
+  await benji.locator(`.qz-option.${pattern[i]}`).click();
+  await benji.click("#duoConfirm");
 }
 await wait(1000);
-ok((await isi.locator(".duo-score-number").textContent()).startsWith("4"), "4 of 6 alike");
-ok(await isi.locator(".duo-result.match").count() === 4 && await isi.locator(".duo-result.differ").count() === 2, "each item shows both votes");
+/* the reveal, item by item */
+ok((await isi.locator(".qz-head").textContent()).includes("Aufklärung 1/6") && (await isi.locator(".qz-result").textContent()).includes("Einig"), "the reveal goes through the six one by one");
+for (let i = 0; i < 6; i++) await isi.click("#duoConfirm");
+for (let i = 0; i < 6; i++) await benji.click("#duoConfirm");
+ok((await isi.locator("#duoMatches").textContent()) === "4 von 6", "then the summary: 4 of 6 alike");
+ok(await isi.locator(".qz-item.hit").count() === 4 && await isi.locator(".qz-item.miss").count() === 2, "each item shows both votes");
 await isi.locator(".gr-ready-btn").click();
 await wait(700);
 ok((await latest()).state.round === 1, "the next round waits for both");
 await benji.locator(".gr-ready-btn").click();
 await wait(1000);
-ok((await latest()).state.round === 2 && await isi.locator(".duo-card-count").count() === 1, "then round 2 begins");
+ok((await latest()).state.round === 2 && (await isi.locator(".qz-lead").textContent()).includes("Frage 1 von 6"), "then round 2 begins");
+
+/* "‹" goes back to the list of modes, the round keeps running */
+await isi.click("#duoBackBtn");
+await isi.waitForURL(/questions\.html\?mode=other/);
+ok((await latest()).status === "active", "the back arrow leaves the round running");
+await isi.goto("http://localhost:9091/duo.html?mode=hotnot");
+await isi.waitForSelector(".qz-option.hot", { timeout: 4000 });
+ok(true, "opening the mode again continues the round");
 
 /* Wer von uns beiden? */
 await isi.locator("#duoLeaveBtn").click();
@@ -148,13 +176,14 @@ await benji.waitForSelector("#grJoinBtn", { timeout: 4000 });
 ok((await benji.locator("#duoTitle").textContent()).includes("Wer von uns beiden"), "Benji sees what Isi wants to play");
 await benji.click("#grJoinBtn");
 await wait(900);
-ok((await isi.locator(".duo-card-text").textContent()).startsWith("Wer von uns beiden"), "'Wer von uns beiden?' asks about us");
-ok((await isi.locator(".duo-choice").allTextContents()).join() === "Isi,Benji", "the answers are our names");
-for (let i = 0; i < 6; i++) await isi.locator(".duo-choice.isi").click();
-for (let i = 0; i < 6; i++) await benji.locator(".duo-choice.benji").click();
+ok((await isi.locator(".qz-text").textContent()).startsWith("Wer von uns beiden"), "'Wer von uns beiden?' asks about us");
+ok((await isi.locator(".qz-answers .qz-option").allTextContents()).join() === "Isi,Benji", "the answers are our names");
+for (let i = 0; i < 6; i++) { await isi.locator(".qz-option.isi").click(); await isi.click("#duoConfirm"); }
+for (let i = 0; i < 6; i++) { await benji.locator(".qz-option.benji").click(); await benji.click("#duoConfirm"); }
 await wait(1000);
-ok((await benji.locator(".duo-score-number").textContent()).startsWith("0") && (await benji.locator(".duo-score-verdict").textContent()).includes("Gegensätze"), "0 of 6 – opposites attract");
-ok((await benji.locator(".duo-chip").first().textContent()) === "Du: Benji", "the result shows the names chosen");
+for (let i = 0; i < 6; i++) await benji.click("#duoConfirm");
+ok((await benji.locator("#duoMatches").textContent()) === "0 von 6" && (await benji.locator("#duoVerdict").textContent()).includes("Gegensätze"), "0 of 6 – opposites attract");
+ok((await benji.locator(".qz-item-line").first().textContent()) === "Du: Benji", "the result shows the names chosen");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();

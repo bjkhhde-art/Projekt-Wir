@@ -238,176 +238,309 @@ db.channel("daily_answers_changes")
 
 /* =================== the lobby game: daily / who / hot-or-not =================== */
 
-let dailyDraft = { key: null, answer: null };
+/* =================== the round itself: full screen, one question at a time =================== */
 
-function renderDailyGame(game, head, person, partner) {
-  const state = game.state;
-  const question = DuoEngine.dailyQuestion(state);
-  if (!question) {
-    stageEl.innerHTML = `${head}<div class="duo-card card"><p>Diese Frage gibt es nicht mehr.</p></div>`;
-    return;
-  }
-  const option = i => escapeHtml(question.options[i] || "–");
-  const myAnswers = state.answers[person];
+const scoreEl = document.getElementById("duoScore");
+/* the round is a full-screen layer directly on <body> (no animated parent may confine it) */
+document.body.appendChild(boardEl);
+/* "‹" goes back to the list of modes without ending the round – opening the mode again continues it */
+document.getElementById("duoBackBtn").addEventListener("click", () => { location.href = "questions.html?mode=other"; });
 
-  if (state.phase === "reveal") {
-    const theirs = state.answers[partner];
-    stageEl.innerHTML = `${head}
-      <div class="duo-card card duo-daily-game">
-        <p class="duo-q-label">Frage des Tages</p>
-        <p class="duo-card-text">${escapeHtml(question.text)}</p>
-        ${dailyRevealHtml(question, person, myAnswers.answer, myAnswers.guess, theirs.answer, theirs.guess)}
-      </div>`;
-    saveDailyRow(state, myAnswers.answer, myAnswers.guess);
-    return;
-  }
-
-  if (myAnswers) {
-    stageEl.innerHTML = `${head}
-      <div class="duo-card duo-waiting card">
-        <div class="duo-waiting-icon">✓</div>
-        <h3>Fertig!</h3>
-        <p>Warte auf ${escapeHtml(partner)} – dann deckt ihr gemeinsam auf.</p>
-      </div>`;
-    return;
-  }
-
-  const key = `${game.id}`;
-  if (dailyDraft.key !== key) dailyDraft = { key, answer: null };
-  const guessing = dailyDraft.answer !== null;
-  stageEl.innerHTML = `${head}
-    <div class="duo-card card duo-daily-game">
-      <p class="duo-q-label">Frage des Tages</p>
-      <p class="duo-card-text">${escapeHtml(question.text)}</p>
-      <p class="duo-q-step">${guessing ? `Schritt 2 von 2 · Was antwortet ${escapeHtml(partner)}?` : "Schritt 1 von 2 · Deine Antwort"}</p>
-      <div class="duo-options" role="group">
-        ${question.options.map((text, i) => `<button type="button" class="duo-option" data-index="${i}">${escapeHtml(text)}</button>`).join("")}
-      </div>
-      ${guessing ? `<p class="duo-q-note">Deine Antwort: <strong>${option(dailyDraft.answer)}</strong> · <button type="button" class="duo-link" id="duoDailyBack">ändern</button></p>` : ""}
-      <p class="duo-q-note">${state.answers[partner] ? `💌 ${escapeHtml(partner)} ist schon fertig.` : `${escapeHtml(partner)} überlegt noch …`}</p>
-    </div>`;
-
-  stageEl.querySelectorAll(".duo-option").forEach(button => {
-    button.addEventListener("click", async () => {
-      const index = Number(button.dataset.index);
-      if (dailyDraft.answer === null) {
-        dailyDraft.answer = index;
-        renderDailyGame(game, head, person, partner);
-        return;
-      }
-      const answer = dailyDraft.answer;
-      await room.dispatch(DuoEngine.submitDaily, answer, index);
-      saveDailyRow(state, answer, index);
-    });
-  });
-  const back = document.getElementById("duoDailyBack");
-  if (back) back.addEventListener("click", () => {
-    dailyDraft.answer = null;
-    renderDailyGame(game, head, person, partner);
-  });
-}
-
+let dailyDraft = { key: null, answer: null, step: 0, pick: null };
 let draft = { key: null, answers: [], index: 0 };
+let pick = { key: null, value: null };
+let revealPos = { key: null, pos: 0 };
 
 function answerLabel(state, value) {
   return state.mode === "hotnot" ? VOTE_LABELS[value] || "–" : value;
 }
 
-function renderBoard(game) {
-  const state = game.state;
-  const person = me();
-  const partner = state.players.find(p => p !== person);
-  const total = (state.history || []).reduce((sum, h) => sum + h.matches, 0);
-  const played = (state.history || []).length;
-  if (state.mode === "daily") {
-    const dailyHead = `<div class="duo-round-head"><span class="duo-mode">🔥 Frage des Tages</span><span>${escapeHtml(state.day.split("-").reverse().join("."))}</span></div>`;
-    renderDailyGame(game, dailyHead, person, partner);
-    return;
-  }
-  const head = `
-    <div class="duo-round-head">
-      <span class="duo-mode">${escapeHtml(MODE_LABELS[state.mode])}</span>
-      <span>Runde ${state.round}${played ? ` · bisher ${total}/${played * DuoEngine.ROUND_SIZE} gleich` : ""}</span>
-    </div>`;
-
-  if (state.phase === "answer") {
-    if (!state.answers[person]) {
-      renderQuestionFlow(game, head, partner);
-    } else {
-      stageEl.innerHTML = `${head}
-        <div class="duo-card duo-waiting card">
-          <div class="duo-waiting-icon">✓</div>
-          <h3>Fertig!</h3>
-          <p>Warte auf ${escapeHtml(partner)} – dann seht ihr, wo ihr euch einig seid.</p>
-        </div>`;
-    }
-    return;
-  }
-  renderReveal(state, head, person, partner);
+function headHtml(icon, title, tone = "plain") {
+  return `<div class="qz-head ${tone}"><span class="qz-head-icon">${icon}</span>${escapeHtml(title)}</div>`;
 }
 
-function renderQuestionFlow(game, head, partner) {
+function progressHtml(done, total) {
+  return `
+    <div class="qz-progress" aria-label="Frage ${Math.min(done + 1, total)} von ${total}">
+      <div class="qz-progress-half"><div class="qz-progress-fill" style="width:${done / total * 100}%"></div></div>
+    </div>`;
+}
+
+function centerHtml(emoji, title, text, extra = "") {
+  return `
+    <div class="qz-screen">
+      <div class="qz-center">
+        <div class="qz-big-emoji" aria-hidden="true">${emoji}</div>
+        <h2>${escapeHtml(title)}</h2>
+        <p>${escapeHtml(text)}</p>
+        ${extra}
+      </div>
+    </div>`;
+}
+
+/* question in the upper half, the answers in the lower half, the big button at the bottom */
+function questionScreen({ head, progress = "", lead, text, answers, note = "", confirm }) {
+  return `
+    <div class="qz-screen">
+      ${head}
+      ${progress}
+      <div class="qz-card">
+        <div class="qz-question">
+          ${lead ? `<p class="qz-lead">${lead}</p>` : ""}
+          <h2 class="qz-text">${escapeHtml(text)}</h2>
+          <hr class="qz-rule">
+        </div>
+        <div class="qz-answers">${answers}</div>
+      </div>
+      ${note ? `<p class="qz-note">${note}</p>` : ""}
+      ${confirm}
+    </div>`;
+}
+
+function optionButtons(options, selected, extraClass = () => "") {
+  const buttons = options.map(o => `<button type="button" class="qz-option ${extraClass(o)}${o.value === selected ? " selected" : ""}" data-value="${escapeHtml(String(o.value))}">${escapeHtml(o.label)}</button>`);
+  if (options.length === 2) return `${buttons[0]}<p class="qz-or">ODER</p>${buttons[1]}`;
+  return `<div class="qz-options-4">${buttons.join("")}</div>`;
+}
+
+/* tapping an option selects it; "Bestätigen" goes on */
+function wireOptions(onPick) {
+  stageEl.querySelectorAll(".qz-answers .qz-option").forEach(button => button.addEventListener("click", () => {
+    stageEl.querySelectorAll(".qz-answers .qz-option").forEach(b => b.classList.toggle("selected", b === button));
+    const confirm = document.getElementById("duoConfirm");
+    if (confirm) confirm.disabled = false;
+    if (navigator.vibrate) navigator.vibrate(8);
+    onPick(button.dataset.value);
+  }));
+}
+
+function renderScore(state, person, partner) {
+  if (state.mode === "daily") {
+    scoreEl.innerHTML = `<span class="qz-chip">🔥 ${escapeHtml(state.day.split("-").reverse().join("."))}</span>`;
+    return;
+  }
+  const total = (state.history || []).reduce((sum, h) => sum + h.matches, 0);
+  const played = (state.history || []).length;
+  scoreEl.innerHTML = `<span class="qz-chip">Runde ${state.round}</span>${played ? `<span class="qz-chip me">💞 ${total}/${played * DuoEngine.ROUND_SIZE}</span>` : ""}`;
+}
+
+/* ---------- Frage des Tages: my answer, then my guess, then both are revealed ---------- */
+
+function renderDailyGame(game, person, partner) {
+  const state = game.state;
+  const question = DuoEngine.dailyQuestion(state);
+  if (!question) {
+    stageEl.innerHTML = centerHtml("🤷", "Diese Frage gibt es nicht mehr", "Beendet die Runde oben und startet neu.");
+    return;
+  }
+  const label = i => question.options[i] || "–";
+  const mine = state.answers[person];
+
+  if (state.phase === "reveal") {
+    const theirs = state.answers[partner];
+    const myHit = mine.guess === theirs.answer;
+    const theirHit = theirs.guess === mine.answer;
+    const both = myHit && theirHit;
+    stageEl.innerHTML = `
+      <div class="qz-screen">
+        ${headHtml("✨", "Aufklärung")}
+        <div class="qz-card">
+          <div class="qz-question">
+            <p class="qz-lead">Frage des Tages</p>
+            <h2 class="qz-text">${escapeHtml(question.text)}</h2>
+            <hr class="qz-rule">
+          </div>
+          <div class="qz-answers">
+            <div class="qz-pair">
+              <div class="qz-pair-row answer"><span class="qz-pair-who">Deine Antwort</span><span class="qz-pair-text">${escapeHtml(label(mine.answer))}</span><span class="qz-pair-tip ${theirHit ? "hit" : "miss"}">${escapeHtml(partner)} hat getippt: ${escapeHtml(label(theirs.guess))} ${theirHit ? "✓" : "✗"}</span></div>
+              <div class="qz-pair-row guess"><span class="qz-pair-who">${escapeHtml(partner)}s Antwort</span><span class="qz-pair-text">${escapeHtml(label(theirs.answer))}</span><span class="qz-pair-tip ${myHit ? "hit" : "miss"}">Du hast getippt: ${escapeHtml(label(mine.guess))} ${myHit ? "✓" : "✗"}</span></div>
+            </div>
+            <div class="qz-result ${both ? "hit" : myHit || theirHit ? "open" : "miss"}" id="duoDailyResult">
+              <h3>${both ? "Ihr kennt euch! 💞" : myHit || theirHit ? "Einer lag richtig 😊" : "Überraschung! 😄"}</h3>
+              <p>${both ? "Beide richtig getippt." : myHit || theirHit ? "Einer von euch lag richtig." : "Heute habt ihr euch überrascht."} Die Flamme brennt weiter 🔥</p>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="duoDone" class="qz-confirm">Fertig ✓</button>
+      </div>`;
+    document.getElementById("duoDone").addEventListener("click", () => document.getElementById("duoLeaveBtn").click());
+    saveDailyRow(state, mine.answer, mine.guess);
+    return;
+  }
+
+  if (mine) {
+    stageEl.innerHTML = centerHtml("⏳", "Fertig!", `Warte auf ${partner} – dann deckt ihr gemeinsam auf.`);
+    return;
+  }
+
+  const key = `${game.id}`;
+  if (dailyDraft.key !== key) dailyDraft = { key, answer: null, step: 0, pick: null };
+  const guessing = dailyDraft.step === 1;
+  const selected = dailyDraft.pick;
+  const options = question.options.map((text, i) => ({ value: i, label: text }));
+  stageEl.innerHTML = questionScreen({
+    head: headHtml("!", guessing ? "Du bist dran mit Raten" : "Du bist dran mit Antworten", guessing ? "guess" : "answer"),
+    progress: progressHtml(dailyDraft.step, 2),
+    lead: guessing ? `Schritt 2 von 2 · Was antwortet ${escapeHtml(partner)}?` : "Schritt 1 von 2 · Deine Antwort",
+    text: question.text,
+    answers: optionButtons(options, selected ?? null),
+    note: guessing
+      ? `Deine Antwort: <strong>${escapeHtml(label(dailyDraft.answer))}</strong> · <button type="button" class="qz-link" id="duoDailyBack">ändern</button>`
+      : escapeHtml(state.answers[partner] ? `💌 ${partner} ist schon fertig.` : `${partner} überlegt noch …`),
+    confirm: `<button type="button" id="duoConfirm" class="qz-confirm"${selected === null || selected === undefined ? " disabled" : ""}>✓ Bestätigen</button>`
+  });
+  wireOptions(value => { dailyDraft.pick = Number(value); });
+  document.getElementById("duoConfirm").addEventListener("click", async () => {
+    if (dailyDraft.pick === null || dailyDraft.pick === undefined) return;
+    if (!guessing) {
+      dailyDraft.answer = dailyDraft.pick;
+      dailyDraft.step = 1;
+      dailyDraft.pick = null;
+      renderDailyGame(game, person, partner);
+      return;
+    }
+    const answer = dailyDraft.answer;
+    const guess = dailyDraft.pick;
+    document.getElementById("duoConfirm").disabled = true;
+    await room.dispatch(DuoEngine.submitDaily, answer, guess);
+    saveDailyRow(state, answer, guess);
+  });
+  const back = document.getElementById("duoDailyBack");
+  if (back) back.addEventListener("click", () => {
+    dailyDraft.step = 0;
+    dailyDraft.pick = dailyDraft.answer;
+    renderDailyGame(game, person, partner);
+  });
+}
+
+/* ---------- Wer von uns beiden? / Hot oder Not? ---------- */
+
+function choicesFor(state) {
+  return state.mode === "who"
+    ? state.players.map(p => ({ value: p, label: p, cls: p === "Isi" ? "isi" : "benji" }))
+    : [{ value: "hot", label: "🔥 Hot", cls: "hot" }, { value: "not", label: "❄️ Not", cls: "not" }];
+}
+
+function renderQuestionFlow(game, partner) {
   const state = game.state;
   const key = `${game.id}:${state.round}`;
   if (draft.key !== key) draft = { key, answers: [], index: 0 };
-  const i = Math.min(draft.index, state.items.length - 1);
-  const text = DuoEngine.itemText(state, state.items[i]);
-  const choices = state.mode === "who"
-    ? state.players.map(p => ({ value: p, label: p, cls: p === "Isi" ? "isi" : "benji" }))
-    : [{ value: "hot", label: "🔥 Hot", cls: "hot" }, { value: "not", label: "❄️ Not", cls: "not" }];
-  const theirsDone = Boolean(state.answers[partner]);
+  const total = state.items.length;
+  const i = Math.min(draft.index, total - 1);
+  const selected = draft.answers[i] ?? null;
 
-  stageEl.innerHTML = `${head}
-    <div class="duo-card card">
-      <div class="duo-dots">${state.items.map((_, k) => `<span class="${k < i ? "done" : k === i ? "now" : ""}"></span>`).join("")}</div>
-      <p class="duo-card-count">Frage ${i + 1} von ${state.items.length}</p>
-      <p class="duo-card-text">${escapeHtml(text)}</p>
-      <div class="duo-choices">
-        ${choices.map(c => `<button type="button" class="duo-choice ${c.cls}${draft.answers[i] === c.value ? " picked" : ""}" data-value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</button>`).join("")}
-      </div>
-      ${i > 0 ? `<button type="button" class="duo-link duo-back" id="duoBack">← vorherige</button>` : ""}
-      ${theirsDone ? `<p class="duo-q-note">💌 ${escapeHtml(partner)} ist schon fertig.</p>` : ""}
-    </div>`;
-
-  stageEl.querySelectorAll(".duo-choice").forEach(button => {
-    button.addEventListener("click", () => {
-      draft.answers[i] = button.dataset.value;
-      if (i < state.items.length - 1) {
-        draft.index = i + 1;
-        renderQuestionFlow(game, head, partner);
-      } else {
-        room.dispatch(DuoEngine.submitAnswers, draft.answers.slice());
-      }
-    });
+  stageEl.innerHTML = questionScreen({
+    head: headHtml(state.mode === "who" ? "🤔" : "🌶️", MODE_LABELS[state.mode], "answer"),
+    progress: progressHtml(i, total),
+    lead: `Frage ${i + 1} von ${total}`,
+    text: DuoEngine.itemText(state, state.items[i]),
+    answers: optionButtons(choicesFor(state), selected, o => o.cls),
+    note: `${i > 0 ? `<button type="button" class="qz-link" id="duoBack">← vorherige</button> · ` : ""}${escapeHtml(state.answers[partner] ? `💌 ${partner} ist schon fertig.` : `${partner} ist noch dabei …`)}`,
+    confirm: `<button type="button" id="duoConfirm" class="qz-confirm"${selected === null ? " disabled" : ""}>${i < total - 1 ? "✓ Bestätigen" : "✓ Abschicken"}</button>`
+  });
+  wireOptions(value => { draft.answers[i] = value; });
+  document.getElementById("duoConfirm").addEventListener("click", () => {
+    if (draft.answers[i] === undefined || draft.answers[i] === null) return;
+    if (i < total - 1) {
+      draft.index = i + 1;
+      renderQuestionFlow(game, partner);
+      return;
+    }
+    document.getElementById("duoConfirm").disabled = true;
+    room.dispatch(DuoEngine.submitAnswers, draft.answers.slice());
   });
   const back = document.getElementById("duoBack");
   if (back) back.addEventListener("click", () => {
     draft.index = i - 1;
-    renderQuestionFlow(game, head, partner);
+    renderQuestionFlow(game, partner);
   });
 }
 
-function renderReveal(state, head, person, partner) {
-  const { perItem, matches } = state.results;
-  stageEl.innerHTML = `${head}
-    <div class="duo-score card">
-      <p class="duo-score-number">${matches}<span>/${perItem.length}</span></p>
-      <p class="duo-score-label">gleich geantwortet</p>
-      <p class="duo-score-verdict">${escapeHtml(DuoEngine.verdict(matches, perItem.length))}</p>
-    </div>
-    <ul class="duo-results">
-      ${perItem.map(r => `
-        <li class="duo-result ${r.match ? "match" : "differ"}">
-          <p class="duo-result-text">${escapeHtml(DuoEngine.itemText(state, r.item))}</p>
-          <div class="duo-result-answers">
-            <span class="duo-chip">Du: <strong>${escapeHtml(answerLabel(state, r[person]))}</strong></span>
-            <span class="duo-chip">${escapeHtml(partner)}: <strong>${escapeHtml(answerLabel(state, r[partner]))}</strong></span>
-            <span class="duo-result-mark" aria-label="${r.match ? "gleich" : "unterschiedlich"}">${r.match ? "💞" : "≠"}</span>
+/* the reveal, item by item – then the summary */
+function renderRevealItem(state, person, partner, k) {
+  const r = state.results.perItem[k];
+  const total = state.results.perItem.length;
+  stageEl.innerHTML = `
+    <div class="qz-screen">
+      ${headHtml("✨", `Aufklärung ${k + 1}/${total}`)}
+      <div class="qz-card">
+        <div class="qz-question">
+          <p class="qz-lead">${escapeHtml(MODE_LABELS[state.mode])}</p>
+          <h2 class="qz-text">${escapeHtml(DuoEngine.itemText(state, r.item))}</h2>
+          <hr class="qz-rule">
+        </div>
+        <div class="qz-answers">
+          <div class="qz-pair">
+            <div class="qz-pair-row answer"><span class="qz-pair-who">Du</span><span class="qz-pair-text">${escapeHtml(answerLabel(state, r[person]))}</span></div>
+            <div class="qz-pair-row guess"><span class="qz-pair-who">${escapeHtml(partner)}</span><span class="qz-pair-text">${escapeHtml(answerLabel(state, r[partner]))}</span></div>
           </div>
-        </li>`).join("")}
-    </ul>
-    <div id="duoNext"></div>`;
+          <div class="qz-result ${r.match ? "hit" : "miss"}">
+            <h3>${r.match ? "Einig! 💞" : "Uneinig! 😄"}</h3>
+            <p>${r.match ? "Ihr habt gleich geantwortet." : "Da seid ihr verschiedener Meinung."}</p>
+          </div>
+        </div>
+      </div>
+      <button type="button" id="duoConfirm" class="qz-confirm">${k + 1 < total ? "Weiter ▶" : "Zum Ergebnis ▶"}</button>
+    </div>`;
+  document.getElementById("duoConfirm").addEventListener("click", () => {
+    revealPos.pos = k + 1;
+    renderBoard(room.game);
+  });
+}
+
+function renderReveal(state, person, partner) {
+  const { perItem, matches } = state.results;
+  stageEl.innerHTML = `
+    <div class="qz-screen">
+      <div class="qz-scroll">
+        <div class="qz-summary-head">
+          <div class="qz-big-emoji" aria-hidden="true">${matches === perItem.length ? "💞" : matches >= perItem.length / 2 ? "😊" : "😂"}</div>
+          <div class="qz-summary-score" id="duoMatches">${matches} von ${perItem.length}</div>
+          <p>gleich geantwortet</p>
+          <p class="qz-verdict-text" id="duoVerdict">${escapeHtml(DuoEngine.verdict(matches, perItem.length))}</p>
+        </div>
+        <ul class="qz-list">
+          ${perItem.map(r => `
+            <li class="qz-item ${r.match ? "hit" : "miss"}">
+              <span class="qz-item-mark" aria-label="${r.match ? "gleich" : "unterschiedlich"}">${r.match ? "💞" : "≠"}</span>
+              <div class="qz-item-body">
+                <div class="qz-item-q">${escapeHtml(DuoEngine.itemText(state, r.item))}</div>
+                <div class="qz-item-line"><b>Du:</b> ${escapeHtml(answerLabel(state, r[person]))}</div>
+                <div class="qz-item-line muted"><b>${escapeHtml(partner)}:</b> ${escapeHtml(answerLabel(state, r[partner]))}</div>
+              </div>
+            </li>`).join("")}
+        </ul>
+        <div id="duoNext"></div>
+      </div>
+    </div>`;
   room.renderReady(document.getElementById("duoNext"), state, { label: "Nächste Runde ▶", nextFn: DuoEngine.nextRound });
+}
+
+function renderBoard(game) {
+  if (!game || !game.state) return;
+  const state = game.state;
+  const person = me();
+  const partner = state.players.find(p => p !== person);
+  renderScore(state, person, partner);
+  if (state.mode === "daily") {
+    renderDailyGame(game, person, partner);
+    return;
+  }
+
+  if (state.phase === "answer") {
+    if (!state.answers[person]) renderQuestionFlow(game, partner);
+    else stageEl.innerHTML = centerHtml("⏳", "Fertig!", `Warte auf ${partner} – dann seht ihr, wo ihr euch einig seid.`);
+    return;
+  }
+
+  /* walk through the six one by one, then the summary */
+  const roundKey = `${game.id}:${state.round}`;
+  if (revealPos.key !== roundKey) revealPos = { key: roundKey, pos: 0 };
+  if (revealPos.pos < state.results.perItem.length) {
+    renderRevealItem(state, person, partner, revealPos.pos);
+    return;
+  }
+  renderReveal(state, person, partner);
 }
 
 loadDaily();

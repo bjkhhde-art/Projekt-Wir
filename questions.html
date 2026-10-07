@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="game-room.css">
   <link rel="stylesheet" href="questions.css">
   <link rel="stylesheet" href="versus.css">
+  <link rel="stylesheet" href="quiz.css">
   <script src="pin-lock.js"></script>
 </head>
 <body data-nav="games.html">
@@ -94,13 +95,13 @@
 
       <div id="vsLobby"></div>
 
-      <div id="vsBoard" class="vs-board hidden">
-        <div id="vsScore" class="vs-score"></div>
-        <div id="vsStage" class="vs-stage"></div>
-
-        <div class="gr-leave">
+      <div id="vsBoard" class="vs-board quiz-board hidden">
+        <div class="qz-topbar">
+          <button type="button" id="vsBackBtn" class="qz-back" aria-label="Zurück zur Übersicht – die Runde läuft weiter">‹</button>
           <button type="button" id="vsLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+          <div id="vsScore" class="qz-score"></div>
         </div>
+        <div id="vsStage" class="qz-stage"></div>
       </div>
     </section>
   </main>

@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="game-room.css">
   <link rel="stylesheet" href="duo.css">
+  <link rel="stylesheet" href="quiz.css">
   <script src="pin-lock.js"></script>
 </head>
 <body data-nav="games.html">
@@ -34,11 +35,13 @@
     </section>
 
     <div id="duoLobby"></div>
-    <div id="duoBoard" class="duo-board hidden">
-      <div id="duoStage"></div>
-      <div class="gr-leave">
+    <div id="duoBoard" class="duo-board quiz-board hidden">
+      <div class="qz-topbar">
+        <button type="button" id="duoBackBtn" class="qz-back" aria-label="Zurück zur Übersicht – die Runde läuft weiter">‹</button>
         <button type="button" id="duoLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+        <div id="duoScore" class="qz-score"></div>
       </div>
+      <div id="duoStage" class="qz-stage"></div>
     </div>
   </main>
 
