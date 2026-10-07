@@ -68,7 +68,7 @@ function buildVisionCard(vision) {
 
   card.innerHTML = `
     ${vision.image_url
-      ? `<img class="vision-card-image" src="${vision.image_url}" alt="${escapeHtml(vision.title)}" loading="lazy" decoding="async">`
+      ? `<img class="vision-card-image" src="${escapeHtml(vision.image_url)}" alt="${escapeHtml(vision.title)}" loading="lazy" decoding="async">`
       : ""}
     <div class="vision-card-body">
       <div class="vision-card-top">

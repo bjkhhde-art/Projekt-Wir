@@ -100,7 +100,7 @@ function buildMemoryCard(memory) {
       <button class="icon-action delete-memory-btn" title="Löschen">×</button>
     </div>
     ${memory.cover_url
-      ? `<img src="${memory.cover_url}" alt="${escapeHtml(memory.title)}" loading="lazy" decoding="async" onerror="window.handleBrokenCover(this)">`
+      ? `<img src="${escapeHtml(memory.cover_url)}" alt="${escapeHtml(memory.title)}" loading="lazy" decoding="async" onerror="window.handleBrokenCover(this)">`
       : `<div class="memory-cover-placeholder">📷</div>`}
     <div class="memory-content">
       <h2>${escapeHtml(memory.title)}</h2>
@@ -486,7 +486,7 @@ function renderImages() {
     card.className = "image-card card";
 
     card.innerHTML = `
-      <img src="${image.image_url}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async" draggable="false">
+      <img src="${escapeHtml(image.image_url)}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async" draggable="false">
       ${image.caption ? `<p class="image-caption">${escapeHtml(image.caption)}</p>` : ""}
     `;
 

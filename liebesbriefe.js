@@ -39,10 +39,11 @@ async function loadNotes() {
   if (error) {
     console.error("Fehler beim Laden:", error);
     showToast("Nachrichten konnten nicht geladen werden.", "error");
+    notesFeed.innerHTML = `<div class="empty-state"><span class="empty-icon">💌</span><p>Die Nachrichten konnten nicht geladen werden.</p></div>`;
     return;
   }
 
-  notes = data;
+  notes = data || [];
   renderNotes();
 }
 
@@ -63,7 +64,8 @@ function renderNotes() {
 
   notes.forEach(note => {
     const authorClass = note.author === "Isi" ? "author-isi" : "author-benji";
-    const isNew = !openedIds.includes(note.id);
+    /* my own letters are never "new" for me */
+    const isNew = !openedIds.includes(note.id) && normalizePerson(note.author) !== normalizePerson(localStorage.getItem("pw_person"));
 
     const card = document.createElement("button");
     card.type = "button";
@@ -80,7 +82,7 @@ function renderNotes() {
         <span class="envelope-mini-seal">💗</span>
       </div>
       <div class="envelope-label">
-        <span class="envelope-author">Von ${note.author}</span>
+        <span class="envelope-author">Von ${escapeHtml(note.author)}</span>
         <span class="envelope-time">${timeAgo(note.created_at)}</span>
       </div>
     `;
