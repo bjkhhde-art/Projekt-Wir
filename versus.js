@@ -1,5 +1,5 @@
-/* Versus on the questions page, like LovBirdz: one answers, one guesses, the roles swap after
-   three questions, and every question is resolved as soon as both have typed. Rules live in versus-engine.js, lobby/sync/versions in game-room.js. */
+/* Versus on the questions page, like LovBirdz and full screen: one answers, one guesses, the roles
+   swap after three questions; everybody types at their own pace and the reveal comes at the end. Rules live in versus-engine.js, lobby/sync/versions in game-room.js. */
 
 const V = VersusEngine;
 const talkMode = document.getElementById("talkMode");
@@ -20,7 +20,14 @@ let celebratedRound = null;
 
 const MODES = ["talk", "other", "versus"];
 
+/* the running round is a full-screen layer directly on <body> (no animated parent may confine it),
+   shown only while the Versus tab is open */
+document.body.appendChild(vsBoard);
+/* "‹" leaves the full screen without ending the round – opening Versus again continues it */
+document.getElementById("vsBackBtn").addEventListener("click", () => showMode("other"));
+
 function showMode(mode) {
+  document.body.classList.toggle("vs-open", mode === "versus");
   talkMode.hidden = mode !== "talk";
   otherMode.hidden = mode !== "other";
   versusMode.hidden = mode !== "versus";
@@ -74,11 +81,7 @@ const versusRoom = GameRoom.create({
   ]
 });
 
-/* ---------- formatting ---------- */
-
-function fmtPoints(value) {
-  return String(value).replace(".", ",");
-}
+/* ---------- small helpers ---------- */
 
 function nameFor(person, me) {
   return person === me ? "Du" : person;
@@ -100,106 +103,83 @@ function hintFor(question, answerer, viewer) {
   return "";
 }
 
-/* ---------- what only this phone knows: text being typed, results already seen, role cards seen ---------- */
+/* ---------- what only this phone knows: text being typed, role cards seen, where the reveal is ---------- */
 
 let stageKey = null;
 let typed = { key: null, text: "" };
-let seen = { key: null, count: 0 };
 const rolesSeen = new Set();
+let reveal = { key: null, pos: 0 };
+const cheered = new Set();
 
 /* ---------- pieces ---------- */
 
 function renderScore(state, me, partner) {
   const lead = V.leader(state);
-  const player = (name, label) => `
-    <div class="vs-player${name === me ? " me" : ""}">
-      <span class="vs-player-name">${lead === name ? "👑 " : ""}${escapeHtml(label)}</span>
-      <span class="vs-player-points">${fmtPoints(state.scores[name] || 0)}</span>
-    </div>`;
-  vsScore.innerHTML = `
-    ${player(me, "Du")}
-    <div class="vs-round">Runde ${state.round}<span>${escapeHtml(V.CATEGORIES[state.category] || "Gemischt")}</span></div>
-    ${player(partner, partner)}`;
+  const chip = (name, label) => `<span class="qz-chip${name === me ? " me" : ""}">${lead === name ? "👑 " : ""}${escapeHtml(label)} ${state.scores[name] || 0}</span>`;
+  vsScore.innerHTML = `${chip(me, "Du")}${chip(partner, partner)}`;
 }
 
-function waitingCard(icon, title, text) {
+/* two halves with the role swap in the middle, filled by how far I am */
+function progressBar(done) {
+  const first = Math.min(done, V.PER_ROUND) / V.PER_ROUND * 100;
+  const second = Math.max(done - V.PER_ROUND, 0) / V.PER_ROUND * 100;
   return `
-    <div class="vs-wait card">
-      <div class="vs-wait-icon">${icon}</div>
-      <h3>${escapeHtml(title)}</h3>
-      <p><span class="gr-spinner"></span> ${escapeHtml(text)}</p>
+    <div class="qz-progress" aria-label="Frage ${Math.min(done + 1, V.QUESTIONS_PER_ROUND)} von ${V.QUESTIONS_PER_ROUND}">
+      <div class="qz-progress-half first"><div class="qz-progress-fill" style="width:${first}%"></div></div>
+      <span class="qz-progress-swap" aria-hidden="true">🔄</span>
+      <div class="qz-progress-half second"><div class="qz-progress-fill" style="width:${second}%"></div></div>
     </div>`;
 }
 
-/* six steps, the role swap in the middle */
-function progressBar(state) {
-  const step = i => `<span class="vs-step${i < state.results.length ? " done" : i === state.index ? " now" : ""}${i < V.PER_ROUND ? " first" : " second"}"></span>`;
-  const steps = Array.from({ length: V.QUESTIONS_PER_ROUND }, (_, i) => i);
+function centerScreen(emoji, title, text, extra = "") {
   return `
-    <div class="vs-progress" aria-label="Frage ${state.index + 1} von ${V.QUESTIONS_PER_ROUND}">
-      ${steps.slice(0, V.PER_ROUND).map(step).join("")}
-      <span class="vs-swap" aria-hidden="true">🔄</span>
-      ${steps.slice(V.PER_ROUND).map(step).join("")}
+    <div class="qz-screen">
+      <div class="qz-center">
+        <div class="qz-big-emoji" aria-hidden="true">${emoji}</div>
+        <h2>${escapeHtml(title)}</h2>
+        <p>${escapeHtml(text)}</p>
+        ${extra}
+      </div>
     </div>`;
 }
 
-function roleBanner(amAnswerer) {
-  return `<div class="vs-role ${amAnswerer ? "answer" : "guess"}">${amAnswerer ? "💬 Du bist dran mit Antworten" : "🔮 Du bist dran mit Raten"}</div>`;
-}
-
-function questionHead(state, question, roles, me) {
-  const amAnswerer = roles.answerer === me;
-  return `
-    ${roleBanner(amAnswerer)}
-    ${progressBar(state)}
-    <div class="vs-q-head"><span class="vs-q-num">Frage ${state.index + 1}/${V.QUESTIONS_PER_ROUND}</span><span class="vs-q-lead">${amAnswerer ? "Über dich" : `Was antwortet ${escapeHtml(roles.answerer)}?`}</span></div>
-    <h3 class="vs-q-text">${escapeHtml(question.q)}</h3>`;
-}
-
-/* ---------- stages ---------- */
+/* ---------- screens ---------- */
 
 function renderRoles(state, me, half, key) {
+  stageKey = null;
   const roles = V.rolesAt(state, half * V.PER_ROUND);
-  const roleCard = (person, answering) => `
-    <div class="vs-role-card ${answering ? "answer" : "guess"}">
-      <span class="vs-role-name">${escapeHtml(person === me ? `${person} (du)` : person)}</span>
-      <span class="vs-role-text">${person === me ? "Du bist" : `${escapeHtml(person)} ist`} dran mit ${answering ? "Antworten" : "Raten"}</span>
-      <span class="vs-role-icon" aria-hidden="true">${answering ? "💬" : "🔮"}</span>
+  const card = (person, answering) => `
+    <div class="qz-role-card ${answering ? "answer" : "guess"}">
+      <span class="qz-role-name">${escapeHtml(person)}</span>
+      <span class="qz-role-text">${person === me ? "Du bist" : `${escapeHtml(person)} ist`} dran mit ${answering ? "Antworten" : "Raten"}</span>
+      <span class="qz-role-icon" aria-hidden="true">${answering ? "💬" : "🔮"}</span>
     </div>`;
   vsStage.innerHTML = `
-    <h2 class="vs-stage-title vs-roles-title">${half === 0 ? "❗ Rollenverteilung" : "🔄 Rollenwechsel"}</h2>
-    <div class="vs-roles">
-      ${roleCard(roles.answerer, true)}
-      ${roleCard(roles.guesser, false)}
-    </div>
-    <button type="button" id="vsRolesGo" class="btn btn-block vs-submit">Los geht's ▶</button>`;
+    <div class="qz-screen">
+      <div class="qz-head plain"><span class="qz-head-icon">${half === 0 ? "!" : "🔄"}</span>${half === 0 ? "Rollenverteilung" : "Rollenwechsel"}</div>
+      <div class="qz-roles">
+        ${card(roles.answerer, true)}
+        <div class="qz-role-swap" aria-hidden="true">🔄</div>
+        ${card(roles.guesser, false)}
+      </div>
+      <button type="button" id="vsRolesGo" class="qz-confirm">Los geht's ▶</button>
+    </div>`;
   document.getElementById("vsRolesGo").addEventListener("click", () => {
     rolesSeen.add(key);
     renderVersus();
   });
 }
 
-function renderInput(game, state, me, partner) {
-  const roles = V.rolesAt(state);
+/* my next question: upper half the question, lower half the text field */
+function renderQuestion(game, state, me, partner) {
+  const index = V.progressOf(state, me);
+  const roles = V.rolesAt(state, index);
   const amAnswerer = roles.answerer === me;
-  const mine = state.current[amAnswerer ? "answer" : "guess"];
-  const theirs = state.current[amAnswerer ? "guess" : "answer"];
-  const question = V.questionById(state.questions[state.index]);
-  const statusText = theirs !== null ? `💌 ${partner} ist schon fertig.` : `${partner} tippt noch …`;
+  const theirs = V.progressOf(state, partner);
+  const statusText = theirs >= V.QUESTIONS_PER_ROUND ? `💌 ${partner} ist schon fertig.` : `${partner} ist bei Frage ${theirs + 1} von ${V.QUESTIONS_PER_ROUND}.`;
 
-  if (mine !== null) {
-    stageKey = null;
-    vsStage.innerHTML = `
-      <div class="vs-question card">
-        ${questionHead(state, question, roles, me)}
-        <div class="vs-judge-line"><b>${amAnswerer ? "Deine Antwort" : "Dein Tipp"}:</b> ${escapeHtml(mine)}</div>
-      </div>
-      ${waitingCard("⏳", "Eingeloggt!", amAnswerer ? `${partner} rät noch, was du geantwortet hast …` : `${partner} antwortet noch …`)}`;
-    return;
-  }
-
-  /* typing must not be interrupted by live updates: keep the card, only refresh the status line */
-  const key = `${game.id}:${state.round}:${state.index}`;
+  /* typing must not be interrupted by live updates: keep the screen, only refresh the status line */
+  const key = `${game.id}:${state.round}:${index}`;
   if (stageKey === key && document.getElementById("vsPartnerStatus")) {
     document.getElementById("vsPartnerStatus").textContent = statusText;
     return;
@@ -207,37 +187,49 @@ function renderInput(game, state, me, partner) {
   stageKey = key;
   if (typed.key !== key) typed = { key, text: "" };
 
+  const question = V.questionById(state.questions[index]);
   const hint = hintFor(question, roles.answerer, me);
   const chips = suggestionsFor(question, roles.answerer, me);
   vsStage.innerHTML = `
-    <div class="vs-question card">
-      ${questionHead(state, question, roles, me)}
-      ${hint ? `<p class="vs-q-hint">${escapeHtml(hint)}</p>` : ""}
-      ${chips.length ? `<div class="vs-chips">${chips.map(c => `<button type="button" class="vs-chip" data-text="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
-      <input type="text" id="vsInput" class="vs-input" maxlength="${V.MAX_TEXT}" autocomplete="off"
-        placeholder="${amAnswerer ? "Deine Antwort …" : `Was antwortet ${escapeHtml(partner)}?`}" value="${escapeHtml(typed.text)}">
-    </div>
-    <p id="vsPartnerStatus" class="vs-partner-status">${escapeHtml(statusText)}</p>
-    <button type="button" id="vsSubmit" class="btn btn-block vs-submit">✓ Bestätigen</button>`;
+    <div class="qz-screen">
+      <div class="qz-head ${amAnswerer ? "answer" : "guess"}"><span class="qz-head-icon">!</span>Du bist dran mit ${amAnswerer ? "Antworten" : "Raten"}</div>
+      ${progressBar(index)}
+      <div class="qz-card">
+        <div class="qz-question">
+          <p class="qz-lead">Frage ${index + 1} von ${V.QUESTIONS_PER_ROUND} · ${amAnswerer ? "Über dich" : `Was antwortet ${escapeHtml(partner)}?`}</p>
+          <h2 class="qz-text">${escapeHtml(question.q)}</h2>
+          <hr class="qz-rule">
+        </div>
+        <div class="qz-answers">
+          <input type="text" id="vsInput" class="qz-input" maxlength="${V.MAX_TEXT}" autocomplete="off" enterkeyhint="done"
+            placeholder="${amAnswerer ? "Deine Antwort …" : `${escapeHtml(partner)}s Antwort …`}" value="${escapeHtml(typed.text)}">
+          ${hint ? `<p class="qz-hint">${escapeHtml(hint)}</p>` : ""}
+          ${chips.length ? `<div class="qz-chips">${chips.map(c => `<button type="button" class="qz-chip-btn" data-text="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
+        </div>
+      </div>
+      <p id="vsPartnerStatus" class="qz-note">${escapeHtml(statusText)}</p>
+      <button type="button" id="vsSubmit" class="qz-confirm">✓ Bestätigen</button>
+    </div>`;
 
   const input = document.getElementById("vsInput");
   const submitBtn = document.getElementById("vsSubmit");
   const refresh = () => {
     submitBtn.disabled = !input.value.trim();
-    vsStage.querySelectorAll(".vs-chip").forEach(chip => chip.classList.toggle("selected", chip.dataset.text === input.value.trim()));
+    vsStage.querySelectorAll(".qz-chip-btn").forEach(chip => chip.classList.toggle("selected", chip.dataset.text === input.value.trim()));
   };
   input.addEventListener("input", () => {
     typed.text = input.value;
     refresh();
   });
-  vsStage.querySelectorAll(".vs-chip").forEach(chip => chip.addEventListener("click", () => {
+  vsStage.querySelectorAll(".qz-chip-btn").forEach(chip => chip.addEventListener("click", () => {
     input.value = chip.dataset.text;
     typed.text = input.value;
     refresh();
     if (navigator.vibrate) navigator.vibrate(8);
   }));
   const send = () => {
-    if (!input.value.trim()) return;
+    if (!input.value.trim() || submitBtn.disabled) return;
+    submitBtn.disabled = true;
     stageKey = null;
     versusRoom.dispatch(V.submitText, input.value);
   };
@@ -248,91 +240,118 @@ function renderInput(game, state, me, partner) {
   refresh();
 }
 
-function renderJudge(state, me, partner) {
+function renderWaiting(state, me, partner) {
   stageKey = null;
-  const roles = V.rolesAt(state);
-  const amAnswerer = roles.answerer === me;
-  const question = V.questionById(state.questions[state.index]);
-  vsStage.innerHTML = `
-    <div class="vs-question vs-judge card">
-      ${questionHead(state, question, roles, me)}
-      <div class="vs-judge-line"><b>${escapeHtml(nameFor(roles.answerer, me))}:</b> ${escapeHtml(state.current.answer)}</div>
-      <div class="vs-judge-line guess"><b>${amAnswerer ? `Tipp von ${escapeHtml(partner)}` : "Dein Tipp"}:</b> ${escapeHtml(state.current.guess)}</div>
-      ${amAnswerer ? `
-        <p class="vs-judge-ask">Lag ${escapeHtml(partner)} richtig?</p>
-        <div class="vs-verdict">
-          <button type="button" class="vs-verdict-btn right" data-right="1">✓ Richtig</button>
-          <button type="button" class="vs-verdict-btn wrong" data-right="0">✗ Falsch</button>
-        </div>` : ""}
-    </div>
-    ${amAnswerer ? "" : waitingCard("⚖️", "Beide sind drin!", `${partner} entscheidet, ob du richtig liegst …`)}`;
-  vsStage.querySelectorAll(".vs-verdict-btn").forEach(btn => btn.addEventListener("click", () => {
-    vsStage.querySelectorAll(".vs-verdict-btn").forEach(b => { b.disabled = true; });
-    versusRoom.dispatch(V.judge, btn.dataset.right === "1");
-  }));
+  const theirs = V.progressOf(state, partner);
+  const dots = Array.from({ length: V.QUESTIONS_PER_ROUND }, (_, i) => `<span class="${i < theirs ? "done" : ""}"></span>`).join("");
+  vsStage.innerHTML = centerScreen("⏳", "Fertig!", `Warte auf ${partner} – bei Frage ${Math.min(theirs + 1, V.QUESTIONS_PER_ROUND)} von ${V.QUESTIONS_PER_ROUND}. Dann kommt die Aufklärung.`, `<div class="qz-mini-progress" aria-label="${escapeHtml(partner)}: ${theirs} von ${V.QUESTIONS_PER_ROUND}">${dots}</div>`);
 }
 
-/* every question is resolved right away; each phone moves on with "Weiter" */
-function renderResult(state, result, me) {
+/* the reveal, question by question: whoever answered decides, both see the result */
+function renderRevealCard(state, me, partner, index) {
   stageKey = null;
-  const question = V.questionById(result.questionId);
-  const iGuessed = result.guesser === me;
-  const title = result.right ? "Richtig! 🎉" : "Oh je! 😵‍💫";
-  const text = result.right
-    ? `+1 Punkt für ${iGuessed ? "dich" : escapeHtml(result.guesser)}`
-    : iGuessed ? "Knapp daneben – nächstes Mal! 💪" : `${escapeHtml(result.guesser)} lag daneben.`;
+  const roles = V.rolesAt(state, index);
+  const amAnswerer = roles.answerer === me;
+  const question = V.questionById(state.questions[index]);
+  const verdict = state.verdicts[index];
+
+  let bottom;
+  if (verdict === null && amAnswerer) {
+    bottom = `
+      <p class="qz-note">Lag ${escapeHtml(partner)} richtig?</p>
+      <div class="qz-verdict">
+        <button type="button" class="qz-option right" data-right="1">✓ Richtig</button>
+        <button type="button" class="qz-option wrong" data-right="0">✗ Falsch</button>
+      </div>`;
+  } else if (verdict === null) {
+    bottom = `<div class="qz-result open"><h3>⏳ Moment …</h3><p>${escapeHtml(partner)} entscheidet, ob du richtig liegst.</p></div>`;
+  } else {
+    const iGuessed = roles.guesser === me;
+    bottom = verdict
+      ? `<div class="qz-result hit"><h3>Richtig! 🎉</h3><p>${iGuessed ? "Du kennst " + escapeHtml(partner) + " einfach." : escapeHtml(partner) + " kennt dich einfach."}</p><span class="qz-points">+1 Punkt für ${iGuessed ? "dich" : escapeHtml(roles.guesser)}</span></div>`
+      : `<div class="qz-result miss"><h3>Oh je! 😵‍💫</h3><p>${iGuessed ? "Knapp daneben – nächstes Mal! 💪" : escapeHtml(partner) + " lag daneben."}</p><span class="qz-points">+0 Punkte</span></div>`;
+  }
+
   vsStage.innerHTML = `
-    <div class="vs-outcome card ${result.right ? "hit" : "miss"}">
-      <div class="vs-outcome-icon" aria-hidden="true">${result.right ? "🥳" : "😵‍💫"}</div>
-      <h2>${title}</h2>
-      <p class="vs-outcome-text">${text}</p>
-      <div class="vs-outcome-q">${escapeHtml(question.q)}</div>
-      <div class="vs-judge-line"><b>${escapeHtml(nameFor(result.answerer, me))}:</b> ${escapeHtml(result.answer)}</div>
-      <div class="vs-judge-line guess"><b>${iGuessed ? "Dein Tipp" : `Tipp von ${escapeHtml(result.guesser)}`}:</b> ${escapeHtml(result.guess)}</div>
-    </div>
-    <button type="button" id="vsContinue" class="btn btn-block vs-submit">Weiter ▶</button>`;
+    <div class="qz-screen">
+      <div class="qz-head plain"><span class="qz-head-icon">✨</span>Aufklärung ${index + 1}/${V.QUESTIONS_PER_ROUND}</div>
+      <div class="qz-card">
+        <div class="qz-question">
+          <p class="qz-lead">${amAnswerer ? "Über dich" : `Über ${escapeHtml(roles.answerer)}`}</p>
+          <h2 class="qz-text">${escapeHtml(question.q)}</h2>
+          <hr class="qz-rule">
+        </div>
+        <div class="qz-answers">
+          <div class="qz-pair">
+            <div class="qz-pair-row answer"><span class="qz-pair-who">${amAnswerer ? "Deine Antwort" : `Antwort von ${escapeHtml(roles.answerer)}`}</span><span class="qz-pair-text">${escapeHtml(V.answerAt(state, index))}</span></div>
+            <div class="qz-pair-row guess"><span class="qz-pair-who">${amAnswerer ? `Tipp von ${escapeHtml(roles.guesser)}` : "Dein Tipp"}</span><span class="qz-pair-text">${escapeHtml(V.guessAt(state, index))}</span></div>
+          </div>
+          ${bottom}
+        </div>
+      </div>
+      <button type="button" id="vsContinue" class="qz-confirm"${verdict === null ? " disabled" : ""}>${index + 1 < V.QUESTIONS_PER_ROUND ? "Weiter ▶" : "Zum Ergebnis ▶"}</button>
+    </div>`;
+
+  vsStage.querySelectorAll(".qz-verdict .qz-option").forEach(btn => btn.addEventListener("click", () => {
+    vsStage.querySelectorAll(".qz-verdict .qz-option").forEach(b => { b.disabled = true; });
+    if (navigator.vibrate) navigator.vibrate(10);
+    versusRoom.dispatch(V.judge, index, btn.dataset.right === "1");
+  }));
   document.getElementById("vsContinue").addEventListener("click", () => {
-    seen.count++;
+    if (state.verdicts[index] === null) return;
+    reveal.pos = index + 1;
     renderVersus();
   });
-  if (result.right && iGuessed) celebrate(10);
+  const cheerKey = `${reveal.key}:${index}`;
+  if (verdict === true && roles.guesser === me && !cheered.has(cheerKey)) {
+    cheered.add(cheerKey);
+    celebrate(10);
+  }
 }
 
-function resultList(results, me) {
-  return results.map((r, i) => `
-    <li class="vs-result ${r.right ? "hit" : "miss"}" style="animation-delay:${i * 180}ms">
-      <span class="vs-result-mark">${r.right ? "✅" : "❌"}</span>
-      <div class="vs-result-body">
-        <div class="vs-result-q">${escapeHtml(V.questionById(r.questionId).q)}</div>
-        <div class="vs-result-line"><b>${escapeHtml(nameFor(r.answerer, me))}:</b> ${escapeHtml(r.answer)}</div>
-        <div class="vs-result-line guess"><b>${r.guesser === me ? "Dein Tipp" : `Tipp von ${escapeHtml(r.guesser)}`}:</b> ${escapeHtml(r.guess)}</div>
-      </div>
-      <span class="vs-result-points">+${r.right ? 1 : 0}</span>
-    </li>`).join("");
+function resultList(state, me, guesser) {
+  return state.questions.map((id, i) => ({ id, i, roles: V.rolesAt(state, i) }))
+    .filter(entry => entry.roles.guesser === guesser)
+    .map(({ id, i, roles }) => {
+      const right = state.verdicts[i];
+      return `
+        <li class="qz-item ${right ? "hit" : "miss"}">
+          <span class="qz-item-mark">${right ? "✅" : "❌"}</span>
+          <div class="qz-item-body">
+            <div class="qz-item-q">${escapeHtml(V.questionById(id).q)}</div>
+            <div class="qz-item-line"><b>${escapeHtml(nameFor(roles.answerer, me))}:</b> ${escapeHtml(V.answerAt(state, i))}</div>
+            <div class="qz-item-line muted"><b>${roles.guesser === me ? "Dein Tipp" : `Tipp von ${escapeHtml(roles.guesser)}`}:</b> ${escapeHtml(V.guessAt(state, i))}</div>
+          </div>
+        </li>`;
+    }).join("");
 }
 
-function renderReveal(game, state, me, partner) {
+function renderSummary(game, state, me, partner) {
   stageKey = null;
   const totals = V.roundTotals(state);
   const mine = totals[me];
   const theirs = totals[partner];
   const headline = mine === theirs
     ? "Unentschieden – ihr kennt euch gleich gut 💞"
-    : mine > theirs ? `Du kennst ${partner} diese Runde besser! 🏆` : `${partner} kennt dich diese Runde besser! 🏆`;
+    : mine > theirs ? `Du kennst ${partner} diese Runde besser!` : `${partner} kennt dich diese Runde besser!`;
 
   vsStage.innerHTML = `
-    <div class="vs-headline card">
-      <div class="vs-headline-score"><span>Du ${fmtPoints(mine)}</span><span class="vs-headline-vs">:</span><span>${fmtPoints(theirs)} ${escapeHtml(partner)}</span></div>
-      <p>${escapeHtml(headline)}</p>
-    </div>
-    <h3 class="vs-section-title">Deine Tipps über ${escapeHtml(partner)} · ${fmtPoints(mine)}/${V.PER_ROUND}</h3>
-    <ul class="vs-results">${resultList(state.results.filter(r => r.guesser === me), me)}</ul>
-    <h3 class="vs-section-title">${escapeHtml(partner)}s Tipps über dich · ${fmtPoints(theirs)}/${V.PER_ROUND}</h3>
-    <ul class="vs-results">${resultList(state.results.filter(r => r.guesser === partner), me)}</ul>
-    <div id="vsNextWrap"></div>`;
+    <div class="qz-screen">
+      <div class="qz-scroll">
+        <div class="qz-summary-head" id="vsSummary">
+          <div class="qz-big-emoji" aria-hidden="true">${mine === theirs ? "💞" : mine > theirs ? "🏆" : "🥈"}</div>
+          <div class="qz-summary-score">Du ${mine} : ${theirs} ${escapeHtml(partner)}</div>
+          <p>${escapeHtml(headline)}</p>
+        </div>
+        <h3 class="qz-section-title">Deine Tipps über ${escapeHtml(partner)} · ${mine}/${V.PER_ROUND}</h3>
+        <ul class="qz-list">${resultList(state, me, me)}</ul>
+        <h3 class="qz-section-title">${escapeHtml(partner)}s Tipps über dich · ${theirs}/${V.PER_ROUND}</h3>
+        <ul class="qz-list">${resultList(state, me, partner)}</ul>
+        <div id="vsNextWrap"></div>
+      </div>
+    </div>`;
   const next = versusRoom.renderReady(document.getElementById("vsNextWrap"), state, { label: "Nächste Runde ▶", nextFn: V.nextRound });
   next.id = "vsNext";
-  next.classList.add("vs-submit");
 
   const roundKey = `${game.id}:${state.round}`;
   if (celebratedRound !== roundKey) {
@@ -351,40 +370,40 @@ function renderVersus() {
 
   if (!V.isCurrentFormat(state)) {
     stageKey = null;
-    vsStage.innerHTML = `
-      <div class="vs-wait card">
-        <div class="vs-wait-icon">✍️</div>
-        <h3>Versus hat neue Regeln</h3>
-        <p>Jetzt gibt es Rollen wie bei LovBirdz und jede Frage wird sofort aufgelöst. Diese Runde läuft noch nach den alten Regeln &ndash; beendet sie unten mit „Spiel beenden" und startet eine neue.</p>
-      </div>`;
+    vsStage.innerHTML = centerScreen("✍️", "Versus hat neue Regeln", "Diese Runde läuft noch nach den alten Regeln – beendet sie oben mit „Spiel beenden“ und startet eine neue.");
     return;
   }
 
-  /* after a reload the results so far are not replayed */
   const roundKey = `${game.id}:${state.round}`;
-  if (seen.key !== roundKey) seen = { key: roundKey, count: state.results.length };
-  if (seen.count < state.results.length) {
-    renderResult(state, state.results[seen.count], me);
+  if (state.phase === "play") {
+    const done = V.progressOf(state, me);
+    if (done >= V.QUESTIONS_PER_ROUND) {
+      renderWaiting(state, me, partner);
+      return;
+    }
+    /* who answers and who guesses – at the start and again at the swap */
+    const half = done < V.PER_ROUND ? 0 : 1;
+    const rolesKey = `${roundKey}:${half}`;
+    if (done % V.PER_ROUND === 0 && !rolesSeen.has(rolesKey)) {
+      renderRoles(state, me, half, rolesKey);
+      return;
+    }
+    renderQuestion(game, state, me, partner);
+    return;
+  }
+
+  /* the reveal walks through all six; after a reload of a finished round go straight to the result */
+  if (reveal.key !== roundKey) reveal = { key: roundKey, pos: state.phase === "reveal" ? V.QUESTIONS_PER_ROUND : 0 };
+  if (reveal.pos < V.QUESTIONS_PER_ROUND) {
+    renderRevealCard(state, me, partner, reveal.pos);
     return;
   }
   if (state.phase === "reveal") {
-    renderReveal(game, state, me, partner);
+    renderSummary(game, state, me, partner);
     return;
   }
-
-  /* who answers and who guesses – at the start and again at the swap */
-  const half = state.index < V.PER_ROUND ? 0 : 1;
-  const rolesKey = `${roundKey}:${half}`;
-  const roles = V.rolesAt(state);
-  const mineDone = state.current[roles.answerer === me ? "answer" : "guess"] !== null;
-  if (state.phase === "input" && state.index % V.PER_ROUND === 0 && !mineDone && !rolesSeen.has(rolesKey)) {
-    stageKey = null;
-    renderRoles(state, me, half, rolesKey);
-    return;
-  }
-
-  if (state.phase === "judge") renderJudge(state, me, partner);
-  else renderInput(game, state, me, partner);
+  stageKey = null;
+  vsStage.innerHTML = centerScreen("⏳", "Gleich geht's weiter", `${partner} bewertet noch die letzten Tipps …`);
 }
 
 showMode(initialMode());

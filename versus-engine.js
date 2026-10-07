@@ -1,10 +1,10 @@
 /* Versus – who knows the other better? Pure rules without DOM, shared by questions.js
    (window.VersusEngine) and the node tests (module.exports).
 
-   Like LovBirdz: a round has six questions and two roles. For the first three the first player
-   answers about themself and the second one guesses; then the roles swap. Both type at the same
-   time; as soon as both are in, the one who answered says whether the guess was right – and the
-   question is resolved right away. After six questions the round is summed up. */
+   Like LovBirdz: a round has six questions and two roles. For questions 1–3 the first player
+   answers about themself and the second one guesses; for 4–6 the roles swap. Everybody types at
+   their own pace, one question after the other. When both have all six, the round is revealed
+   question by question: whoever answered says whether the guess was right. */
 (function () {
   const bank = typeof module !== "undefined" && module.exports
     ? require("./versus-questions.js")
@@ -13,7 +13,7 @@
   const PER_ROUND = 3;
   const QUESTIONS_PER_ROUND = PER_ROUND * 2;
   const MIXED = "mixed";
-  const FORMAT = 3;
+  const FORMAT = 4;
   const MAX_TEXT = 140;
 
   function questionById(id) {
@@ -45,8 +45,13 @@
     return { picked, used: [...nextUsed, ...picked] };
   }
 
-  function freshQuestion() {
-    return { answer: null, guess: null };
+  function freshRound(players, picked) {
+    return {
+      phase: "play",
+      questions: picked,
+      inputs: Object.fromEntries(players.map(p => [p, []])),
+      verdicts: Array(QUESTIONS_PER_ROUND).fill(null)
+    };
   }
 
   function createInitialState(host, guest, option, rand = Math.random) {
@@ -57,11 +62,7 @@
       players: [host, guest],
       category,
       round: 1,
-      phase: "input",
-      questions: drawn.picked,
-      index: 0,
-      current: freshQuestion(),
-      results: [],
+      ...freshRound([host, guest], drawn.picked),
       scores: { [host]: 0, [guest]: 0 },
       used: drawn.used,
       history: [],
@@ -69,54 +70,71 @@
     };
   }
 
-  /* question 1–3: the first player answers, the second guesses; 4–6 the other way round */
-  function rolesAt(state, index = state.index) {
+  /* questions 1–3: the first player answers, the second guesses; 4–6 the other way round */
+  function rolesAt(state, index) {
     const [a, b] = state.players;
     return index < PER_ROUND ? { answerer: a, guesser: b } : { answerer: b, guesser: a };
+  }
+
+  /* how far somebody has typed: the index of their next question (6 = done) */
+  function progressOf(state, person) {
+    return ((state.inputs || {})[person] || []).length;
+  }
+
+  function answerAt(state, index) {
+    return state.inputs[rolesAt(state, index).answerer][index];
+  }
+
+  function guessAt(state, index) {
+    return state.inputs[rolesAt(state, index).guesser][index];
   }
 
   function cleanText(value) {
     return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, MAX_TEXT) : "";
   }
 
-  /* both type at the same time: the answerer their answer, the guesser their guess */
+  /* my next question: as the answerer my answer, as the guesser my guess */
   function submitText(state, person, value) {
     assertPlayer(state, person);
-    if (state.phase !== "input") throw new Error("Gerade wird nicht getippt.");
+    if (state.phase !== "play") throw new Error("Gerade wird nicht getippt.");
     const text = cleanText(value);
     if (!text) throw new Error("Bitte erst etwas eintippen.");
-    const { answerer } = rolesAt(state);
-    const field = person === answerer ? "answer" : "guess";
-    if (state.current[field] !== null) throw new Error("Du hast schon geantwortet.");
+    const mine = state.inputs[person] || [];
+    if (mine.length >= QUESTIONS_PER_ROUND) throw new Error("Du hast schon alle Fragen beantwortet.");
 
-    const current = { ...state.current, [field]: text };
-    const next = { ...state, current, moveSeq: (state.moveSeq || 0) + 1 };
-    if (current.answer !== null && current.guess !== null) next.phase = "judge";
+    const inputs = { ...state.inputs, [person]: [...mine, text] };
+    const next = { ...state, inputs, moveSeq: (state.moveSeq || 0) + 1 };
+    if (state.players.every(p => (inputs[p] || []).length === QUESTIONS_PER_ROUND)) next.phase = "judge";
     return next;
   }
 
-  /* the one who answered says whether the guess was right – the question is resolved at once */
-  function judge(state, person, right) {
+  /* the reveal: whoever answered says whether the guess was right */
+  function judge(state, person, index, right) {
     assertPlayer(state, person);
-    if (state.phase !== "judge") throw new Error("Gerade wird nicht bewertet.");
-    const { answerer, guesser } = rolesAt(state);
+    if (state.phase !== "judge") throw new Error("Gerade wird nicht aufgelöst.");
+    if (!Number.isInteger(index) || index < 0 || index >= QUESTIONS_PER_ROUND) throw new Error("Diese Frage gibt es nicht.");
+    const { answerer } = rolesAt(state, index);
     if (person !== answerer) throw new Error(`${answerer} entscheidet, ob du richtig liegst.`);
+    if (state.verdicts[index] !== null) throw new Error("Diese Frage ist schon bewertet.");
     if (typeof right !== "boolean") throw new Error("Richtig oder falsch?");
 
-    const result = { questionId: state.questions[state.index], answerer, guesser, answer: state.current.answer, guess: state.current.guess, right };
-    const results = [...state.results, result];
-    const scores = { ...state.scores, [guesser]: (state.scores[guesser] || 0) + (right ? 1 : 0) };
-    const next = { ...state, results, scores, moveSeq: (state.moveSeq || 0) + 1 };
+    const verdicts = state.verdicts.slice();
+    verdicts[index] = right;
+    const next = { ...state, verdicts, moveSeq: (state.moveSeq || 0) + 1 };
+    if (verdicts.some(v => v === null)) return next;
 
-    if (state.index + 1 < QUESTIONS_PER_ROUND) {
-      return { ...next, phase: "input", index: state.index + 1, current: freshQuestion() };
-    }
-    const totals = Object.fromEntries(state.players.map(p => [p, results.filter(r => r.guesser === p && r.right).length]));
-    return { ...next, phase: "reveal", history: [...(state.history || []), { round: state.round, totals }] };
+    const totals = roundTotals(next);
+    const scores = Object.fromEntries(state.players.map(p => [p, (state.scores[p] || 0) + totals[p]]));
+    return { ...next, phase: "reveal", scores, history: [...(state.history || []), { round: state.round, totals }] };
   }
 
+  /* a guesser scores one point for every guess that was called right */
   function roundTotals(state) {
-    return Object.fromEntries(state.players.map(p => [p, state.results.filter(r => r.guesser === p && r.right).length]));
+    const totals = Object.fromEntries(state.players.map(p => [p, 0]));
+    state.verdicts.forEach((right, i) => {
+      if (right) totals[rolesAt(state, i).guesser]++;
+    });
+    return totals;
   }
 
   function nextRound(state, person, rand = Math.random) {
@@ -126,11 +144,7 @@
     return {
       ...state,
       round: state.round + 1,
-      phase: "input",
-      questions: drawn.picked,
-      index: 0,
-      current: freshQuestion(),
-      results: [],
+      ...freshRound(state.players, drawn.picked),
       used: drawn.used,
       moveSeq: (state.moveSeq || 0) + 1
     };
@@ -170,6 +184,9 @@
     partnerOf,
     createInitialState,
     rolesAt,
+    progressOf,
+    answerAt,
+    guessAt,
     cleanText,
     submitText,
     judge,
