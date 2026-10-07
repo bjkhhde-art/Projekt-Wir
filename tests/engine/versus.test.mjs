@@ -105,4 +105,27 @@ const whoQ = QUESTIONS.find(q => q.options && q.options.includes("@self"));
 ok(JSON.stringify(V.optionLabels(whoQ, "Isi", "Isi")) === JSON.stringify(["Isi (ich)", "Benji"]), "Isi answering sees herself as '(ich)'");
 ok(JSON.stringify(V.optionLabels(whoQ, "Isi", "Benji")) === JSON.stringify(["Isi", "Benji (ich)"]), "Benji guessing Isi's answer sees the same names");
 
+/* ---------- memory from game to game ---------- */
+{
+  const game1 = V.createInitialState("Isi", "Benji", "essen", seeded(20));
+  const game2 = V.createInitialState("Isi", "Benji", "essen", seeded(21), V.memoryOf(game1));
+  ok(game2.questions.every(id => !game1.questions.includes(id)) && game2.used.length === 12, "a new game does not repeat the questions of the last one");
+  /* play through the whole category, game after game */
+  let mem = [];
+  const seen = new Set();
+  const essen = QUESTIONS.filter(q => q.cat === "essen").length;
+  const games = Math.floor(essen / 6);
+  for (let i = 0; i < games; i++) {
+    const game = V.createInitialState("Isi", "Benji", "essen", seeded(30 + i), mem);
+    game.questions.forEach(id => seen.add(id));
+    mem = V.memoryOf(game);
+  }
+  ok(seen.size === games * 6, `${games} games in one category without a single repeat`);
+  const other = V.createInitialState("Isi", "Benji", "alltag", seeded(40), mem);
+  ok(other.used.filter(id => V.questionById(id).cat === "essen").length === games * 6, "another category keeps the food memory");
+  const again = V.createInitialState("Isi", "Benji", "essen", seeded(41), V.memoryOf(other));
+  ok(again.used.some(id => V.questionById(id).cat === "alltag"), "a used-up category starts over without forgetting the others");
+  ok(V.createInitialState("Isi", "Benji", "essen", seeded(42), ["gibt-es-nicht"]).used.length === 6, "unknown ids in the memory are ignored");
+}
+
 console.log(`\n${assertions} assertions passed (versus-engine)`);

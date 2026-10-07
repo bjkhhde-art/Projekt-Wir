@@ -61,6 +61,7 @@ const GameRoom = (() => {
        createState(players, option), renderBoard(game), isFinished(state),
        startOptions?: [{ value, label, hint }], hideOptions? (the option comes from outside, no picker),
        url may also be a function of the chosen option, onSync?(game) runs after every render,
+       carryOver?(lastState) → data handed to createState(players, option, carried) of the next game,
        maxPlayers? (default 4), invites? (default true) } */
   function create(config) {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
@@ -179,7 +180,10 @@ const GameRoom = (() => {
 
     async function createGame() {
       if (!requirePerson()) return;
-      const row = { status: "waiting", host_person: person, guest_person: null, state: { option: chosenOption, lobby: [person] }, version: 0 };
+      /* what the last round remembers (e.g. questions already played) goes on to the next one */
+      const previous = currentGame && currentGame.state;
+      const carried = config.carryOver && previous ? config.carryOver(previous) : null;
+      const row = { status: "waiting", host_person: person, guest_person: null, state: { option: chosenOption, lobby: [person], ...(carried ? { carried } : {}) }, version: 0 };
       if (invites) row.invite_code = newInviteCode();
       const { error } = await client.from(table).insert(row);
       if (error) {
@@ -216,7 +220,7 @@ const GameRoom = (() => {
       return {
         status: "active",
         guest_person: lobby[1] || null,
-        state: config.createState(lobby.slice(), fresh.state && fresh.state.option)
+        state: config.createState(lobby.slice(), fresh.state && fresh.state.option, (fresh.state && fresh.state.carried) || null)
       };
     }
 

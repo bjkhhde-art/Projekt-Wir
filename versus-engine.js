@@ -28,14 +28,16 @@
     if (!state.players.includes(person)) throw new Error("Du spielst in dieser Runde nicht mit.");
   }
 
-  /* six different questions per round; once a category is used up it starts over */
+  /* six different questions per round; only when a category is used up do its questions come again
+     (the other categories keep their memory) */
   function drawQuestions(category, used, rand) {
     const pool = bank.QUESTIONS.filter(q => category === MIXED || q.cat === category);
     let fresh = pool.filter(q => !used.includes(q.id));
     let nextUsed = used;
     if (fresh.length < QUESTIONS_PER_ROUND) {
+      const poolIds = new Set(pool.map(q => q.id));
       fresh = pool.slice();
-      nextUsed = [];
+      nextUsed = used.filter(id => !poolIds.has(id));
     }
     const picked = [];
     const candidates = fresh.slice();
@@ -54,9 +56,11 @@
     };
   }
 
-  function createInitialState(host, guest, option, rand = Math.random) {
+  /* memory: the questions earlier games already played, so a new game does not start with repeats */
+  function createInitialState(host, guest, option, rand = Math.random, memory = null) {
     const category = bank.CATEGORIES[option] ? option : MIXED;
-    const drawn = drawQuestions(category, [], rand);
+    const known = Array.isArray(memory) ? memory.filter(id => questionById(id)) : [];
+    const drawn = drawQuestions(category, known, rand);
     return {
       v: FORMAT,
       players: [host, guest],
@@ -150,6 +154,10 @@
     };
   }
 
+  function memoryOf(state) {
+    return state && Array.isArray(state.used) ? state.used.slice() : [];
+  }
+
   /* a round from an older version of Versus cannot be played on */
   function isCurrentFormat(state) {
     return Boolean(state) && state.v === FORMAT;
@@ -183,6 +191,7 @@
     questionById,
     partnerOf,
     createInitialState,
+    memoryOf,
     rolesAt,
     progressOf,
     answerAt,

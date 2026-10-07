@@ -177,6 +177,7 @@ ok((await benji.locator("#duoTitle").textContent()).includes("Wer von uns beiden
 await benji.click("#grJoinBtn");
 await wait(900);
 ok((await isi.locator(".qz-text").textContent()).startsWith("Wer von uns beiden"), "'Wer von uns beiden?' asks about us");
+ok((await latest()).state.memory.hotnot.length === 12, "the new game remembers the 12 Hot-oder-Not items played before");
 ok((await isi.locator(".qz-answers .qz-option").allTextContents()).join() === "Isi,Benji", "the answers are our names");
 for (let i = 0; i < 6; i++) { await isi.locator(".qz-option.isi").click(); await isi.click("#duoConfirm"); }
 for (let i = 0; i < 6; i++) { await benji.locator(".qz-option.benji").click(); await benji.click("#duoConfirm"); }

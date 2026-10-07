@@ -63,7 +63,9 @@ const versusRoom = GameRoom.create({
   lobbyEl: document.getElementById("vsLobby"),
   boardEl: vsBoard,
   leaveBtn: document.getElementById("vsLeaveBtn"),
-  createState: (players, option) => V.createInitialState(players[0], players[1], option),
+  createState: (players, option, carried) => V.createInitialState(players[0], players[1], option, Math.random, carried && carried.used),
+  /* the questions already played go on to the next game */
+  carryOver: state => ({ used: V.memoryOf(state) }),
   maxPlayers: 2,
   invites: false,
   isFinished: () => false,

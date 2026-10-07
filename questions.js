@@ -51,6 +51,24 @@ let currentQuestions = [];
 let questionHistory = [];
 let currentQuestionIndex = -1;
 
+/* the database hands out at most 1000 rows per request – a group has more, so fetch page by page */
+const QUESTION_PAGE = 1000;
+
+async function fetchQuestions(categories) {
+  const all = [];
+  for (let from = 0; ; from += QUESTION_PAGE) {
+    const { data, error } = await supabaseClient
+      .from("questions")
+      .select("id, category, question, active")
+      .in("category", categories)
+      .order("id", { ascending: true })
+      .range(from, from + QUESTION_PAGE - 1);
+    if (error) return { data: null, error };
+    all.push(...(data || []));
+    if (!data || data.length < QUESTION_PAGE) return { data: all, error: null };
+  }
+}
+
 async function loadQuestionsForGroup(groupKey) {
   currentGroupKey = groupKey;
   questionHistory = [];
@@ -65,10 +83,7 @@ async function loadQuestionsForGroup(groupKey) {
 
   updatePreviousButtonState();
 
-  const { data, error } = await supabaseClient
-    .from("questions")
-    .select("id, category, question, active")
-    .in("category", group.categories);
+  const { data, error } = await fetchQuestions(group.categories);
 
   if (error) {
     console.error("Fehler beim Laden der Fragen:", error);

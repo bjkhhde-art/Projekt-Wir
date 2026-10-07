@@ -28,8 +28,26 @@
     return { chosen, reset };
   }
 
+  /* which questions of each mode were already played – kept from game to game */
+  function memoryOf(state) {
+    if (!state) return {};
+    const memory = { ...(state.memory || {}) };
+    if (MODES[state.mode] && state.mode !== "daily" && Array.isArray(state.used)) memory[state.mode] = state.used.slice();
+    return memory;
+  }
+
+  function cleanMemory(memory) {
+    const clean = {};
+    ["who", "hotnot"].forEach(mode => {
+      const size = MODES[mode].pool().length;
+      const list = memory && Array.isArray(memory[mode]) ? memory[mode] : [];
+      clean[mode] = list.filter(i => Number.isInteger(i) && i >= 0 && i < size);
+    });
+    return clean;
+  }
+
   /* today's question, answered together */
-  function createDailyState(host, guest, now) {
+  function createDailyState(host, guest, now, memory = null) {
     const day = Daily.dayKey(now);
     const question = Daily.questionFor(day, Content.DAILY);
     return {
@@ -37,6 +55,7 @@
       mode: "daily",
       day,
       questionId: question.id,
+      memory: cleanMemory(memory),
       answers: {},
       phase: "answer",
       results: null,
@@ -69,16 +88,20 @@
     return next;
   }
 
-  function createInitialState(host, guest, mode, rand = Math.random) {
-    if (mode === "daily") return createDailyState(host, guest);
+  /* memory: what earlier games already played, so a new game does not start with repeats */
+  function createInitialState(host, guest, mode, rand = Math.random, memory = null) {
+    if (mode === "daily") return createDailyState(host, guest, undefined, memory);
     const type = MODES[mode] ? mode : "who";
-    const { chosen } = pick(ROUND_SIZE, MODES[type].pool().length, [], rand);
+    const known = cleanMemory(memory);
+    const { chosen, reset } = pick(ROUND_SIZE, MODES[type].pool().length, known[type], rand);
+    const used = reset ? chosen.slice() : [...known[type], ...chosen];
     return {
       players: [host, guest],
       mode: type,
       round: 1,
       items: chosen,
-      used: chosen.slice(),
+      used,
+      memory: { ...known, [type]: used },
       answers: {},
       phase: "answer",
       results: null,
@@ -117,11 +140,13 @@
   function nextRound(state, person, rand = Math.random) {
     if (state.phase !== "reveal") throw new Error("Erst aufdecken, dann weiter.");
     const { chosen, reset } = pick(ROUND_SIZE, MODES[state.mode].pool().length, state.used || [], rand);
+    const used = reset ? chosen.slice() : [...(state.used || []), ...chosen];
     return {
       ...JSON.parse(JSON.stringify(state)),
       round: state.round + 1,
       items: chosen,
-      used: reset ? chosen.slice() : [...(state.used || []), ...chosen],
+      used,
+      memory: { ...cleanMemory(state.memory), [state.mode]: used },
       answers: {},
       phase: "answer",
       results: null,
@@ -143,7 +168,7 @@
     return "Gegensätze ziehen sich an! 😂";
   }
 
-  const api = { ROUND_SIZE, MODES, createInitialState, createDailyState, dailyQuestion, submitDaily, submitAnswers, nextRound, itemText, verdict };
+  const api = { ROUND_SIZE, MODES, memoryOf, createInitialState, createDailyState, dailyQuestion, submitDaily, submitAnswers, nextRound, itemText, verdict };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") window.DuoEngine = api;
 })();

@@ -19,6 +19,7 @@
     const filters = [];
     let ordering = null;
     let max = null;
+    let offset = 0;
 
     const idFilter = () => (filters.find(([op, field]) => op === "eq" && field === "id") || [])[2];
     const versionFilter = () => (filters.find(([op, field]) => op === "eq" && field === "version") || [])[2];
@@ -30,7 +31,8 @@
         const { field, ascending } = ordering;
         rows.sort((a, b) => (a[field] < b[field] ? -1 : a[field] > b[field] ? 1 : 0) * (ascending ? 1 : -1));
       }
-      if (max !== null) rows = rows.slice(0, max);
+      /* like Supabase: one request returns at most 1000 rows */
+      rows = rows.slice(offset, offset + Math.min(max !== null ? max : 1000, 1000));
       return rows;
     }
 
@@ -41,6 +43,7 @@
       in(field, values) { filters.push(["in", field, values]); return builder; },
       order(field, options) { ordering = { field, ascending: !options || options.ascending !== false }; return builder; },
       limit(n) { max = n; return builder; },
+      range(from, to) { offset = from; max = to - from + 1; return builder; },
 
       eq(field, value) {
         filters.push(["eq", field, value]);
