@@ -35,58 +35,66 @@ ok(["pick", "scale", "rank"].every(t => QUESTIONS.some(q => q.type === t)), "all
 
 /* ---------- a full round ---------- */
 let s = V.createInitialState("Isi", "Benji", "essen", seeded(1));
-ok(s.phase === "answer" && s.round === 1 && s.category === "essen", "a game starts in the answer phase");
-const all = [...s.questions.Isi, ...s.questions.Benji];
-ok(s.questions.Isi.length === 3 && s.questions.Benji.length === 3 && new Set(all).size === 6, "six different questions, three about each of us");
+ok(s.v === 3 && V.isCurrentFormat(s) && !V.isCurrentFormat({ v: 2 }) && !V.isCurrentFormat({ phase: "guess" }), "new rounds use the LovBirdz format, older ones are recognised");
+ok(s.phase === "input" && s.round === 1 && s.index === 0 && s.category === "essen", "a game starts with question 1");
+const all = s.questions.slice();
+ok(all.length === 6 && new Set(all).size === 6, "six different questions per round");
 ok(all.every(id => V.questionById(id).cat === "essen"), "the chosen category is respected");
 ok(V.createInitialState("Isi", "Benji", "nonsense", seeded(2)).category === V.MIXED, "unknown categories fall back to mixed");
 
-const texts = (prefix) => [1, 2, 3].map(i => `${prefix} ${i}`);
-ok(s.v === 2 && V.isCurrentFormat(s) && !V.isCurrentFormat({ phase: "guess" }), "new rounds use the typed-answer format, old ones are recognised");
+/* roles: 1–3 Isi answers and Benji guesses, 4–6 swapped */
+ok([0, 1, 2].every(i => V.rolesAt(s, i).answerer === "Isi" && V.rolesAt(s, i).guesser === "Benji"), "questions 1–3: Isi answers, Benji guesses");
+ok([3, 4, 5].every(i => V.rolesAt(s, i).answerer === "Benji" && V.rolesAt(s, i).guesser === "Isi"), "questions 4–6: the roles swap");
 
-throwsWith(() => V.submitAnswers(s, "Isi", texts("a"), ["x", "", "y"]), /alle sechs/, "all six fields must be filled");
-throwsWith(() => V.submitAnswers(s, "Isi", texts("a"), ["x", "   ", "y"]), /alle sechs/, "blank answers do not count");
-throwsWith(() => V.submitAnswers(s, "Mochi", texts("a"), texts("b")), /spielst/, "only players can answer");
-throwsWith(() => V.submitVerdicts(s, "Isi", [true, true, true]), /nicht bewertet/, "nobody judges before both typed");
+throwsWith(() => V.submitText(s, "Isi", "   "), /eintippen/, "an empty answer is not accepted");
+throwsWith(() => V.submitText(s, "Mochi", "Hallo"), /spielst/, "only players can answer");
+throwsWith(() => V.judge(s, "Isi", true), /nicht bewertet/, "nobody judges before both typed");
 
-s = V.submitAnswers(s, "Isi", ["  Kaffee   schwarz ", "Pasta", "Wein"], ["Tee", "Burger", "Wasser"]);
-ok(s.phase === "answer" && s.answers.Isi[0] === "Kaffee schwarz" && s.guesses.Isi[1] === "Burger", "Isi's answers and guesses are stored (tidied), Benji still types");
-throwsWith(() => V.submitAnswers(s, "Isi", texts("a"), texts("b")), /schon geantwortet/, "answers cannot be changed afterwards");
-ok(V.cleanText("x".repeat(500)).length === V.MAX_TEXT, "very long answers are cut");
-s = V.submitAnswers(s, "Benji", ["Tee", "Pizza", "Wasser"], ["Kaffee", "Pasta", "Bier"]);
-ok(s.phase === "judge", "when both typed, both judge");
+s = V.submitText(s, "Benji", "  Pasta   mit Pesto ");
+ok(s.phase === "input" && s.current.guess === "Pasta mit Pesto" && s.current.answer === null, "Benji's guess is stored (tidied), Isi still types");
+throwsWith(() => V.submitText(s, "Benji", "Pizza"), /schon geantwortet/, "a guess cannot be changed afterwards");
+s = V.submitText(s, "Isi", "Pasta");
+ok(s.phase === "judge", "when both typed, the question is judged");
+throwsWith(() => V.judge(s, "Benji", true), /Isi entscheidet/, "only the one who answered decides");
+s = V.judge(s, "Isi", true);
+ok(s.results.length === 1 && s.results[0].right && s.results[0].guesser === "Benji" && s.scores.Benji === 1, "resolved right away: +1 for Benji");
+ok(s.phase === "input" && s.index === 1 && s.current.answer === null, "then question 2 starts");
 
-throwsWith(() => V.submitVerdicts(s, "Isi", [true, false]), /alle drei/, "all three tips must be judged");
-throwsWith(() => V.submitVerdicts(s, "Isi", [true, "ja", false]), /alle drei/, "only right or wrong");
-/* Isi judges Benji's tips on her questions (1–3), Benji judges Isi's tips on his (4–6) */
-s = V.submitVerdicts(s, "Isi", [true, true, false]);
-ok(s.phase === "judge" && !s.results, "results wait for both verdicts");
-throwsWith(() => V.submitVerdicts(s, "Isi", [true, true, true]), /schon bewertet/, "a verdict cannot be changed");
-s = V.submitVerdicts(s, "Benji", [true, false, true]);
-ok(s.phase === "reveal", "after both verdicts all is revealed");
-ok(s.results.Benji.total === 2 && s.scores.Benji === 2, "Benji gets the 2 points Isi gave him");
-ok(s.results.Isi.total === 2 && JSON.stringify(s.results.Isi.points) === "[1,0,1]", "Isi gets the points Benji gave her");
-ok(V.leader(s) === null, "2 : 2 – nobody leads");
-ok(s.history.length === 1 && s.history[0].totals.Isi === 2, "the round goes into the history");
+function play(state, answerer, guesser, right) {
+  state = V.submitText(state, answerer, "a");
+  state = V.submitText(state, guesser, "g");
+  return V.judge(state, answerer, right);
+}
+s = play(s, "Isi", "Benji", false);
+s = play(s, "Isi", "Benji", true);
+ok(s.index === 3 && V.rolesAt(s).answerer === "Benji" && s.scores.Benji === 2, "after three questions Benji answers");
+s = play(s, "Benji", "Isi", false);
+s = play(s, "Benji", "Isi", false);
+ok(s.phase === "input" && s.index === 5, "the last question is still open");
+s = play(s, "Benji", "Isi", true);
+ok(s.phase === "reveal" && s.results.length === 6, "after six questions the round is summed up");
+ok(JSON.stringify(V.roundTotals(s)) === JSON.stringify({ Isi: 1, Benji: 2 }) && s.scores.Isi === 1 && s.scores.Benji === 2, "Benji 2, Isi 1 this round");
+ok(V.leader(s) === "Benji" && s.history.length === 1 && s.history[0].totals.Benji === 2, "Benji leads, the round goes into the history");
+throwsWith(() => V.submitText(s, "Isi", "x"), /nicht getippt/, "nothing to type after the round");
 
 /* ---------- next rounds ---------- */
-throwsWith(() => V.nextRound(V.createInitialState("Isi", "Benji", "mixed", seeded(3)), "Isi"), /läuft noch/, "a new round only after the reveal");
+throwsWith(() => V.nextRound(V.createInitialState("Isi", "Benji", "mixed", seeded(3)), "Isi"), /läuft noch/, "a new round only after the summary");
 let r = V.nextRound(s, "Benji", seeded(4));
-ok(r.round === 2 && r.phase === "answer" && !r.results && Object.keys(r.answers).length === 0 && Object.keys(r.verdicts).length === 0, "the next round starts fresh");
-ok(r.scores.Isi === 2 && r.v === 2, "the score carries over");
-ok([...r.questions.Isi, ...r.questions.Benji].every(id => !all.includes(id)), "no question repeats in the next round");
+ok(r.round === 2 && r.phase === "input" && r.index === 0 && r.results.length === 0, "the next round starts fresh");
+ok(r.scores.Benji === 2 && r.v === 3, "the score carries over");
+ok(r.questions.every(id => !all.includes(id)), "no question repeats in the next round");
 
 /* a small category runs out and starts over without breaking */
 let g = V.createInitialState("Isi", "Benji", "gewagt", seeded(5));
 for (let round = 0; round < 6; round++) {
-  g = V.submitAnswers(g, "Isi", texts("i"), texts("ig"));
-  g = V.submitAnswers(g, "Benji", texts("b"), texts("bg"));
-  g = V.submitVerdicts(g, "Isi", [true, false, false]);
-  g = V.submitVerdicts(g, "Benji", [false, false, false]);
-  assert.equal(new Set([...g.questions.Isi, ...g.questions.Benji]).size, 6);
+  for (let i = 0; i < 6; i++) {
+    const { answerer, guesser } = V.rolesAt(g);
+    g = play(g, answerer, guesser, guesser === "Benji");
+  }
+  assert.equal(new Set(g.questions).size, 6);
   g = V.nextRound(g, "Isi", seeded(10 + round));
 }
-ok(g.round === 7 && g.history.length === 6 && g.scores.Benji === 6 && g.scores.Isi === 0, "six rounds in a small category keep working (questions start over)");
+ok(g.round === 7 && g.history.length === 6 && g.scores.Benji === 18 && g.scores.Isi === 0, "six rounds in a small category keep working (questions start over)");
 
 /* ---------- names in who-of-us questions ---------- */
 const whoQ = QUESTIONS.find(q => q.options && q.options.includes("@self"));
