@@ -226,6 +226,176 @@
   color: var(--text-muted);
 }
 
+/* ---------- roles (like LovBirdz): green answers, purple guesses ---------- */
+
+.vs-roles-title {
+  text-align: center;
+}
+
+.vs-roles {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.vs-role-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 150px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  color: #fff;
+  animation: vs-pop 0.45s cubic-bezier(.2, .9, .3, 1.4) both;
+}
+
+.vs-role-card.answer {
+  background: linear-gradient(135deg, #4fbf93, #2fa57a);
+}
+
+.vs-role-card.guess {
+  background: linear-gradient(135deg, #9a7be0, #7457c9);
+  animation-delay: 0.12s;
+}
+
+.vs-role-name {
+  font-weight: 800;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.vs-role-text {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.vs-role-icon {
+  position: absolute;
+  right: 14px;
+  bottom: 6px;
+  font-size: 64px;
+  opacity: 0.35;
+}
+
+.vs-role {
+  margin-bottom: 10px;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.vs-role.answer {
+  color: #2fa57a;
+}
+
+.vs-role.guess {
+  color: #8b6ad8;
+}
+
+.vs-progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.vs-step {
+  flex: 1;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--surface-border);
+}
+
+.vs-step.first.done,
+.vs-step.first.now {
+  background: #4fbf93;
+}
+
+.vs-step.second.done,
+.vs-step.second.now {
+  background: #9a7be0;
+}
+
+.vs-step.now {
+  opacity: 0.55;
+}
+
+.vs-swap {
+  font-size: 15px;
+  margin: 0 2px;
+}
+
+.vs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.vs-chip {
+  padding: 8px 12px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: 99px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vs-chip.selected {
+  border-color: var(--pink);
+  background: linear-gradient(135deg, rgba(255, 92, 138, 0.18), rgba(139, 92, 246, 0.16));
+}
+
+.vs-judge-ask {
+  margin: 14px 0 0;
+  font-weight: 700;
+  text-align: center;
+}
+
+.vs-outcome {
+  padding: 22px 18px;
+  margin-bottom: 14px;
+  text-align: center;
+  animation: vs-pop 0.5s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+.vs-outcome.hit {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.vs-outcome.miss {
+  border-color: rgba(139, 92, 246, 0.45);
+}
+
+.vs-outcome-icon {
+  font-size: 64px;
+  line-height: 1;
+}
+
+.vs-outcome h2 {
+  margin: 10px 0 4px;
+  font-size: 24px;
+}
+
+.vs-outcome-text {
+  margin: 0 0 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.vs-outcome-q {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
 /* ---------- reveal ---------- */
 
 .vs-headline {
@@ -328,7 +498,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vs-headline,
-  .vs-result {
+  .vs-result,
+  .vs-role-card,
+  .vs-outcome {
     animation: none;
   }
 }

@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 
-/* Versus on two phones: invite, type own answers and guesses, judge each other, reveal, next round */
+/* Versus on two phones like LovBirdz: roles, question by question, swap after three, summary, next round */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991";
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -29,11 +29,22 @@ async function open(person, query = "?mode=versus") {
   return page;
 }
 
-/* type into all six fields: "own" and "guess" texts with a prefix */
-async function typeAll(page, prefix) {
-  const inputs = page.locator(".vs-input");
-  const count = await inputs.count();
-  for (let i = 0; i < count; i++) await inputs.nth(i).fill(`${prefix} ${i + 1}`);
+/* one question: both type, the answerer judges; both phones then see the result and tap "Weiter" */
+async function playQuestion(answerer, guesser, right, label) {
+  await until(async () => (await answerer.locator("#vsInput").count()) === 1 && (await guesser.locator("#vsInput").count()) === 1, 4000, "input " + label);
+  await answerer.fill("#vsInput", `Antwort ${label}`);
+  await answerer.click("#vsSubmit");
+  await guesser.fill("#vsInput", `Tipp ${label}`);
+  await guesser.click("#vsSubmit");
+  await until(async () => (await answerer.locator(".vs-verdict-btn").count()) === 2, 4000, "judge " + label);
+  await answerer.click(right ? ".vs-verdict-btn.right" : ".vs-verdict-btn.wrong");
+  await until(async () => (await answerer.locator(".vs-outcome").count()) === 1 && (await guesser.locator(".vs-outcome").count()) === 1, 4000, "outcome " + label);
+}
+
+async function goOn(page) {
+  await page.click("#vsContinue");
+  await wait(150);
+  if (await page.locator("#vsRolesGo").count()) await page.click("#vsRolesGo");
 }
 
 const isi = await open("Isi");
@@ -59,81 +70,99 @@ const invites = await isi.evaluate(() => window.__mockInvocations || []);
 ok(invites.some(i => i.body.category === "games" && i.body.url === "questions.html?mode=versus" && i.body.title.includes("Versus")), "starting sends a Versus invitation");
 await until(async () => await benji.locator("#grJoinBtn").count() > 0, 4000, "Benji sees the invite");
 await benji.click("#grJoinBtn");
-await until(async () => await isi.locator(".vs-question").count() === 6, 4000, "Isi in answer stage");
-await until(async () => await benji.locator(".vs-question").count() === 6, 4000, "Benji in answer stage");
-ok(true, "both get the same six questions to type into");
-const questionsIsi = await isi.locator(".vs-q-text").allTextContents();
-ok(JSON.stringify(questionsIsi) === JSON.stringify(await benji.locator(".vs-q-text").allTextContents()), "in the same order on both phones");
-ok(new Set(questionsIsi).size === 6, "six different questions");
-ok((await isi.locator(".vs-stage-title").allTextContents()).join("|") === "Über dich 🙋|Über Benji 🔮", "Isi: 1–3 about herself, 4–6 guessing Benji");
-ok((await benji.locator(".vs-stage-title").allTextContents()).join("|") === "Über Isi 🔮|Über dich 🙋", "Benji: 1–3 guessing Isi, 4–6 about himself");
-ok(await isi.locator(".vs-input").count() === 6 && await isi.locator(".vs-choice, .vs-dot, .vs-rank-item").count() === 0, "everything is typed in, no answers to pick");
-ok((await isi.locator(".vs-q-hint").first().textContent()).length > 3, "the old options stay as a small hint");
+/* roles first, like LovBirdz */
+await until(async () => (await isi.locator(".vs-role-card").count()) === 2 && (await benji.locator(".vs-role-card").count()) === 2, 4000, "role cards");
+ok((await isi.locator(".vs-roles-title").textContent()).includes("Rollenverteilung"), "a round starts with the role assignment");
+ok((await isi.locator(".vs-role-card.answer").textContent()).includes("Du bist dran mit Antworten") && (await isi.locator(".vs-role-card.guess").textContent()).includes("Benji ist dran mit Raten"), "Isi answers first, Benji guesses");
+ok((await benji.locator(".vs-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "Benji's phone tells him he guesses");
 ok((await isi.locator(".vs-round").textContent()).includes("Essen & Trinken"), "the chosen category is shown");
+await isi.click("#vsRolesGo");
+await benji.click("#vsRolesGo");
 
-/* typing */
-ok(await isi.locator("#vsSubmit").isDisabled(), "sending is only possible when all six are filled");
-await typeAll(isi, "Isi");
-ok(await isi.locator("#vsSubmit").isEnabled(), "after six answers Isi can send");
+/* question 1, step by step */
+await until(async () => (await isi.locator("#vsInput").count()) === 1 && (await benji.locator("#vsInput").count()) === 1, 4000, "question 1");
+const q1 = await isi.locator(".vs-q-text").textContent();
+ok(q1 === await benji.locator(".vs-q-text").textContent(), "both see the same question");
+ok((await isi.locator(".vs-role").textContent()).includes("Antworten") && (await benji.locator(".vs-role").textContent()).includes("Raten"), "each phone shows its role");
+ok((await benji.locator(".vs-q-lead").textContent()).includes("Was antwortet Isi"), "Benji guesses what Isi answers");
+ok(await isi.locator(".vs-step").count() === 6 && await isi.locator(".vs-swap").count() === 1, "six steps with the role swap in the middle");
+ok(await isi.locator("#vsSubmit").isDisabled(), "confirming needs some text");
+if (await isi.locator(".vs-chip").count()) {
+  await isi.locator(".vs-chip").first().click();
+  ok((await isi.locator("#vsInput").inputValue()) === (await isi.locator(".vs-chip").first().textContent()), "a suggestion fills the text field");
+}
+await isi.fill("#vsInput", "Pasta, ganz klar");
 
-/* Benji starts typing while Isi sends: his text and focus survive the live update */
-await benji.locator(".vs-input").first().fill("Halb fertig");
-await benji.locator(".vs-input").nth(1).click();
-await benji.keyboard.type("Ich tip");
+/* Benji types while Isi confirms: his text and focus survive the live update */
+await benji.click("#vsInput");
+await benji.keyboard.type("Pas");
 await isi.click("#vsSubmit");
 await until(async () => (await isi.locator(".vs-wait").count()) === 1, 4000, "Isi waits");
-ok((await isi.locator(".vs-wait").textContent()).includes("Benji tippt noch"), "Isi waits for Benji");
-const afterIsi = await isi.evaluate(() => window.__mockInvocations || []);
-ok(afterIsi.some(i => i.body.onlyPerson === "Benji" && i.body.body.includes("Isi hat getippt")), "Benji gets a nudge that Isi is done");
+ok((await isi.locator(".vs-wait").textContent()).includes("Benji rät noch"), "Isi waits for Benji's guess");
 await until(async () => (await benji.locator("#vsPartnerStatus").textContent()).includes("Isi ist schon fertig"), 4000, "Benji sees Isi done");
-await benji.keyboard.type("pe weiter");
-ok(await benji.locator(".vs-input").first().inputValue() === "Halb fertig" && await benji.locator(".vs-input").nth(1).inputValue() === "Ich tippe weiter", "Benji keeps typing undisturbed while Isi's update arrives");
-
-const doc1 = (await latest()).state;
-ok(doc1.answers.Isi.join() === "Isi 1,Isi 2,Isi 3" && doc1.guesses.Isi.join() === "Isi 4,Isi 5,Isi 6", "Isi's own answers (1–3) and her guesses (4–6) are stored");
-await typeAll(benji, "Benji");
+await benji.keyboard.type("ta");
+ok(await benji.locator("#vsInput").inputValue() === "Pasta", "Benji keeps typing undisturbed");
 await benji.click("#vsSubmit");
 
-/* judging: Isi judges 1–3, Benji judges 4–6 */
-await until(async () => (await isi.locator(".vs-judge").count()) === 3, 4000, "Isi judges");
-await until(async () => (await benji.locator(".vs-judge").count()) === 3, 4000, "Benji judges");
-ok(true, "after both typed, both judge three tips");
-ok(JSON.stringify(await isi.locator(".vs-judge .vs-q-text").allTextContents()) === JSON.stringify(questionsIsi.slice(0, 3)), "Isi judges the first three questions");
-ok(JSON.stringify(await benji.locator(".vs-judge .vs-q-text").allTextContents()) === JSON.stringify(questionsIsi.slice(3)), "Benji judges the second three");
-const isiJudge = await isi.locator(".vs-judge").first().textContent();
-ok(isiJudge.includes("Isi 1") && isiJudge.includes("Tipp von Benji:") && isiJudge.includes("Benji 1"), "Isi sees her answer next to Benji's tip");
-ok(await isi.locator("#vsSubmit").isDisabled(), "all three must be judged");
-for (let i = 0; i < 3; i++) await isi.locator(".vs-judge").nth(i).locator(".vs-verdict-btn.right").click();
-for (let i = 0; i < 3; i++) await benji.locator(".vs-judge").nth(i).locator(i === 0 ? ".vs-verdict-btn.right" : ".vs-verdict-btn.wrong").click();
-await benji.locator(".vs-judge").nth(2).locator(".vs-verdict-btn.right").click();
-await benji.locator(".vs-judge").nth(2).locator(".vs-verdict-btn.wrong").click();
-ok(await benji.locator(".vs-verdict-btn.selected").count() === 3, "a verdict can be changed before sending");
-await isi.click("#vsSubmit");
-await until(async () => (await isi.locator(".vs-wait").count()) === 1, 4000, "Isi waits for Benji's verdict");
-ok((await isi.locator(".vs-wait").textContent()).includes("Benji bewertet noch"), "Isi waits for Benji's verdict");
-await benji.click("#vsSubmit");
+/* resolved right away: Isi judges */
+await until(async () => (await isi.locator(".vs-verdict-btn").count()) === 2, 4000, "Isi judges");
+ok((await isi.locator(".vs-judge").textContent()).includes("Pasta, ganz klar") && (await isi.locator(".vs-judge").textContent()).includes("Tipp von Benji:"), "Isi sees her answer and Benji's tip");
+await until(async () => (await benji.locator(".vs-wait").count()) === 1, 4000, "Benji waits for verdict");
+ok((await benji.locator(".vs-wait").textContent()).includes("Isi entscheidet"), "Benji waits for Isi's verdict");
+ok(await benji.locator(".vs-verdict-btn").count() === 0, "only the one who answered can judge");
+await isi.click(".vs-verdict-btn.right");
+await until(async () => (await benji.locator(".vs-outcome").count()) === 1, 4000, "Benji sees outcome");
+ok((await benji.locator(".vs-outcome h2").textContent()).includes("Richtig") && (await benji.locator(".vs-outcome-text").textContent()).includes("+1 Punkt für dich"), "Benji sees right away that he was right");
+ok((await isi.locator(".vs-outcome-text").textContent()).includes("+1 Punkt für Benji"), "Isi sees it too");
+ok((await isi.locator(".vs-player-points").last().textContent()) === "1", "the score updates at once");
+await goOn(isi);
+await goOn(benji);
 
-/* reveal */
-await until(async () => (await isi.locator(".vs-headline").count()) === 1 && (await benji.locator(".vs-headline").count()) === 1, 5000, "reveal");
+/* questions 2 and 3 */
+await playQuestion(isi, benji, false, "2");
+ok((await benji.locator(".vs-outcome h2").textContent()).includes("Oh je"), "a wrong guess: 'Oh je!'");
+await goOn(isi); await goOn(benji);
+await playQuestion(isi, benji, true, "3");
+await isi.click("#vsContinue");
+await benji.click("#vsContinue");
+
+/* the role swap */
+await until(async () => (await isi.locator(".vs-roles-title").count()) === 1 && (await benji.locator(".vs-roles-title").count()) === 1, 4000, "swap");
+ok((await benji.locator(".vs-roles-title").textContent()).includes("Rollenwechsel"), "after three questions: role swap");
+ok((await benji.locator(".vs-role-card.answer").textContent()).includes("Du bist dran mit Antworten") && (await isi.locator(".vs-role-card.guess").textContent()).includes("Du bist dran mit Raten"), "now Benji answers and Isi guesses");
+await isi.click("#vsRolesGo"); await benji.click("#vsRolesGo");
+await until(async () => (await benji.locator(".vs-role").count()) === 1, 4000, "q4");
+ok((await benji.locator(".vs-role").textContent()).includes("Antworten") && (await isi.locator(".vs-q-lead").textContent()).includes("Was antwortet Benji"), "Benji answers question 4");
+await playQuestion(benji, isi, true, "4");
+ok(await isi.locator(".vs-verdict-btn").count() === 0, "Benji judges the second half");
+await goOn(isi); await goOn(benji);
+await playQuestion(benji, isi, false, "5");
+await goOn(isi); await goOn(benji);
+await playQuestion(benji, isi, false, "6");
+await goOn(isi); await goOn(benji);
+
+/* summary */
+await until(async () => (await isi.locator(".vs-headline").count()) === 1 && (await benji.locator(".vs-headline").count()) === 1, 5000, "summary");
 const state = (await latest()).state;
-ok(state.phase === "reveal" && state.scores.Benji === 3 && state.scores.Isi === 1, `Benji knows Isi perfectly (Isi ${state.scores.Isi} : ${state.scores.Benji} Benji)`);
+ok(state.phase === "reveal" && state.scores.Benji === 2 && state.scores.Isi === 1, `Benji knows Isi better (Isi ${state.scores.Isi} : ${state.scores.Benji} Benji)`);
 ok((await benji.locator(".vs-headline").textContent()).includes("Du kennst Isi diese Runde besser"), "Benji's phone celebrates");
 ok((await isi.locator(".vs-headline").textContent()).includes("Benji kennt dich diese Runde besser"), "Isi's phone says Benji won the round");
-ok(await isi.locator(".vs-result").count() === 6, "all six answers are revealed");
-ok(await benji.locator(".vs-result.hit").count() === 4 && (await isi.locator(".vs-result").first().textContent()).includes("Benji 4"), "hits are marked, typed texts shown");
+ok(await isi.locator(".vs-result").count() === 6 && await benji.locator(".vs-result.hit").count() === 3, "all six questions with their verdicts");
+ok((await isi.locator(".vs-result").first().textContent()).includes("Antwort 4") || (await isi.locator(".vs-result").first().textContent()).includes("Tipp 4"), "the typed texts are shown");
 ok((await isi.locator(".vs-player:not(.me) .vs-player-name").textContent()).includes("👑"), "the leader wears the crown");
-ok((await isi.locator(".vs-player-points").first().textContent()) === "1" && (await isi.locator(".vs-player-points").last().textContent()) === "3", "the running score shows 1 : 3");
+ok((await isi.locator(".vs-player-points").first().textContent()) === "1" && (await isi.locator(".vs-player-points").last().textContent()) === "2", "the running score shows 1 : 2");
+const questionsRound1 = state.questions.slice();
 
 /* next round */
 await isi.click("#vsNext");
 await wait(700);
 ok((await benji.locator(".vs-round").textContent()).includes("Runde 1") && (await isi.locator("#vsNext").textContent()).includes("warte auf Benji"), "the next round waits until Benji is ready too");
 await benji.click("#vsNext");
-await until(async () => (await benji.locator(".vs-question").count()) === 6, 4000, "round 2");
+await until(async () => (await benji.locator(".vs-roles-title").count()) === 1, 4000, "round 2");
 ok((await benji.locator(".vs-round").textContent()).includes("Runde 2"), "a new round starts for both");
-const round2 = await isi.locator(".vs-q-text").allTextContents();
-ok(round2.every(q => !questionsIsi.includes(q)), "round 2 brings new questions");
-ok((await isi.locator(".vs-player-points").last().textContent()) === "3", "the score carries over");
+const round2 = (await latest()).state.questions;
+ok(round2.every(q => !questionsRound1.includes(q)), "round 2 brings new questions");
+ok((await isi.locator(".vs-player-points").last().textContent()) === "2", "the score carries over");
 
 /* switching back to the conversation questions keeps working */
 await isi.click('.mode-btn[data-mode="talk"]');
