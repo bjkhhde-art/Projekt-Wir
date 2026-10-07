@@ -28,7 +28,9 @@ const room = GameRoom.create({
   lobbyEl: document.getElementById("duoLobby"),
   boardEl,
   leaveBtn: document.getElementById("duoLeaveBtn"),
-  createState: (players, option) => DuoEngine.createInitialState(players[0], players[1], option),
+  createState: (players, option, carried) => DuoEngine.createInitialState(players[0], players[1], option, Math.random, carried && carried.memory),
+  /* the questions already played (per mode) go on to the next game */
+  carryOver: state => ({ memory: DuoEngine.memoryOf(state) }),
   isFinished: state => state.mode === "daily" && state.phase === "reveal",
   renderBoard,
   maxPlayers: 2,

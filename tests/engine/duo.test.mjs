@@ -99,4 +99,32 @@ assert.throws(() => E.submitDaily(daily, "Isi", 0, 0), /schon geantwortet/);
 daily = E.submitDaily(daily, "Benji", 2, 3);
 ok(daily.phase === "reveal" && daily.results.hits.Isi === true && daily.results.hits.Benji === false, "then both are revealed: Isi guessed right, Benji did not");
 
+/* ---------- memory from game to game ---------- */
+{
+  const playRound = st => {
+    st = E.submitAnswers(st, "Isi", st.items.map(() => st.mode === "who" ? "Isi" : "hot"));
+    return E.submitAnswers(st, "Benji", st.items.map(() => st.mode === "who" ? "Benji" : "not"));
+  };
+  let g1 = E.createInitialState("Isi", "Benji", "hotnot");
+  g1 = E.nextRound(playRound(g1), "Isi");
+  const played = E.memoryOf(g1).hotnot;
+  ok(played.length === 12, "a game remembers every Hot-oder-Not item it played");
+  const g2 = E.createInitialState("Isi", "Benji", "hotnot", Math.random, E.memoryOf(g1));
+  ok(g2.items.every(i => !played.includes(i)) && g2.memory.hotnot.length === 18, "the next game starts with items that were not played yet");
+  const daily = E.createInitialState("Isi", "Benji", "daily", Math.random, E.memoryOf(g2));
+  ok(daily.memory.hotnot.length === 18, "a question-of-the-day game in between keeps the memory");
+  const who = E.createInitialState("Isi", "Benji", "who", Math.random, E.memoryOf(daily));
+  ok(who.memory.hotnot.length === 18 && who.memory.who.length === 6, "each mode has its own memory");
+  /* the whole pool once, then it starts over */
+  let st = E.createInitialState("Isi", "Benji", "who");
+  const seen = new Set(st.items);
+  const rounds = Math.floor(C.WHO.length / E.ROUND_SIZE);
+  for (let r = 1; r < rounds; r++) {
+    st = E.createInitialState("Isi", "Benji", "who", Math.random, E.memoryOf(playRound(st)));
+    st.items.forEach(i => seen.add(i));
+  }
+  ok(seen.size === rounds * E.ROUND_SIZE, `${rounds} games in a row without a single repeat`);
+  ok(E.createInitialState("Isi", "Benji", "who", Math.random, { who: [999, -1, "x"] }).memory.who.length === 6, "a broken memory is ignored");
+}
+
 console.log(`\n${assertions} assertions passed (duo: daily question + who/hot-or-not)`);
