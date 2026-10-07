@@ -27,8 +27,12 @@ ok(await activeNav() === "ziele.html", "Ziele highlights Ziele in the nav");
 
 /* old Couple Quest links land on the Quest tab */
 await page.goto(base + "couple-quest.html"); await page.waitForTimeout(800);
-ok(page.url().endsWith("ziele.html"), "couple-quest.html forwards to Ziele");
+ok(page.url().endsWith("ziele.html?tab=quest"), "the old couple-quest.html address forwards to Ziele");
 ok(await page.locator('.hub-tab.active').getAttribute("data-tab") === "quest", "and opens the Quest tab");
+await page.goto(base + "erinnerungen.html"); await page.waitForTimeout(800);
+ok(page.url().endsWith("reise.html?tab=erinnerungen"), "old addresses land on the right tab");
+await page.goto(base + "gibt-es-nicht.html"); await page.waitForTimeout(500);
+ok((await page.locator("h1").textContent()).includes("Diese Seite gibt es nicht") && await page.locator('a[href="index.html"]').count() === 1, "unknown addresses show a friendly page with a way home");
 await page.goto(base + "ziele.html?tab=quest"); await page.waitForTimeout(400);
 ok(page.url().includes("ziele.html") && await page.locator('.hub-tab.active').getAttribute("data-tab") === "quest", "push links to ziele.html?tab=quest open the Quest tab");
 
