@@ -117,7 +117,7 @@ async function saveLevel(person, level) {
 
   sendAppNotification(supabaseClient, {
     title: "Kuschelbatterie aktualisiert 🔋",
-    body: `${person} hat den Akku auf ${level}% gesetzt.`,
+    body: `${normalizePerson(person)} hat den Akku auf ${level}% gesetzt.`,
     excludePerson: normalizePerson(person),
     category: "battery",
     url: "batterien.html"

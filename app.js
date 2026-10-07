@@ -215,16 +215,24 @@ async function saveItem() {
   await loadItems();
 }
 
+let progressInFlight = false;
+
 async function updateProgress(item) {
   const target = Number(item.target);
 
-  if (target === 0) {
+  if (target === 0 || progressInFlight) {
     return;
   }
 
   const newCurrent = item.current < target ? item.current + 1 : 0;
   const newDone = newCurrent >= target;
 
+  /* tapping a finished quest starts it over – only on purpose, not by an accidental tap */
+  if (newCurrent === 0 && !(await confirmDialog(`"${item.title}" wieder auf 0 zurücksetzen?`, "Zurücksetzen"))) {
+    return;
+  }
+
+  progressInFlight = true;
   const { error } = await supabaseClient
     .from("bingo_items")
     .update({
@@ -232,6 +240,7 @@ async function updateProgress(item) {
       done: newDone
     })
     .eq("id", item.id);
+  progressInFlight = false;
 
   if (error) {
     console.error("Fehler beim Aktualisieren:", error);

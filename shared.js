@@ -26,10 +26,14 @@ window.formatDate = function (dateString) {
   return new Date(dateString).toLocaleDateString("de-DE");
 };
 
+/* safe in text and inside quoted attributes (links, image addresses, titles) */
 window.escapeHtml = function (text) {
-  const div = document.createElement("div");
-  div.textContent = text == null ? "" : text;
-  return div.innerHTML;
+  return String(text == null ? "" : text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 };
 
 window.daysBetween = function (startDate, endDate) {
@@ -39,7 +43,8 @@ window.daysBetween = function (startDate, endDate) {
   start.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
 
-  return Math.floor((end - start) / (1000 * 60 * 60 * 24));
+  /* round, not floor: a day with a clock change has 23 or 25 hours */
+  return Math.round((end - start) / (1000 * 60 * 60 * 24));
 };
 
 window.timeAgo = function (dateString) {
@@ -271,9 +276,9 @@ window.animateFillOnReveal = function (el, targetPercent) {
       overlay.innerHTML = `
         <div class="modal-box confirm-box">
           <h2>Bist du sicher?</h2>
-          <p class="confirm-message">${message}</p>
+          <p class="confirm-message">${escapeHtml(message)}</p>
           <div class="modal-buttons">
-            <button class="btn btn-danger confirm-yes">${confirmLabel || "Löschen"}</button>
+            <button class="btn btn-danger confirm-yes">${escapeHtml(confirmLabel || "Löschen")}</button>
             <button class="btn btn-secondary confirm-no">Abbrechen</button>
           </div>
         </div>

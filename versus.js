@@ -80,10 +80,6 @@ function fmtPoints(value) {
   return String(value).replace(".", ",");
 }
 
-function attr(text) {
-  return escapeHtml(text).replace(/"/g, "&quot;");
-}
-
 function nameFor(person, me) {
   return person === me ? "Du" : person;
 }
@@ -217,9 +213,9 @@ function renderInput(game, state, me, partner) {
     <div class="vs-question card">
       ${questionHead(state, question, roles, me)}
       ${hint ? `<p class="vs-q-hint">${escapeHtml(hint)}</p>` : ""}
-      ${chips.length ? `<div class="vs-chips">${chips.map(c => `<button type="button" class="vs-chip" data-text="${attr(c)}">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
+      ${chips.length ? `<div class="vs-chips">${chips.map(c => `<button type="button" class="vs-chip" data-text="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
       <input type="text" id="vsInput" class="vs-input" maxlength="${V.MAX_TEXT}" autocomplete="off"
-        placeholder="${amAnswerer ? "Deine Antwort …" : `Was antwortet ${attr(partner)}?`}" value="${attr(typed.text)}">
+        placeholder="${amAnswerer ? "Deine Antwort …" : `Was antwortet ${escapeHtml(partner)}?`}" value="${escapeHtml(typed.text)}">
     </div>
     <p id="vsPartnerStatus" class="vs-partner-status">${escapeHtml(statusText)}</p>
     <button type="button" id="vsSubmit" class="btn btn-block vs-submit">✓ Bestätigen</button>`;
