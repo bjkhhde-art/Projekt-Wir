@@ -1,6 +1,6 @@
-/* Grog 🤖 – the computer player for Cabo, 6 nimmt!, Qwixx and Flip 7.
+/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx and Flip 7.
 
-   Each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
+   Both play by the same rules; each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
    play() only uses what a careful human at the table could know: in Cabo the bot keeps its own
    memory of the cards it has seen (state.botMemory), it never looks at hidden cards.
    No DOM: loaded as <script> next to the game's engine, testable in Node via require. */
@@ -352,7 +352,7 @@ const flip7 = {
   }
 };
 
-return { NAME: "Grog", cabo, nimmt, qwixx, flip7 };
+return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7 };
 
 })();
 

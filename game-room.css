@@ -417,6 +417,24 @@ body:has(.gr-react:not(.hidden)) .page {
   color: #0f8a78;
 }
 
+.gr-bots {
+  margin: 0 0 18px;
+}
+
+.gr-lobby-card .gr-bots p.gr-bots-title {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.gr-bots-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
 .gr-bot-btn {
-  margin-bottom: 18px;
+  width: 100%;
+  font-size: 14px;
 }

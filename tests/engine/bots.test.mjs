@@ -7,46 +7,46 @@ const N = require("../../nimmt-engine.js");
 const Q = require("../../qwixx-engine.js");
 const F = require("../../flip7-engine.js");
 
-/* Grog plays whole games against simple random players: no rule is ever broken,
-   every game comes to an end, and Grog does clearly better than chance. */
+/* Udiou plays whole games against simple random players: no rule is ever broken,
+   every game comes to an end, and Udiou does clearly better than chance. */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const avg = list => list.reduce((a, b) => a + b, 0) / list.length;
 
 /* ---------- 6 nimmt! ---------- */
 {
-  const grog = [], random = [];
+  const udiou = [], random = [];
   for (let game = 0; game < 300; game++) {
-    let s = N.createInitialState(["Grog", "Isi", "Benji"]);
+    let s = N.createInitialState(["Udiou", "Isi", "Benji"]);
     for (let guard = 0; s.phase !== "finished"; guard++) {
       assert.ok(guard < 500, "6 nimmt! game hangs");
-      const moved = Bots.nimmt.play(s, "Grog");
+      const moved = Bots.nimmt.play(s, "Udiou");
       if (moved) { s = moved; continue; }
       if (s.phase === "pick-row") { s = N.pickRow(s, s.pickPerson, Math.floor(Math.random() * s.rows.length)); continue; }
-      const p = s.players.find(x => x !== "Grog" && s.chosen[x] === null);
+      const p = s.players.find(x => x !== "Udiou" && s.chosen[x] === null);
       s = N.chooseCard(s, p, pick(s.hands[p]));
     }
-    grog.push(s.result.bulls.Grog);
+    udiou.push(s.result.bulls.Udiou);
     random.push((s.result.bulls.Isi + s.result.bulls.Benji) / 2);
   }
-  ok(true, "300 games of 6 nimmt! with Grog end normally");
-  ok(Bots.nimmt.play(N.createInitialState(["Grog", "Isi"]), "Isi") !== null, "the bot can play any seat");
-  console.log(`  6 nimmt!: Grog ${avg(grog).toFixed(1)} bulls, random players ${avg(random).toFixed(1)}`);
-  ok(avg(grog) < avg(random) * 0.75, "Grog takes clearly fewer bulls than random players");
+  ok(true, "300 games of 6 nimmt! with Udiou end normally");
+  ok(Bots.nimmt.play(N.createInitialState(["Udiou", "Isi"]), "Isi") !== null, "the bot can play any seat");
+  console.log(`  6 nimmt!: Udiou ${avg(udiou).toFixed(1)} bulls, random players ${avg(random).toFixed(1)}`);
+  ok(avg(udiou) < avg(random) * 0.75, "Udiou takes clearly fewer bulls than random players");
 }
 
 /* ---------- Qwixx ---------- */
 {
-  const grog = [], random = [];
+  const udiou = [], random = [];
   for (let game = 0; game < 200; game++) {
-    let s = Q.createInitialState(["Isi", "Grog", "Benji"], pick(["classic", "colors", "numbers", "random"]));
+    let s = Q.createInitialState(["Isi", "Udiou", "Benji"], pick(["classic", "colors", "numbers", "random"]));
     for (let guard = 0; s.phase !== "finished"; guard++) {
       assert.ok(guard < 5000, "Qwixx game hangs");
-      const moved = Bots.qwixx.play(s, "Grog");
+      const moved = Bots.qwixx.play(s, "Udiou");
       if (moved) { s = moved; continue; }
       if (s.phase === "roll") { s = Q.roll(s, s.active); continue; }
       if (s.phase === "white") {
-        const p = s.players.find(x => x !== "Grog" && !s.white[x].done);
+        const p = s.players.find(x => x !== "Udiou" && !s.white[x].done);
         const options = Q.whiteOptions(s, p);
         s = options.length && Math.random() < 0.5 ? Q.crossWhite(s, p, ...Object.values(pick(options))) : Q.passWhite(s, p);
         continue;
@@ -54,28 +54,28 @@ const avg = list => list.reduce((a, b) => a + b, 0) / list.length;
       const options = Q.colorOptions(s, s.active);
       s = options.length && Math.random() < 0.6 ? Q.crossColor(s, s.active, ...Object.values(pick(options))) : Q.passColor(s, s.active);
     }
-    grog.push(s.result.scores.Grog.total);
+    udiou.push(s.result.scores.Udiou.total);
     random.push((s.result.scores.Isi.total + s.result.scores.Benji.total) / 2);
   }
-  ok(true, "200 games of Qwixx with Grog end normally (all four blocks)");
-  console.log(`  Qwixx: Grog ${avg(grog).toFixed(1)} points, random players ${avg(random).toFixed(1)}`);
-  ok(avg(grog) > avg(random) + 10, "Grog scores clearly more than random players");
+  ok(true, "200 games of Qwixx with Udiou end normally (all four blocks)");
+  console.log(`  Qwixx: Udiou ${avg(udiou).toFixed(1)} points, random players ${avg(random).toFixed(1)}`);
+  ok(avg(udiou) > avg(random) + 10, "Udiou scores clearly more than random players");
 }
 
 /* ---------- Flip 7 ---------- */
 {
-  let grogWins = 0, rounds = 0, grogPoints = 0, otherPoints = 0;
+  let udiouWins = 0, rounds = 0, udiouPoints = 0, otherPoints = 0;
   const games = 200;
   for (let game = 0; game < games; game++) {
-    let s = F.createInitialState(["Isi", "Grog", "Benji"]);
+    let s = F.createInitialState(["Isi", "Udiou", "Benji"]);
     for (let guard = 0; s.phase !== "finished"; guard++) {
       assert.ok(guard < 3000, "Flip 7 game hangs");
       assert.equal(F.countCards(s), 94, "no card gets lost");
-      const moved = Bots.flip7.play(s, "Grog");
+      const moved = Bots.flip7.play(s, "Udiou");
       if (moved) { s = moved; continue; }
       if (s.phase === "round-over") {
         rounds++;
-        grogPoints += s.lastRound.scores.Grog;
+        udiouPoints += s.lastRound.scores.Udiou;
         otherPoints += (s.lastRound.scores.Isi + s.lastRound.scores.Benji) / 2;
         s = F.nextRound(s, "Isi");
         continue;
@@ -85,32 +85,32 @@ const avg = list => list.reduce((a, b) => a + b, 0) / list.length;
       /* the random players: one more card with a coin flip, always at least two */
       s = s.table[p].numbers.length < 2 || Math.random() < 0.5 ? F.hit(s, p) : F.stay(s, p);
     }
-    if (s.result.winner === "Grog") grogWins++;
+    if (s.result.winner === "Udiou") udiouWins++;
   }
-  ok(true, `${games} games of Flip 7 with Grog end normally, no card lost`);
-  console.log(`  Flip 7: Grog wins ${grogWins}/${games}, ${(grogPoints / rounds).toFixed(1)} points a round vs ${(otherPoints / rounds).toFixed(1)}`);
-  ok(grogPoints / rounds > otherPoints / rounds + 3, "Grog makes more points per round than coin-flip players");
-  ok(grogWins > games * 0.45, "Grog wins far more than a third of the games");
+  ok(true, `${games} games of Flip 7 with Udiou end normally, no card lost`);
+  console.log(`  Flip 7: Udiou wins ${udiouWins}/${games}, ${(udiouPoints / rounds).toFixed(1)} points a round vs ${(otherPoints / rounds).toFixed(1)}`);
+  ok(udiouPoints / rounds > otherPoints / rounds + 3, "Udiou makes more points per round than coin-flip players");
+  ok(udiouWins > games * 0.45, "Udiou wins far more than a third of the games");
 }
 
 /* ---------- Cabo ---------- */
 {
-  let grogRounds = [], randomRounds = [], cheated = 0;
+  let udiouRounds = [], randomRounds = [], cheated = 0;
   for (let game = 0; game < 150; game++) {
-    let s = C.createInitialState(["Grog", "Isi", "Benji"]);
+    let s = C.createInitialState(["Udiou", "Isi", "Benji"]);
     for (let guard = 0; !s.gameOver; guard++) {
       assert.ok(guard < 20000, "Cabo game hangs");
       if (s.roundOver) {
-        grogRounds.push(s.roundScores.Grog);
+        udiouRounds.push(s.roundScores.Udiou);
         randomRounds.push((s.roundScores.Isi + s.roundScores.Benji) / 2);
         s = C.startNextRound(s);
         continue;
       }
-      const moved = Bots.cabo.play(s, "Grog");
+      const moved = Bots.cabo.play(s, "Udiou");
       if (moved) {
         /* everything the bot remembers is true – and it was really seen */
-        const memory = moved.botMemory && moved.botMemory.Grog;
-        if (memory) Object.entries(memory.own).forEach(([slot, v]) => { if (moved.hands.Grog[slot] !== v && !moved.roundOver) cheated++; });
+        const memory = moved.botMemory && moved.botMemory.Udiou;
+        if (memory) Object.entries(memory.own).forEach(([slot, v]) => { if (moved.hands.Udiou[slot] !== v && !moved.roundOver) cheated++; });
         s = moved;
         continue;
       }
@@ -130,40 +130,72 @@ const avg = list => list.reduce((a, b) => a + b, 0) / list.length;
       }
     }
   }
-  ok(true, "150 games of Cabo with Grog end normally");
-  ok(cheated === 0, "Grog's memory only holds cards that are really there");
-  console.log(`  Cabo: Grog ${avg(grogRounds).toFixed(1)} points a round, random players ${avg(randomRounds).toFixed(1)}`);
-  ok(avg(grogRounds) < avg(randomRounds) * 0.7, "Grog ends rounds with clearly fewer points");
+  ok(true, "150 games of Cabo with Udiou end normally");
+  ok(cheated === 0, "Udiou's memory only holds cards that are really there");
+  console.log(`  Cabo: Udiou ${avg(udiouRounds).toFixed(1)} points a round, random players ${avg(randomRounds).toFixed(1)}`);
+  ok(avg(udiouRounds) < avg(randomRounds) * 0.7, "Udiou ends rounds with clearly fewer points");
 }
 
 /* Cabo: the memory starts with the two peeked cards and never knows unseen ones */
 {
-  let s = C.createInitialState(["Isi", "Grog"]);
-  s = Bots.cabo.play(s, "Grog");
-  ok(Object.keys(s.botMemory.Grog.own).join() === "0,1", "after the start Grog knows exactly his two peeked cards");
-  ok(Bots.cabo.play(s, "Grog") === null, "and waits for the others to look at theirs");
+  let s = C.createInitialState(["Isi", "Udiou"]);
+  s = Bots.cabo.play(s, "Udiou");
+  ok(Object.keys(s.botMemory.Udiou.own).join() === "0,1", "after the start Udiou knows exactly his two peeked cards");
+  ok(Bots.cabo.play(s, "Udiou") === null, "and waits for the others to look at theirs");
   s = C.performInitialPeek(s, "Isi");
-  ok(Bots.cabo.play(s, "Grog") === null, "it is Isi's turn first – Grog waits");
+  ok(Bots.cabo.play(s, "Udiou") === null, "it is Isi's turn first – Udiou waits");
 }
 
 /* Flip 7: freeze yourself with a good round, Flip Three for the one with most cards */
 {
-  const s = F.createInitialState(["Isi", "Grog"]);
+  const s = F.createInitialState(["Isi", "Udiou"]);
   Object.assign(s, {
-    phase: "play", turnPerson: "Grog",
+    phase: "play", turnPerson: "Udiou",
     table: {
       Isi: { numbers: [3, 8, 11], mods: [], actions: [], status: "active", flip7: false, bust: null },
-      Grog: { numbers: [12, 10, 9], mods: [], actions: [], status: "active", flip7: false, bust: null }
+      Udiou: { numbers: [12, 10, 9], mods: [], actions: [], status: "active", flip7: false, bust: null }
     },
-    queue: [{ type: "freeze", card: "freeze", chooser: "Grog" }],
-    choice: { type: "freeze", chooser: "Grog", candidates: ["Isi", "Grog"] }
+    queue: [{ type: "freeze", card: "freeze", chooser: "Udiou" }],
+    choice: { type: "freeze", chooser: "Udiou", candidates: ["Isi", "Udiou"] }
   });
-  ok(Bots.flip7.play(s, "Grog").table.Grog.status === "frozen", "with 31 points Grog freezes himself and banks them");
-  s.queue = [{ type: "flip3", card: "flip3", chooser: "Grog" }];
-  s.choice = { type: "flip3", chooser: "Grog", candidates: ["Isi", "Grog"] };
-  const after = Bots.flip7.play(s, "Grog");
+  ok(Bots.flip7.play(s, "Udiou").table.Udiou.status === "frozen", "with 31 points Udiou freezes himself and banks them");
+  s.queue = [{ type: "flip3", card: "flip3", chooser: "Udiou" }];
+  s.choice = { type: "flip3", chooser: "Udiou", candidates: ["Isi", "Udiou"] };
+  const after = Bots.flip7.play(s, "Udiou");
   ok(after.lastMove.type === "target" && after.lastMove.target === "Isi", "a Flip Three goes to Isi");
-  ok(Bots.flip7.play(s, "Isi") === null, "nobody else decides for Grog's card");
+  ok(Bots.flip7.play(s, "Isi") === null, "nobody else decides for Udiou's card");
 }
 
-console.log(`\n${n} assertions passed (Grog: computer player)`);
+/* both computer players at one table: each keeps his own Cabo memory, all four games end */
+{
+  const bots = ["Udiou", "Klausi"];
+  let games = 0;
+  for (let game = 0; game < 40; game++) {
+    let s = C.createInitialState(["Isi", "Udiou", "Klausi"]);
+    for (let guard = 0; !s.gameOver; guard++) {
+      assert.ok(guard < 20000, "Cabo with two bots hangs");
+      if (s.roundOver) { s = C.startNextRound(s); continue; }
+      const bot = bots.find(b => Bots.cabo.play(s, b));
+      if (bot) {
+        s = Bots.cabo.play(s, bot);
+        /* right after his move, everything a bot remembers about his own cards is true */
+        if (!s.roundOver) Object.entries(s.botMemory[bot].own).forEach(([slot, v]) => assert.equal(s.hands[bot][slot], v, "a memory belongs to its own bot"));
+        continue;
+      }
+      if (s.turnPhase === "initial-peek") { s = C.performInitialPeek(s, "Isi"); continue; }
+      s = s.turnPhase === "awaiting-draw" ? C.drawFromDeck(s, "Isi") : s.turnPhase === "post-draw-decision" ? C.discardDrawn(s, "Isi") : s.turnPhase === "peek-result" ? C.finishPeek(s, "Isi") : s.turnPhase === "await-swap-target" ? C.skipSwap(s, "Isi") : s.turnPhase === "await-peek-own-target" ? C.choosePeekOwnTarget(s, "Isi", 0) : C.chooseSpyTarget(s, "Isi", "Udiou", 0);
+    }
+    games++;
+  }
+  ok(games === 40, "Cabo: Isi against Udiou and Klausi – both play, each with his own memory");
+
+  let s = F.createInitialState(["Udiou", "Klausi"]);
+  for (let guard = 0; s.phase !== "finished"; guard++) {
+    assert.ok(guard < 3000, "Flip 7 with two bots hangs");
+    if (s.phase === "round-over") { s = F.nextRound(s, "Udiou"); continue; }
+    s = bots.map(b => Bots.flip7.play(s, b)).find(Boolean);
+  }
+  ok(s.result.winner && bots.includes(s.result.winner), "Flip 7: Udiou and Klausi can play a whole game against each other");
+}
+
+console.log(`\n${n} assertions passed (Udiou and Klausi: computer players)`);
