@@ -15,8 +15,25 @@
     document.dispatchEvent(new CustomEvent("pw:hub-tab-shown", { detail: { tab: name } }));
   }
 
+  let currentTab = null;
+  const show = name => {
+    currentTab = name;
+    activateTab(name);
+  };
+
+  /* a tab switch is a step the phone's back button can undo */
   tabs.forEach(tab => {
-    tab.addEventListener("click", () => activateTab(tab.dataset.tab));
+    tab.addEventListener("click", () => {
+      const name = tab.dataset.tab;
+      if (name === currentTab) return;
+      if (window.InPageHistory) InPageHistory.push({ hubTab: name, view: null }, { tab: name });
+      show(name);
+    });
+  });
+
+  window.addEventListener("popstate", event => {
+    const name = event.state && event.state.hubTab;
+    if (name && name !== currentTab) show(name);
   });
 
   const validTabNames = Array.from(tabs).map(tab => tab.dataset.tab);
@@ -26,5 +43,6 @@
     ? fromQuery
     : (validTabNames.includes(saved) ? saved : tabs[0].dataset.tab);
 
-  activateTab(initial);
+  show(initial);
+  if (window.InPageHistory) InPageHistory.replace({ hubTab: initial });
 })();

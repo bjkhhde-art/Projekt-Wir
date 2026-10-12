@@ -115,7 +115,7 @@ function buildMemoryCard(memory) {
   `;
 
   card.addEventListener("click", () => {
-    openGallery(memory);
+    openTrip(memory);
   });
 
   card.querySelector(".delete-memory-btn").addEventListener("click", event => {
@@ -217,7 +217,7 @@ function renderMapMarkers() {
       });
 
       const marker = L.marker([point.lat, point.lng], { icon });
-      marker.on("click", () => openGallery(memory));
+      marker.on("click", () => openTrip(memory));
       marker.addTo(tripMarkersLayer);
       allPoints.push([point.lat, point.lng]);
     });
@@ -442,6 +442,34 @@ function stopTripCountdown() {
   tripCountdown.classList.add("hidden");
   tripCountdown.innerHTML = "";
 }
+
+/* opening a trip is a step of its own: the phone's back button returns to the overview */
+function openTrip(memory) {
+  if (window.InPageHistory) InPageHistory.push({ view: "trip:" + memory.id });
+  openGallery(memory);
+}
+
+function closeGallery() {
+  currentMemory = null;
+  galleryView.classList.add("hidden");
+  memoryOverview.classList.remove("hidden");
+  setFabMode("trip");
+  stopTripCountdown();
+  closeImageSheet();
+  closeImageLightbox();
+  renderMemories();
+}
+
+window.addEventListener("popstate", event => {
+  const view = (event.state && event.state.view) || "";
+  const tripId = view.startsWith("trip:") ? view.slice(5) : null;
+  if (tripId) {
+    const memory = memories.find(m => String(m.id) === tripId);
+    if (memory && (!currentMemory || String(currentMemory.id) !== tripId)) openGallery(memory);
+  } else if (currentMemory) {
+    closeGallery();
+  }
+});
 
 async function openGallery(memory) {
   currentMemory = memory;
@@ -911,13 +939,9 @@ editTripBtn.addEventListener("click", () => {
 });
 
 backToMemories.addEventListener("click", () => {
-  currentMemory = null;
-  galleryView.classList.add("hidden");
-  memoryOverview.classList.remove("hidden");
-  setFabMode("trip");
-  stopTripCountdown();
-  closeImageSheet();
-  renderMemories();
+  const openedHere = history.state && history.state.view && history.state.view.startsWith("trip:");
+  if (openedHere && window.InPageHistory) InPageHistory.back(closeGallery);
+  else closeGallery();
 });
 
 imageInput.addEventListener("change", () => {

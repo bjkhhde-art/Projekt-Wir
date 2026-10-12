@@ -24,7 +24,7 @@ const MODES = ["talk", "other", "versus"];
    shown only while the Versus tab is open */
 document.body.appendChild(vsBoard);
 /* "‹" leaves the full screen without ending the round – opening Versus again continues it */
-document.getElementById("vsBackBtn").addEventListener("click", () => showMode("other"));
+document.getElementById("vsBackBtn").addEventListener("click", () => goBackFromVersus());
 
 function showMode(mode) {
   document.body.classList.toggle("vs-open", mode === "versus");
@@ -40,7 +40,32 @@ function showMode(mode) {
   }
 }
 
-document.querySelectorAll(".mode-btn, .other-versus, .vs-back").forEach(btn => btn.addEventListener("click", () => showMode(btn.dataset.mode)));
+/* every switch is a step the phone's back button can undo */
+function openMode(mode) {
+  if (mode === currentMode()) return;
+  InPageHistory.push({ qmode: mode }, { mode });
+  showMode(mode);
+}
+
+function currentMode() {
+  return MODES.find(mode => !document.getElementById(`${mode}Mode`).hidden) || null;
+}
+
+function goBackFromVersus() {
+  if (history.state && history.state.qmode === "versus") InPageHistory.back(() => showMode("other"));
+  else openMode("other");
+}
+
+document.querySelectorAll(".mode-btn, .other-versus").forEach(btn => btn.addEventListener("click", () => openMode(btn.dataset.mode)));
+document.querySelectorAll(".vs-back").forEach(btn => btn.addEventListener("click", () => {
+  if (btn.dataset.mode === "other" && currentMode() === "versus") goBackFromVersus();
+  else openMode(btn.dataset.mode);
+}));
+
+window.addEventListener("popstate", event => {
+  const mode = event.state && event.state.qmode;
+  if (MODES.includes(mode) && mode !== currentMode()) showMode(mode);
+});
 
 function initialMode() {
   const fromQuery = new URLSearchParams(location.search).get("mode");
@@ -408,5 +433,7 @@ function renderVersus() {
   vsStage.innerHTML = centerScreen("⏳", "Gleich geht's weiter", `${partner} bewertet noch die letzten Tipps …`);
 }
 
-showMode(initialMode());
+const firstMode = initialMode();
+showMode(firstMode);
+InPageHistory.replace({ qmode: firstMode });
 versusRoom.start();
