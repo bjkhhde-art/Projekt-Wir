@@ -189,6 +189,7 @@
       <img id="imageSheetPreview" class="sheet-preview" src="" alt="">
       <div id="imageSheetActions" class="sheet-actions">
         <button id="sheetEditCaption" class="sheet-btn" type="button">✏️ Beschriftung bearbeiten</button>
+        <button id="sheetEditDate" class="sheet-btn" type="button">📅 Datum ändern</button>
         <button id="sheetSetCover" class="sheet-btn" type="button">🖼️ Als Titelbild verwenden</button>
         <button id="sheetDelete" class="sheet-btn sheet-btn-danger" type="button">🗑️ Bild löschen</button>
       </div>
@@ -196,6 +197,12 @@
         <label for="sheetCaptionInput">Beschriftung</label>
         <input id="sheetCaptionInput" type="text" maxlength="120" placeholder="z. B. Sonnenuntergang am Strand">
         <button id="sheetSaveCaption" class="btn btn-block" type="button">Speichern</button>
+      </div>
+      <div id="imageSheetDate" class="sheet-caption hidden">
+        <label for="sheetDateInput">Aufgenommen am</label>
+        <input id="sheetDateInput" type="datetime-local">
+        <p id="sheetDateHint" class="sheet-date-hint"></p>
+        <button id="sheetSaveDate" class="btn btn-block" type="button">Speichern</button>
       </div>
       <button id="sheetCancel" class="btn btn-secondary btn-block" type="button">Abbrechen</button>
     </div>
@@ -222,6 +229,7 @@
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
   <script src="vergleich.js"></script>
+  <script src="photo-date.js"></script>
   <script src="erinnerungen.js"></script>
 </body>
 </html>

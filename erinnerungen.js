@@ -45,6 +45,11 @@ const sheetSetCover = document.getElementById("sheetSetCover");
 const sheetDelete = document.getElementById("sheetDelete");
 const sheetSaveCaption = document.getElementById("sheetSaveCaption");
 const sheetCancel = document.getElementById("sheetCancel");
+const sheetEditDate = document.getElementById("sheetEditDate");
+const imageSheetDate = document.getElementById("imageSheetDate");
+const sheetDateInput = document.getElementById("sheetDateInput");
+const sheetDateHint = document.getElementById("sheetDateHint");
+const sheetSaveDate = document.getElementById("sheetSaveDate");
 
 const imageLightbox = document.getElementById("imageLightbox");
 const lightboxImage = document.getElementById("lightboxImage");
@@ -468,8 +473,31 @@ async function loadImages() {
     return;
   }
 
-  images = data;
+  images = sortByTakenAt(data);
   renderImages();
+}
+
+/* photos in the order they were taken; without a date the upload time counts */
+const takenTime = image => new Date(image.taken_at || image.created_at).getTime();
+
+function sortByTakenAt(list) {
+  return list.slice().sort((a, b) => takenTime(a) - takenTime(b) || new Date(a.created_at) - new Date(b.created_at));
+}
+
+function takenLabel(image) {
+  if (!image.taken_at) return "";
+  const date = new Date(image.taken_at);
+  const day = date.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  /* an estimated date has no real time of day */
+  if (image.taken_at_source === "estimate") return `≈ ${day}`;
+  return `${day} · ${date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+/* <input type="datetime-local"> wants local time without a zone */
+function toLocalInputValue(value) {
+  const date = new Date(value);
+  const pad = number => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function renderImages() {
@@ -490,8 +518,10 @@ function renderImages() {
     const card = document.createElement("div");
     card.className = "image-card card";
 
+    const taken = takenLabel(image);
     card.innerHTML = `
       <img src="${escapeHtml(image.image_url)}" alt="${escapeHtml(image.caption || "Erinnerungsbild")}" loading="lazy" decoding="async" draggable="false">
+      ${taken ? `<span class="image-date${image.taken_at_source === "estimate" ? " estimate" : ""}">${escapeHtml(taken)}</span>` : ""}
       ${image.caption ? `<p class="image-caption">${escapeHtml(image.caption)}</p>` : ""}
     `;
 
@@ -556,6 +586,7 @@ function openImageSheet(image) {
   imageSheetPreview.alt = image.caption || "Erinnerungsbild";
   imageSheetActions.classList.remove("hidden");
   imageSheetCaption.classList.add("hidden");
+  imageSheetDate.classList.add("hidden");
   sheetSetCover.classList.toggle("hidden", !!currentMemory && currentMemory.cover_url === image.image_url);
   imageSheet.classList.remove("hidden");
 }
@@ -572,6 +603,39 @@ function showCaptionEditor() {
   sheetCaptionInput.value = sheetImage.caption || "";
   sheetCaptionInput.focus();
   sheetCaptionInput.select();
+}
+
+function showDateEditor() {
+  if (!sheetImage) return;
+  imageSheetActions.classList.add("hidden");
+  imageSheetDate.classList.remove("hidden");
+  sheetDateInput.value = toLocalInputValue(sheetImage.taken_at || sheetImage.created_at);
+  sheetDateHint.textContent = sheetImage.taken_at_source === "estimate" || !sheetImage.taken_at
+    ? "Das Datum ist nur geschätzt – hier könnt ihr das richtige eintragen."
+    : sheetImage.taken_at_source === "manual" ? "Von euch eingetragen." : "Aus dem Foto gelesen.";
+  sheetDateInput.focus();
+}
+
+async function saveSheetDate() {
+  if (!sheetImage || !sheetDateInput.value) return;
+  const imageId = sheetImage.id;
+  const takenAt = new Date(sheetDateInput.value);
+  if (isNaN(takenAt)) return;
+  closeImageSheet();
+
+  const { error } = await supabaseClient
+    .from("trip_images")
+    .update({ taken_at: takenAt.toISOString(), taken_at_source: "manual" })
+    .eq("id", imageId);
+
+  if (error) {
+    console.error("Fehler beim Speichern des Datums:", error);
+    showToast("Datum konnte nicht gespeichert werden.", "error");
+    return;
+  }
+
+  showToast("Datum gespeichert 📅", "success");
+  await loadImages();
 }
 
 async function saveSheetCaption() {
@@ -682,6 +746,8 @@ async function uploadQueuedImages() {
 
   for (const file of pendingFiles) {
     try {
+      /* read the date from the original – the smaller upload copy has no metadata any more */
+      const taken = await takenAtOf(file);
       const imageUrl = await uploadFile(file, `memories/${currentMemory.id}`);
 
       const { error } = await supabaseClient
@@ -689,7 +755,9 @@ async function uploadQueuedImages() {
         .insert({
           trip_id: currentMemory.id,
           image_url: imageUrl,
-          caption: caption
+          caption: caption,
+          taken_at: taken.date.toISOString(),
+          taken_at_source: taken.source
         });
 
       if (error) throw error;
@@ -713,6 +781,15 @@ async function uploadQueuedImages() {
 
   clearUploadQueue();
   await loadImages();
+}
+
+/* camera data or file name; otherwise the file's own date (if it is not just "now"), as an estimate */
+async function takenAtOf(file) {
+  const found = window.PhotoDate ? await PhotoDate.fromFile(file) : null;
+  if (found) return found;
+  const modified = file.lastModified ? new Date(file.lastModified) : null;
+  const fresh = !modified || Date.now() - modified.getTime() < 60 * 60 * 1000;
+  return { date: fresh ? new Date() : modified, source: "estimate" };
 }
 
 async function uploadFile(originalFile, folder) {
@@ -879,6 +956,12 @@ sheetEditCaption.addEventListener("click", showCaptionEditor);
 sheetSetCover.addEventListener("click", setImageAsCover);
 sheetDelete.addEventListener("click", deleteSheetImage);
 sheetSaveCaption.addEventListener("click", saveSheetCaption);
+sheetEditDate.addEventListener("click", showDateEditor);
+sheetSaveDate.addEventListener("click", saveSheetDate);
+sheetDateInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") saveSheetDate();
+  if (event.key === "Escape") closeImageSheet();
+});
 sheetCancel.addEventListener("click", closeImageSheet);
 sheetCaptionInput.addEventListener("keydown", event => {
   if (event.key === "Enter") saveSheetCaption();

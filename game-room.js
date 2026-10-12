@@ -15,7 +15,7 @@ const GameRoom = (() => {
   const isBot = name => BOTS.includes(name);
   const BOT_BACKUP_MS = 5000;
   const NAME_MAX = 20;
-  const REACTIONS = ["😂", "😭", "😍", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
+  const REACTIONS = ["😂", "😭", "😍", "😘", "🫂", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
   const REACTION_GAP_MS = 700;
   const REACTION_SHOW_MS = 2600;
 
