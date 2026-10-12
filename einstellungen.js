@@ -203,3 +203,30 @@ renderSettings();
 refreshPushStatus();
 loadSettings();
 loadAlicanteSettings();
+
+/* ---------- install as an app ---------- */
+
+const installText = document.getElementById("installText");
+const installBtn = document.getElementById("installBtn");
+const installSteps = document.getElementById("installSteps");
+
+function renderInstall() {
+  if (window.PwInstall.isInstalled()) {
+    installText.textContent = "✓ Projekt Wir läuft gerade als installierte App.";
+    installBtn.classList.add("hidden");
+    installSteps.classList.add("hidden");
+    return;
+  }
+  const canPrompt = Boolean(window.PwInstall.prompt);
+  installBtn.classList.toggle("hidden", !canPrompt);
+  /* without the browser's dialog (or before it is ready) the menu steps help */
+  installSteps.classList.toggle("hidden", canPrompt);
+}
+
+installBtn.addEventListener("click", async () => {
+  const accepted = await window.PwInstall.install();
+  if (accepted) showToast("Projekt Wir ist jetzt auf dem Startbildschirm 📲", "success");
+  renderInstall();
+});
+document.addEventListener("pw:install-changed", renderInstall);
+renderInstall();

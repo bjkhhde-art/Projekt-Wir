@@ -58,6 +58,25 @@ const upserts = await page.evaluate(() => window.__mockUpserts || []);
 ok(upserts.some(u => u.table === "notification_settings" && u.payload.person === "Isi" && u.payload.games_enabled === false), "turning it off saves games_enabled = false for Isi");
 ok(await gamesSwitch.getAttribute("aria-checked") === "false", "the switch shows off");
 
+/* installable app: shortcuts, offline page, an install button in the settings */
+ok(["Spiele", "Reise", "Wir", "Mochi"].every(name => manifest.shortcuts.some(s => s.name === name)), "holding the app icon offers Spiele, Reise, Wir and Mochi");
+const offlinePage = await page.request.get(base + "offline.html");
+ok(offlinePage.ok() && (await offlinePage.text()).includes("Gerade keine Verbindung"), "a friendly offline page exists");
+ok(await page.evaluate(() => navigator.serviceWorker.getRegistrations().then(r => r.length)) === 0, "in tests the service worker stays off, the mocked network rules");
+ok(await page.locator("#installCard").isVisible() && await page.locator("#installSteps").isVisible() && await page.locator("#installBtn").isHidden(), "without the browser's install dialog the settings explain the menu steps");
+await page.evaluate(() => {
+  const event = new Event("beforeinstallprompt");
+  event.prompt = () => { window.__installPrompted = true; };
+  event.userChoice = Promise.resolve({ outcome: "accepted" });
+  window.dispatchEvent(event);
+});
+await page.waitForTimeout(100);
+ok(await page.locator("#installBtn").isVisible() && await page.locator("#installSteps").isHidden(), "when the browser offers it, an 'App installieren' button appears");
+await page.click("#installBtn");
+await page.waitForTimeout(300);
+ok(await page.evaluate(() => window.__installPrompted === true), "the button opens the browser's install dialog");
+ok(await page.locator("#installBtn").isHidden(), "the dialog can be offered once – then the button goes away");
+
 /* game invitations are sent in the switchable category with an in-app link */
 await page.goto(base + "qwixx.html"); await page.waitForTimeout(600);
 await page.locator("#grStartBtn").click(); await page.waitForTimeout(400);
