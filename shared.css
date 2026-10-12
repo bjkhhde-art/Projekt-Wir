@@ -835,6 +835,13 @@ textarea:focus {
   white-space: nowrap;
 }
 
+/* tabs that are links to sibling pages (Mochi | Kuschelakku) */
+a.hub-tab {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
 .hub-tab.active {
   background: var(--gradient-brand);
   color: white;

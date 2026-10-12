@@ -52,6 +52,20 @@ ok(JSON.stringify(wirTabs) === JSON.stringify(["🎬 Watchlist", "💌 Briefe", 
 await page.goto(base + "wir.html?tab=fragen"); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html"), "old links to wir.html?tab=fragen land on the questions page");
 
+/* six places in the bar: Mochi and the Kuschelakku share one, with tabs on top */
+await page.setViewportSize({ width: 384, height: 740 });
+await page.goto(base + "mochi.html"); await page.waitForTimeout(500);
+const navLabels = await page.locator(".nav-item .nav-label").allTextContents();
+ok(JSON.stringify(navLabels) === JSON.stringify(["Home", "Mochi", "Wir", "Ziele", "Reise", "Games"]), `the bar has six places (${navLabels.join(", ")})`);
+ok(await page.locator(".app-nav, nav.app-nav").first().evaluate(el => el.scrollWidth <= el.clientWidth + 1), "on a 384 px phone (S25 FE) nothing scrolls sideways in the bar");
+ok(JSON.stringify(await page.locator(".hub-tab").allTextContents()) === JSON.stringify(["🎂 Mochi", "🔋 Kuschelakku"]) && await page.locator(".hub-tab.active").textContent() === "🎂 Mochi", "Mochi has the tabs Mochi and Kuschelakku");
+await page.click('.hub-tab[href="batterien.html"]');
+await page.waitForURL(/batterien\.html$/); await page.waitForTimeout(400);
+ok(await page.locator(".hub-tab.active").textContent() === "🔋 Kuschelakku" && await activeNav() === "mochi.html", "the Kuschelakku tab opens the batteries, Mochi stays lit in the bar");
+await page.goBack(); await page.waitForTimeout(400);
+ok(page.url().endsWith("mochi.html"), "the back button returns to Mochi");
+await page.setViewportSize({ width: 390, height: 844 });
+
 for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html"]) {
   await page.goto(base + game); await page.waitForTimeout(300);
   ok(await activeNav() === "games.html", `${game} highlights Games in the nav`);
