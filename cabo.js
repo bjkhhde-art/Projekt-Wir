@@ -41,6 +41,7 @@ function cardImg(value) {
 
 const room = GameRoom.create({
   table: "cabo_games",
+  bot: GameBots.cabo,
   title: "Cabo",
   icon: "🦄",
   url: "cabo.html",

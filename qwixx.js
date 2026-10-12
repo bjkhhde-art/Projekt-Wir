@@ -28,6 +28,7 @@ let pinnedWhileActive = null;
 
 const room = GameRoom.create({
   table: "qwixx_games",
+  bot: GameBots.qwixx,
   title: "Qwixx",
   icon: "🎲",
   url: "qwixx.html",

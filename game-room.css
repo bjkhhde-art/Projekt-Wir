@@ -411,3 +411,12 @@
 body:has(.gr-react:not(.hidden)) .page {
   padding-bottom: 90px;
 }
+
+.gr-player-tag.bot {
+  background: rgba(20, 160, 140, 0.12);
+  color: #0f8a78;
+}
+
+.gr-bot-btn {
+  margin-bottom: 18px;
+}

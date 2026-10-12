@@ -72,6 +72,7 @@ const { bullsFor, sumBulls } = NimmtEngine;
 
 const room = GameRoom.create({
   table: "nimmt_games",
+  bot: GameBots.nimmt,
   title: "6 nimmt!",
   icon: "🐮",
   url: "nimmt.html",
