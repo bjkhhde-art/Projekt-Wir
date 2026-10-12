@@ -82,6 +82,7 @@ function renderBoard(game) {
   /* three or four at the table: everything a bit smaller so the whole table fits on one screen */
   boardEl.classList.toggle("f7-crowd", state.players.length >= 3);
   boardEl.classList.toggle("f7-over", state.phase === "round-over" || state.phase === "finished");
+  boardEl.classList.toggle("f7-between", state.phase === "round-over");
   renderScore(state);
   renderPiles(state);
   renderSeats(state);

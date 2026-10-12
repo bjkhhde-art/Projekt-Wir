@@ -604,3 +604,41 @@ body:has(#f7Board.f7-crowd:not(.hidden)) .page-subtitle {
 .f7-crowd .f7-summary .gr-ready-hint {
   display: none;
 }
+
+/* between rounds the summary says it all: no extra status line, my cards small in one row */
+.f7-crowd.f7-between .f7-status {
+  display: none;
+}
+
+.f7-crowd.f7-over .f7-own {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 6px 10px;
+}
+
+.f7-crowd.f7-over .f7-own .f7-seat-head {
+  flex: 1 0 100%;
+  margin-bottom: 0;
+}
+
+.f7-crowd.f7-over .f7-own .f7-row {
+  gap: 3px;
+  min-height: 0;
+}
+
+.f7-crowd.f7-over .f7-own .f7-row + .f7-row {
+  margin-top: 0;
+  padding-left: 6px;
+  border-left: 1.5px solid var(--surface-border);
+}
+
+.f7-crowd.f7-over .f7-own .f7-card {
+  --w: 26px;
+  border-width: 1.3px;
+}
+
+.f7-crowd.f7-over .gr-leave {
+  margin: 2px 0 4px;
+}
