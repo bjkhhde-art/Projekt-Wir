@@ -1,0 +1,431 @@
+/* Flip 7 – board, seats and the cards (drawn in CSS, colours like the box) */
+
+.f7-board {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.f7-score {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 auto 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.f7-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.f7-chip strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+.f7-chip.me {
+  border-color: var(--pink);
+}
+
+.f7-chip.lead strong::before {
+  content: "👑 ";
+}
+
+/* ---------- cards ---------- */
+
+.f7-card {
+  --w: 44px;
+  position: relative;
+  flex: none;
+  width: var(--w);
+  height: calc(var(--w) * 1.4);
+  border-radius: calc(var(--w) * 0.16);
+  border: 2px solid #2d3070;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(20, 20, 60, 0.18);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.f7-num {
+  background: radial-gradient(circle at 50% 40%, #fffaf0, #f6e9c8);
+  font-size: calc(var(--w) * 0.62);
+}
+
+.f7-num::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(45, 48, 112, 0.25);
+  border-radius: calc(var(--w) * 0.12);
+}
+
+.f7-num.v0 { color: #7d7f8c; }
+.f7-num.v1 { color: #2f9e8f; }
+.f7-num.v2 { color: #8cbf26; }
+.f7-num.v3 { color: #e0457b; }
+.f7-num.v4 { color: #1fa0b8; }
+.f7-num.v5 { color: #3c8d3f; }
+.f7-num.v6 { color: #8f4fc0; }
+.f7-num.v7 { color: #d9822b; }
+.f7-num.v8 { color: #5aa83a; }
+.f7-num.v9 { color: #e3702d; }
+.f7-num.v10 { color: #d6334a; }
+.f7-num.v11 { color: #3f6fd6; }
+.f7-num.v12 { color: #55596b; }
+
+.f7-mod {
+  background: linear-gradient(160deg, #fbbe55, #f1902d);
+  color: #fff;
+  font-size: calc(var(--w) * 0.42);
+  text-shadow: 0 1px 0 #b2511a, 0 0 4px rgba(150, 60, 0, 0.5);
+}
+
+.f7-act {
+  font-size: calc(var(--w) * 0.24);
+  font-weight: 800;
+  text-align: center;
+  padding: 2px;
+  color: #23264f;
+}
+
+.f7-act .f7-act-icon {
+  display: block;
+  font-size: calc(var(--w) * 0.44);
+  margin-bottom: 2px;
+}
+
+.f7-act.freeze { background: linear-gradient(160deg, #a6e4f4, #5cc3e3); }
+.f7-act.second { background: linear-gradient(160deg, #ff9a8a, #e9574d); color: #fff; }
+.f7-act.flip3 { background: linear-gradient(160deg, #fff07a, #f2c624); }
+
+.f7-back {
+  background:
+    linear-gradient(135deg, transparent 30%, #4cc6b4 30% 36%, #ef6b5a 36% 42%, #7a9be0 42% 48%, #f7d64a 48% 54%, #e9506f 54% 60%, transparent 60%),
+    #2e3176;
+  color: #fff3b0;
+  font-size: calc(var(--w) * 0.6);
+  text-shadow: 0 2px 0 #e9506f, 0 0 6px rgba(0, 0, 0, 0.35);
+}
+
+.f7-card.bust-card {
+  outline: 3px solid #e9506f;
+  outline-offset: 1px;
+}
+
+/* ---------- draw and discard pile ---------- */
+
+.f7-table {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  margin: 14px 0 10px;
+}
+
+.f7-pile-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.f7-pile {
+  position: relative;
+  width: 62px;
+  height: 87px;
+  border-radius: 10px;
+  border: 2px dashed var(--surface-border);
+  display: grid;
+  place-items: center;
+}
+
+.f7-pile .f7-card {
+  --w: 62px;
+}
+
+.f7-pile.has-cards::before {
+  content: "";
+  position: absolute;
+  inset: 4px -4px -4px 4px;
+  border-radius: 10px;
+  background: #2e3176;
+  opacity: 0.45;
+}
+
+.f7-pile-count {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ---------- seats ---------- */
+
+.f7-opps {
+  display: grid;
+  gap: 8px;
+}
+
+.f7-seat {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.f7-seat.turn {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+}
+
+.f7-seat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.f7-seat-name {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.f7-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--surface-solid);
+  color: var(--text-muted);
+}
+
+.f7-badge.turn { background: var(--pink); color: #fff; }
+.f7-badge.stayed { background: #d9f4e6; color: #1f7a4f; }
+.f7-badge.busted { background: #fde0e5; color: #c0294a; }
+.f7-badge.frozen { background: #d9f1fa; color: #1c7393; }
+.f7-badge.flip7 { background: #fff2b3; color: #8a6400; }
+
+.f7-seat-points {
+  margin-left: auto;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.f7-seat-points small {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.f7-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 20px;
+}
+
+.f7-row + .f7-row {
+  margin-top: 6px;
+}
+
+.f7-row-empty {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.f7-opps .f7-card {
+  --w: 30px;
+  border-width: 1.5px;
+}
+
+.f7-own .f7-card {
+  --w: 46px;
+}
+
+.f7-seat.busted .f7-row .f7-card:not(.bust-card) {
+  filter: grayscale(0.85);
+  opacity: 0.6;
+}
+
+.f7-seat.frozen .f7-row {
+  filter: saturate(0.6) hue-rotate(-15deg);
+}
+
+.f7-seat.flip7 {
+  border-color: #f2c624;
+  box-shadow: 0 0 0 3px rgba(242, 198, 36, 0.35);
+}
+
+.f7-own .f7-seat-name {
+  font-size: 16px;
+}
+
+.f7-progress {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* ---------- messages and actions ---------- */
+
+.f7-event {
+  display: grid;
+  gap: 3px;
+  margin: 0 auto 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
+.f7-event:empty {
+  display: none;
+}
+
+.f7-event .big {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.f7-status {
+  text-align: center;
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 2px 0 10px;
+  min-height: 20px;
+}
+
+.f7-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.f7-actions:empty {
+  display: none;
+}
+
+.f7-btn-hit,
+.f7-btn-stay {
+  min-width: 140px;
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.f7-btn-stay {
+  background: var(--surface-solid);
+  color: var(--text);
+  border: 1.5px solid var(--surface-border);
+}
+
+.f7-targets {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.f7-targets p {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- round summary ---------- */
+
+.f7-summary {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+}
+
+.f7-summary h3 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.f7-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.f7-summary td {
+  padding: 5px 4px;
+  border-top: 1px solid var(--surface-border);
+}
+
+.f7-summary td:last-child,
+.f7-summary td:nth-child(2) {
+  text-align: right;
+  font-family: var(--font-heading);
+  font-weight: 800;
+}
+
+.f7-summary .plus {
+  color: #1f7a4f;
+}
+
+.f7-summary .zero {
+  color: #c0294a;
+}
+
+.f7-summary .gr-ready {
+  margin-top: 12px;
+}
+
+/* the moment of a Flip 7 */
+@keyframes f7-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.f7-event .big.pop {
+  animation: f7-pop 0.55s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+@keyframes f7-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 92, 138, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 92, 138, 0.35); }
+}
+
+.f7-card.just-applied {
+  animation: f7-glow 0.9s ease 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f7-event .big.pop,
+  .f7-card.just-applied {
+    animation: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .f7-own .f7-card {
+    --w: 40px;
+  }
+  .f7-opps .f7-card {
+    --w: 27px;
+  }
+}
