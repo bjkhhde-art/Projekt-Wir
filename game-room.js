@@ -10,6 +10,9 @@ const GameRoom = (() => {
   const LEAVE_CONFIRM_MS = 4000;
   const MAX_WRITE_ATTEMPTS = 4;
   const MEMBERS = ["Isi", "Benji"];
+  /* the computer player – a game opts in with config.bot (see game-bots.js) */
+  const BOT = "Grog";
+  const BOT_BACKUP_MS = 5000;
   const NAME_MAX = 20;
   const REACTIONS = ["😂", "😭", "😍", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
   const REACTION_GAP_MS = 700;
@@ -36,14 +39,14 @@ const GameRoom = (() => {
   }
 
   /* Wraps a "next round" step: each player marks themselves ready (tapping again takes it back);
-     the step only runs once everybody at the table is ready. */
+     the step only runs once everybody at the table is ready. Grog is always ready. */
   function readyFor(nextFn) {
     return (state, who, ...args) => {
       const players = state.players || [];
       const ready = new Set(state.readyNext || []);
       if (ready.has(who)) ready.delete(who);
       else ready.add(who);
-      const list = players.filter(p => ready.has(p));
+      const list = players.filter(p => ready.has(p) || p === BOT);
       if (players.length > 0 && list.length === players.length) return nextFn(state, who, ...args);
       return { ...state, readyNext: list };
     };
@@ -52,7 +55,7 @@ const GameRoom = (() => {
   function guestNameProblem(name, taken) {
     if (!name) return "Bitte gib einen Namen ein.";
     const lower = name.toLowerCase();
-    if (MEMBERS.some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
+    if ([...MEMBERS, BOT].some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
     if (taken.some(t => t.toLowerCase() === lower)) return `„${name}“ spielt schon mit – nimm einen anderen Namen.`;
     return null;
   }
@@ -62,7 +65,8 @@ const GameRoom = (() => {
        startOptions?: [{ value, label, hint }], hideOptions? (the option comes from outside, no picker),
        url may also be a function of the chosen option, onSync?(game) runs after every render,
        carryOver?(lastState) → data handed to createState(players, option, carried) of the next game,
-       maxPlayers? (default 4), invites? (default true) } */
+       maxPlayers? (default 4), invites? (default true),
+       bot? { play(state, name) → next state | null, delay(state) → ms, reaction?(before, after, name) → emoji } } */
   function create(config) {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
     const maxPlayers = config.maxPlayers || 4;
@@ -87,6 +91,9 @@ const GameRoom = (() => {
     let reactionChannel = null;
     let reactionGameId = null;
     let lastReactionAt = 0;
+    let botTimer = null;
+    let botKey = null;
+    let botStuckKey = null;
     const reactionUi = buildReactionUi();
 
     function readGuestName() {
@@ -247,6 +254,19 @@ const GameRoom = (() => {
       await sync();
     }
 
+    /* Isi or Benji bring Grog to the table – or send him away again */
+    async function setBot(wanted) {
+      if (!config.bot || !isMember(person)) return;
+      await mutate(fresh => {
+        if (fresh.status !== "waiting") return null;
+        const lobby = lobbyOf(fresh);
+        if (lobby.includes(BOT) === wanted) return null;
+        if (wanted && lobby.length >= maxPlayers) throw new Error("Die Runde ist schon voll.");
+        return { state: { ...fresh.state, lobby: wanted ? [...lobby, BOT] : lobby.filter(p => p !== BOT) } };
+      });
+      await sync();
+    }
+
     /* Isi or Benji starts once everybody who wants to play is in */
     async function beginGame() {
       if (!requirePerson() || !isMember(person)) return;
@@ -272,6 +292,59 @@ const GameRoom = (() => {
       } finally {
         actionInFlight = false;
       }
+    }
+
+    /* ---------- Grog's moves ----------
+       One phone at the table plays for him (the first of Isi/Benji in the round); the others step in
+       a little later if that phone is asleep. Every move is worked out again on the freshest row,
+       so two phones can never make him play twice. */
+
+    function stopBot() {
+      clearTimeout(botTimer);
+      botTimer = null;
+      botKey = null;
+    }
+
+    function driveBot(game) {
+      const state = game && game.state;
+      const players = (state && state.players) || [];
+      if (!config.bot || !game || !isRunning(game.status) || !players.includes(BOT) || !person || !players.includes(person)) {
+        stopBot();
+        return;
+      }
+      const key = `${game.id}:${game.version}`;
+      if (key === botKey || key === botStuckKey) return;
+      stopBot();
+      if (!config.bot.play(state, BOT)) return;
+      const humans = players.filter(p => p !== BOT);
+      const driver = humans.find(isMember) || humans[0];
+      const backup = person === driver ? 0 : BOT_BACKUP_MS + humans.indexOf(person) * 1500;
+      botKey = key;
+      botTimer = setTimeout(() => runBot(key), config.bot.delay(state) + backup);
+    }
+
+    async function runBot(key) {
+      botTimer = null;
+      let before = null;
+      let after = null;
+      const moved = await mutate(fresh => {
+        if (!isRunning(fresh.status) || !fresh.state.players || !fresh.state.players.includes(BOT)) return null;
+        try {
+          after = config.bot.play(fresh.state, BOT);
+        } catch (error) {
+          console.error("Grog kommt nicht weiter:", error);
+          botStuckKey = key;
+          return null;
+        }
+        before = fresh.state;
+        return after ? { state: after } : null;
+      });
+      if (moved && config.bot.reaction) {
+        const emoji = config.bot.reaction(before, after, BOT);
+        if (emoji) sendReactionAs(BOT, emoji);
+      }
+      if (botKey === key) botKey = null;
+      await sync();
     }
 
     async function leaveGame() {
@@ -371,8 +444,13 @@ const GameRoom = (() => {
       const now = Date.now();
       if (now - lastReactionAt < REACTION_GAP_MS) return;
       lastReactionAt = now;
-      showReaction({ from: person, emoji });
-      reactionChannel.send({ type: "broadcast", event: "reaction", payload: { from: person, emoji } });
+      sendReactionAs(person, emoji);
+    }
+
+    function sendReactionAs(from, emoji) {
+      if (!REACTIONS.includes(emoji) || !reactionChannel) return;
+      showReaction({ from, emoji });
+      reactionChannel.send({ type: "broadcast", event: "reaction", payload: { from, emoji } });
     }
 
     /* only known emojis and a short name from the others are shown – everything else is ignored */
@@ -391,7 +469,7 @@ const GameRoom = (() => {
     /* the next-round button: everybody taps "ready", the round starts when all are */
     function renderReady(container, state, { label, nextFn }) {
       const players = state.players || [];
-      const ready = state.readyNext || [];
+      const ready = [...(state.readyNext || []), BOT];
       const mine = ready.includes(person);
       const waiting = players.filter(p => p !== person && !ready.includes(p));
       const wrap = document.createElement("div");
@@ -446,7 +524,7 @@ const GameRoom = (() => {
         <li class="gr-player${name === person ? " me" : ""}">
           <span class="gr-player-name">${escapeHtml(name)}</span>
           ${name === host ? `<span class="gr-player-tag">lädt ein</span>` : ""}
-          ${!isMember(name) ? `<span class="gr-player-tag guest">Gast</span>` : ""}
+          ${config.bot && name === BOT ? `<span class="gr-player-tag bot">🤖 Computer</span>` : !isMember(name) ? `<span class="gr-player-tag guest">Gast</span>` : ""}
           ${name === person ? `<span class="gr-player-tag me">du</span>` : ""}
         </li>`).join("");
       const free = Math.max(0, maxPlayers - names.length);
@@ -526,6 +604,18 @@ const GameRoom = (() => {
       document.getElementById("grStartBtn").addEventListener("click", createGame);
     }
 
+    function botButtonHtml(lobby) {
+      if (!config.bot || maxPlayers <= 2 || !isMember(person)) return "";
+      if (lobby.includes(BOT)) return `<button id="grBotBtn" type="button" class="btn btn-secondary btn-block gr-bot-btn" data-bot="remove">🤖 ${BOT} rausschicken</button>`;
+      if (lobby.length >= maxPlayers) return "";
+      return `<button id="grBotBtn" type="button" class="btn btn-secondary btn-block gr-bot-btn" data-bot="add">🤖 ${BOT} als Mitspieler dazuholen</button>`;
+    }
+
+    function wireBotButton() {
+      const button = document.getElementById("grBotBtn");
+      if (button) button.addEventListener("click", () => setBot(button.dataset.bot === "add"));
+    }
+
     /* a member who is in the lobby: players, invite link, start */
     function renderLobbyRoom(game) {
       const lobby = lobbyOf(game);
@@ -536,11 +626,13 @@ const GameRoom = (() => {
         <h2>${maxPlayers > 2 ? "Wer spielt mit?" : "Warte auf Mitspieler:in"}</h2>
         ${label ? `<p>${escapeHtml(label)}</p>` : ""}
         ${maxPlayers > 2 ? playersHtml(lobby, game.host_person) : `<div class="gr-lobby-waiting"><span class="gr-spinner"></span> Einladung ist raus...</div>`}
+        ${botButtonHtml(lobby)}
         ${inviteHtml(game)}
         ${maxPlayers > 2 ? `<button id="grBeginBtn" class="btn btn-block"${canBegin ? "" : " disabled"}>${canBegin ? `Runde starten (${lobby.length} Personen)` : "Warte auf Mitspieler …"}</button>` : ""}
         <button id="${host ? "grCancelBtn" : "grLeaveLobbyBtn"}" class="btn btn-secondary btn-block">${host ? "Abbrechen" : "Doch nicht mitspielen"}</button>
       `);
       wireInvite(game);
+      wireBotButton();
       const begin = document.getElementById("grBeginBtn");
       if (begin) begin.addEventListener("click", beginGame);
       if (host) document.getElementById("grCancelBtn").addEventListener("click", () => cancelWaitingGame(game.id));
@@ -665,6 +757,7 @@ const GameRoom = (() => {
 
     async function sync() {
       await render();
+      driveBot(currentGame);
       if (config.onSync) config.onSync(currentGame);
     }
 
@@ -764,5 +857,5 @@ const GameRoom = (() => {
     };
   }
 
-  return { create, cleanGuestName, guestNameProblem, readyFor, REACTIONS };
+  return { create, cleanGuestName, guestNameProblem, readyFor, REACTIONS, BOT };
 })();

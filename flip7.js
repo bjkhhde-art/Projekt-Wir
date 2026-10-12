@@ -23,6 +23,7 @@ const seatEls = new Map();
 
 const room = GameRoom.create({
   table: "flip7_games",
+  bot: GameBots.flip7,
   title: "Flip 7",
   icon: "🃏",
   url: "flip7.html",
