@@ -65,6 +65,8 @@ ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator
 
 /* every single game has a back arrow to the games overview */
 for (const game of ["nimmt", "cabo", "qwixx", "flip7", "questions"]) {
+  /* the lobby page with its title – a round left over from another test (Flip 7 with three hides the title) is cleared */
+  if (game !== "questions") await fetch(`http://localhost:8991/t/${game}_games/reset`, { method: "POST" });
   await page.goto(`http://localhost:9091/${game}.html`);
   await page.waitForTimeout(400);
   const back = page.locator(".page-back");

@@ -88,6 +88,38 @@ window.shrinkImageForUpload = async function (file) {
   }
 };
 
+/* ---------- the phone's back button inside a page ----------
+   Switching a tab or opening a trip is a step of its own: it gets an entry in the browser history,
+   so "back" returns to the previous tab or view instead of leaving the page. Each feature keeps its
+   own key in history.state and listens to "popstate"; depth counts the steps made on this page. */
+window.InPageHistory = {
+  depth() {
+    return (history.state && history.state.depth) || 0;
+  },
+  /* params: query parameters to show in the address bar (null removes one) */
+  url(params) {
+    const url = new URL(location.href);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === null || value === undefined) url.searchParams.delete(key);
+      else url.searchParams.set(key, value);
+    });
+    return url.pathname + url.search + url.hash;
+  },
+  push(patch, params) {
+    const state = { ...(history.state || {}), ...patch, depth: this.depth() + 1 };
+    history.pushState(state, "", this.url(params));
+  },
+  replace(patch, params) {
+    const state = { ...(history.state || {}), ...patch, depth: this.depth() };
+    history.replaceState(state, "", this.url(params));
+  },
+  /* an on-page back button: one step back if we made one, otherwise do it directly */
+  back(fallback) {
+    if (this.depth() > 0) history.back();
+    else fallback();
+  }
+};
+
 /* ---------- push notifications ---------- */
 
 window.VAPID_PUBLIC_KEY = "BK5VB6dUwUk95sMOfJ2lz7j29h_piCc8UuvP13_8jMhDaVH_X3qrCtICq6WrYtOhiJnjUK-s-mvYhaWLL71M5j4";
