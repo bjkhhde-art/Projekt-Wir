@@ -124,7 +124,7 @@
   outline-offset: 1px;
 }
 
-/* ---------- draw and discard pile ---------- */
+/* ---------- the deck (all cards, shuffled anew every round) ---------- */
 
 .f7-table {
   display: flex;

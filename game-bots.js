@@ -289,10 +289,10 @@ const qwixx = {
 
 /* ---------- Flip 7 ---------- */
 
-/* the chance that the next card busts: the cards not yet seen are known to anyone who counts */
+/* the chance that the next card busts: the cards not yet seen this round are known to anyone who counts */
 function flip7BustChance(state, bot) {
   const seat = state.table[bot];
-  const pile = state.deck.length > 0 ? state.deck : state.discard;
+  const pile = state.deck;
   if (pile.length === 0) return 0;
   const bad = pile.filter(card => /^n\d+$/.test(card) && seat.numbers.includes(Number(card.slice(1)))).length;
   return bad / pile.length;

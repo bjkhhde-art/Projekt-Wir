@@ -126,7 +126,7 @@ ok((await latest()).state.phase === "round-over", "the next round waits for both
 await benji.locator(".f7-summary .gr-ready-btn").click();
 await until(async () => (await latest()).state.round === 2, 4000, "round 2");
 const r2 = (await latest()).state;
-ok(r2.dealer === 0 && r2.discard.includes("n7") && r2.scores.Isi === 10, "round 2: the deal moves on, used cards stay discarded, the score carries over");
+ok(r2.dealer === 0 && r2.discard.length === 0 && F.countCards(r2) === 94 && r2.scores.Isi === 10, "round 2: the deal moves on, all cards are shuffled anew, the score carries over");
 await until(async () => await isi.locator(".f7-summary").count() === 0, 4000, "summary gone");
 ok(true, "the table is cleared for the new round");
 
