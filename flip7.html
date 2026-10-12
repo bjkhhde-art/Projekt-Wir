@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>I + B | Flip 7</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fdf5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191220" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Projekt Wir">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="game-anim.css">
+  <link rel="stylesheet" href="game-room.css">
+  <link rel="stylesheet" href="flip7.css">
+  <script src="pin-lock.js"></script>
+</head>
+<body data-nav="games.html">
+
+  <main class="page page-with-back">
+    <a href="games.html" class="page-back" aria-label="Zurück zu den Spielen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <h1 class="page-title">Flip 7 🃏</h1>
+    <p class="page-subtitle">Noch eine – oder lieber Stopp? Wer zuerst 200 Punkte hat, gewinnt.</p>
+
+    <div id="f7Lobby"></div>
+
+    <div id="f7Board" class="f7-board hidden">
+
+      <div class="f7-score" id="f7Score"></div>
+
+      <div class="f7-opps" id="f7Opps"></div>
+
+      <div class="f7-table">
+        <div class="f7-pile-wrap">
+          <div class="f7-pile" id="f7DrawPile" title="Nachziehstapel"></div>
+          <span class="f7-pile-count" id="f7DrawCount"></span>
+        </div>
+        <div class="f7-pile-wrap">
+          <div class="f7-pile f7-discard" id="f7Discard" title="Ablagestapel"></div>
+          <span class="f7-pile-count" id="f7DiscardCount"></span>
+        </div>
+      </div>
+
+      <div class="f7-event" id="f7Event" aria-live="polite"></div>
+      <p class="f7-status" id="f7Status"></p>
+      <div class="f7-actions" id="f7Actions"></div>
+
+      <section class="f7-seat f7-own" id="f7Own" aria-label="Deine Karten"></section>
+
+      <div class="gr-leave">
+        <button type="button" id="f7LeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wer welche Karten hat.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="batterien.html" class="nav-item"><span class="nav-icon">🔋</span><span class="nav-label">Akku</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="flip7-engine.js"></script>
+  <script src="game-anim.js"></script>
+  <script src="game-room.js"></script>
+  <script src="flip7.js"></script>
+</body>
+</html>

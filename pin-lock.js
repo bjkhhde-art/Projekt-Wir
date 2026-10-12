@@ -5,7 +5,7 @@
   const PASSWORD_HASH = "237bb0842f268f7529b127a11c53fafec419368a9f76bb5bed872647045783b7";
   const PBKDF2_ROUNDS = 210000;
   const STORAGE_KEY = "pw_unlocked";
-  const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html"];
+  const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html"];
 
   if (localStorage.getItem(STORAGE_KEY) === "true") {
     return;

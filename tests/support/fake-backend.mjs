@@ -135,7 +135,7 @@ export function startFakeBackend(port = 8991) {
       return;
     }
 
-    const tableMatch = url.pathname.match(/^\/t\/([a-z_]+)(\/.*)$/);
+    const tableMatch = url.pathname.match(/^\/t\/([a-z0-9_]+)(\/.*)$/);
     const handled = tableMatch
       ? await handle(req, res, tableMatch[1], tableMatch[2], url)
       : await handle(req, res, "cabo_games", url.pathname, url);
