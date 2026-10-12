@@ -6,7 +6,9 @@
    A number you already have busts you (0 points) – unless you hold a Second Chance. Seven
    different numbers are a Flip 7: the round ends at once and you get 15 extra points.
    Action cards: Freeze (somebody is out and banks), Flip Three (somebody gets three cards),
-   Second Chance (saves you once). The game ends when somebody has 200 points at the end of a round. */
+   Second Chance (saves you once). The game ends when somebody has 200 points at the end of a round.
+   There is no discard pile: every round starts with all 94 cards shuffled. A round never needs
+   more than about 45 cards, so the deck cannot run out. */
 
 const Flip7Engine = (() => {
 
@@ -87,15 +89,9 @@ function event(state, entry) {
   state.events.push(entry);
 }
 
-/* the next card from the deck; an empty deck is refilled from the discard pile */
-function draw(state, rand) {
-  if (state.deck.length === 0) {
-    if (state.discard.length === 0) return null;
-    state.deck = shuffle(state.discard, rand);
-    event(state, { type: "reshuffle", count: state.discard.length });
-    state.discard = [];
-  }
-  return state.deck.pop();
+/* the next card from the deck */
+function draw(state) {
+  return state.deck.length > 0 ? state.deck.pop() : null;
 }
 
 /* a card lands in front of somebody */
@@ -191,7 +187,7 @@ function run(state, rand) {
     if (state.flip3) {
       const run3 = state.flip3;
       if (run3.left > 0 && isActive(state, run3.target)) {
-        const card = draw(state, rand);
+        const card = draw(state);
         if (card) {
           run3.left--;
           give(state, run3.target, card);
@@ -209,7 +205,7 @@ function run(state, rand) {
       if (state.dealQueue.length > 0) {
         const person = state.dealQueue.shift();
         if (!isActive(state, person)) continue;
-        const card = draw(state, rand);
+        const card = draw(state);
         if (card) give(state, person, card);
         else state.dealQueue = [];
         continue;
@@ -239,7 +235,7 @@ function endRound(state) {
   const roundScores = perPlayer(state.players, p => scoreOf(state.table[p]));
   state.players.forEach(p => { state.scores[p] += roundScores[p]; });
 
-  /* everything on the table goes to the discard pile – not back into the deck */
+  /* everything on the table is out of play until the next round shuffles all cards again */
   state.players.forEach(p => {
     const seat = state.table[p];
     state.discard.push(...seat.numbers.map(v => `n${v}`), ...seat.mods, ...seat.actions);
@@ -277,6 +273,8 @@ function endRound(state) {
 
 function startRound(state, rand) {
   state.round += 1;
+  state.deck = shuffle(createDeck(), rand);
+  state.discard = [];
   state.table = perPlayer(state.players, freshSeat);
   state.dealQueue = orderFrom(state, state.dealer + 1);
   state.phase = "deal";
@@ -311,7 +309,7 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand) {
     gameNo,
     round: 0,
     dealer,
-    deck: shuffle(createDeck(), rand),
+    deck: [],
     discard: [],
     scores: perPlayer(players, () => 0),
     wins: perPlayer(players, p => (wins && wins[p]) || 0),
@@ -345,7 +343,7 @@ function assertTurn(state, person) {
 function hit(state, person, rand = Math.random) {
   assertTurn(state, person);
   const next = begin(state);
-  const card = draw(next, rand);
+  const card = draw(next);
   if (card) give(next, person, card);
   else next.table[person].status = "stayed";
   next.advanceFrom = person;
@@ -399,8 +397,8 @@ function cardLabel(card) {
   return ACTIONS[card] || card;
 }
 
-/* every card is somewhere: deck, discard pile, on the table or waiting for a target
-   (after a round the table only shows what was played – those cards are already discarded) */
+/* every card is somewhere: deck, out of play this round (state.discard, not shown), on the table
+   or waiting for a target (after a round the table only shows what was played – those cards are already out) */
 function countCards(state) {
   const roundDone = state.phase === "round-over" || state.phase === "finished";
   const onTable = roundDone ? 0 : state.players.reduce((sum, p) => {

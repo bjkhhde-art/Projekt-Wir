@@ -135,20 +135,30 @@ s = table(["Isi", "Benji"], { Isi: seat([5], { status: "stayed" }), Benji: seat(
 s.turnPerson = "Benji";
 s = F.stay(s, "Benji");
 ok(s.phase === "round-over" && s.scores.Isi === 5 && s.scores.Benji === 8, "everybody out: the round ends and the points are added");
-const discarded = s.discard.length;
-const deckLeft = s.deck.length;
 throwsWith(() => F.hit(s, "Isi"), /niemand am Zug/, "no moves between rounds");
 const dealerBefore = s.dealer;
 const r2 = F.nextRound(s, "Isi");
 ok(r2.round === s.round + 1 && r2.dealer === (dealerBefore + 1) % 2 && r2.readyNext.length === 0, "next round: the deal moves on");
-ok(r2.discard.length === discarded && r2.discard.includes("n5") && r2.discard.includes("n8") && r2.deck.length === deckLeft - 2, "used cards stay on the discard pile instead of going back into the deck");
+const freshRound = r2.phase === "round-over" || r2.discard.length === 0;
+ok(freshRound && F.countCards(r2) === 94 && r2.deck.includes("n5") && r2.deck.includes("n8"), "no discard pile: every round starts with all 94 cards shuffled, last round's 5 and 8 are back in the deck");
 throwsWith(() => F.nextRound(r2, "Isi"), /läuft noch/, "only after a round");
 
-/* ---------- empty deck ---------- */
-s = table(["Isi", "Benji"], { Isi: seat([5]), Benji: seat([8]) }, []);
-s.discard = ["n9"];
-s = F.hit(s, "Isi");
-ok(s.table.Isi.numbers.includes(9) && s.lastMove.events.some(e => e.type === "reshuffle"), "empty deck: the discard pile becomes the new deck, cards on the table stay");
+/* ---------- a fresh deck every round ---------- */
+const decks = new Set();
+s = F.createInitialState(["Isi", "Benji"]);
+for (let i = 0; i < 5; i++) {
+  decks.add(s.deck.join());
+  /* (a Freeze while dealing can end a round at once – then its cards are already out) */
+  const dealtOnly = s.phase === "round-over" || s.phase === "finished" || s.discard.length === 0;
+  ok(F.countCards(s) === 94 && dealtOnly, `round ${s.round} starts with all 94 cards`);
+  s.players.forEach(p => { s.table[p].status = "stayed"; });
+  Object.assign(s, { phase: "play", choice: null, queue: [], flip3: null });
+  s.turnPerson = s.players[0];
+  s.table[s.players[0]].status = "active";
+  s = F.stay(s, s.players[0]);
+  s = s.phase === "finished" ? F.newGame(s, "Isi") : F.nextRound(s, "Isi");
+}
+ok(decks.size === 5, "each round the cards are shuffled anew");
 
 /* ---------- end of the game ---------- */
 s = table(["Isi", "Benji"], { Isi: seat([10], { status: "stayed" }), Benji: seat([4]) }, ["n3"]);

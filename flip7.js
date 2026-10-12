@@ -8,8 +8,6 @@ const oppsEl = document.getElementById("f7Opps");
 const ownEl = document.getElementById("f7Own");
 const drawPile = document.getElementById("f7DrawPile");
 const drawCount = document.getElementById("f7DrawCount");
-const discardPile = document.getElementById("f7Discard");
-const discardCount = document.getElementById("f7DiscardCount");
 const eventEl = document.getElementById("f7Event");
 const statusEl = document.getElementById("f7Status");
 const actionsEl = document.getElementById("f7Actions");
@@ -107,11 +105,6 @@ function renderPiles(state) {
   drawPile.classList.toggle("has-cards", state.deck.length > 1);
   if (state.deck.length > 0) drawPile.appendChild(backEl());
   drawCount.textContent = `${state.deck.length} Karten`;
-
-  discardPile.innerHTML = "";
-  const top = state.discard[state.discard.length - 1];
-  if (top) discardPile.appendChild(cardEl(top));
-  discardCount.textContent = state.discard.length ? `${state.discard.length} abgelegt` : "Ablage";
 }
 
 function badgeFor(state, person) {
@@ -221,8 +214,6 @@ function describe(event, state) {
       return `❤️ ${nameFor(event.by)} ${event.by === me() ? "gibst" : "gibt"} ${event.target === me() ? "dir" : event.target} eine Second Chance.`;
     case "wasted":
       return `${label(event.card)} verfällt – niemand mehr da, der sie bekommen kann.`;
-    case "reshuffle":
-      return "🔀 Der Stapel ist leer – der Ablagestapel wird neu gemischt.";
     case "stay":
       return mine ? "✋ Du sagst Stopp." : `✋ ${who} sagt Stopp.`;
     default:
@@ -395,20 +386,19 @@ function findKey(key) {
 
 function animateMove(move, state) {
   const deck = GameAnim.rectOf(drawPile);
-  const discard = GameAnim.rectOf(discardPile);
   const jobs = [];
   let t = 0;
+
+  /* every round starts with all cards shuffled */
+  if (move.type === "deal") {
+    GameAnim.shuffle(drawPile, 0);
+    t = 560;
+  }
 
   (move.events || []).forEach(event => {
     const key = landingKey(event, state);
     const target = findKey(key);
     const targetRect = GameAnim.rectOf(target);
-
-    if (event.type === "reshuffle") {
-      GameAnim.shuffle(drawPile, t);
-      t += 560;
-      return;
-    }
 
     if (event.type === "card") {
       const to = targetRect || rowLanding(event.person, deck && { width: 34, height: 48 });
@@ -426,7 +416,6 @@ function animateMove(move, state) {
       }).then(() => {
         if (key) GameAnim.reveal(key);
         if (event.result === "bust" || event.result === "saved") GameAnim.shake(seatRow(event.person));
-        if (event.result === "saved" && discard) GameAnim.shake(discardPile);
         if (event.result === "flip7") celebrate(40);
       }));
       t += STEP_MS;
