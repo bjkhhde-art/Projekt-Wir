@@ -429,3 +429,178 @@
     --w: 27px;
   }
 }
+
+/* ---------- three or four players: the whole table on one screen ---------- */
+
+body:has(#f7Board.f7-crowd:not(.hidden)) .page-title,
+body:has(#f7Board.f7-crowd:not(.hidden)) .page-subtitle {
+  display: none;
+}
+
+.f7-crowd .f7-score {
+  gap: 4px 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.f7-crowd .f7-chip {
+  padding: 3px 9px;
+}
+
+.f7-crowd .f7-opps {
+  gap: 6px;
+}
+
+/* opponents: name, badge and points in one line, all their cards in one row below */
+.f7-crowd .f7-opps .f7-seat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 6px 10px;
+}
+
+.f7-crowd .f7-opps .f7-seat-head {
+  flex: 1 0 100%;
+  margin-bottom: 0;
+  gap: 6px;
+}
+
+.f7-crowd .f7-opps .f7-seat-name,
+.f7-crowd .f7-opps .f7-seat-points {
+  font-size: 13.5px;
+}
+
+.f7-crowd .f7-opps .f7-badge {
+  padding: 2px 7px;
+  font-size: 10.5px;
+}
+
+.f7-crowd .f7-opps .f7-row {
+  gap: 3px;
+  min-height: 0;
+}
+
+.f7-crowd .f7-opps .f7-row + .f7-row {
+  margin-top: 0;
+  padding-left: 6px;
+  border-left: 1.5px solid var(--surface-border);
+}
+
+.f7-crowd .f7-opps .f7-card {
+  --w: 22px;
+  border-width: 1.2px;
+}
+
+.f7-crowd .f7-opps .f7-act .f7-act-icon {
+  margin-bottom: 0;
+}
+
+.f7-crowd .f7-table {
+  margin: 8px 0 4px;
+}
+
+.f7-crowd .f7-pile {
+  width: 44px;
+  height: 62px;
+  border-radius: 8px;
+}
+
+.f7-crowd .f7-pile .f7-card {
+  --w: 44px;
+}
+
+.f7-crowd .f7-pile-count {
+  font-size: 10.5px;
+}
+
+.f7-crowd .f7-status {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.f7-crowd .f7-event {
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.f7-crowd .f7-btn-hit,
+.f7-crowd .f7-btn-stay {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.f7-crowd .f7-actions {
+  margin-bottom: 8px;
+}
+
+.f7-crowd .f7-own {
+  padding: 8px 10px;
+}
+
+.f7-crowd .f7-own .f7-seat-head {
+  margin-bottom: 6px;
+}
+
+.f7-crowd .f7-own .f7-card {
+  --w: 38px;
+}
+
+/* the score chips leave room for the back arrow */
+.f7-crowd .f7-score {
+  justify-content: flex-start;
+  padding-left: 52px;
+  min-height: 44px;
+  align-content: center;
+}
+
+.f7-crowd .gr-leave {
+  margin-top: 4px;
+}
+
+/* small phones (iPhone SE): a little tighter still */
+@media (max-height: 700px) {
+  .f7-crowd .f7-pile {
+    width: 36px;
+    height: 50px;
+  }
+  .f7-crowd .f7-pile .f7-card {
+    --w: 36px;
+  }
+  .f7-crowd .f7-own .f7-card {
+    --w: 34px;
+  }
+  .f7-crowd .f7-table {
+    margin: 4px 0 2px;
+  }
+}
+
+/* between rounds nobody draws: the deck makes room for the (compact) round summary */
+.f7-crowd.f7-over .f7-table {
+  display: none;
+}
+
+.f7-crowd .f7-summary {
+  padding: 10px 12px;
+}
+
+.f7-crowd .f7-summary h3 {
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.f7-crowd .f7-summary table {
+  font-size: 13px;
+}
+
+.f7-crowd .f7-summary td {
+  padding: 3px 4px;
+}
+
+.f7-crowd .f7-summary .gr-ready {
+  margin-top: 8px;
+}
+
+.f7-crowd .f7-summary .gr-ready-hint {
+  display: none;
+}

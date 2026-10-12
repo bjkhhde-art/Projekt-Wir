@@ -79,6 +79,9 @@ function renderBoard(game) {
   const move = takeUnseenMove(game);
   if (move) hideMovingCards(move, state);
 
+  /* three or four at the table: everything a bit smaller so the whole table fits on one screen */
+  boardEl.classList.toggle("f7-crowd", state.players.length >= 3);
+  boardEl.classList.toggle("f7-over", state.phase === "round-over" || state.phase === "finished");
   renderScore(state);
   renderPiles(state);
   renderSeats(state);

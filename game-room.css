@@ -324,7 +324,7 @@
 
 .gr-react-tray {
   display: grid;
-  grid-template-columns: repeat(5, 40px);
+  grid-template-columns: repeat(6, 40px);
   gap: 4px;
   padding: 8px;
   border-radius: 18px;

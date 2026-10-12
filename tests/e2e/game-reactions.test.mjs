@@ -42,7 +42,8 @@ await wait(1200);
 
 ok(await isi.locator("#grReactBtn").isVisible() && await lena.locator("#grReactBtn").isVisible(), "at the table everybody has the 😊 button, friends too");
 await isi.click("#grReactBtn");
-ok(await isi.locator(".gr-react-emoji").count() === 10, "it opens ten emojis");
+ok(await isi.locator(".gr-react-emoji").count() === 12, "it opens twelve emojis");
+ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😘🫂"), "a kiss and a hug are there");
 ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😂😭"), "laughing and crying are there");
 await isi.click('.gr-react-emoji[data-emoji="😂"]');
 ok(await isi.locator("#grReactTray").isHidden(), "the row closes after sending");
