@@ -120,6 +120,41 @@ window.InPageHistory = {
   }
 };
 
+/* ---------- installable app ----------
+   The service worker (sw.js) makes Projekt Wir installable and shows a friendly page offline.
+   Automated browsers (our tests) skip it, so their mocked network stays in charge. */
+if ("serviceWorker" in navigator && !navigator.webdriver) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(error => console.warn("Service Worker:", error));
+  });
+}
+
+/* Chrome and Samsung Internet offer the install dialog once – kept for an "App installieren" button */
+window.PwInstall = {
+  prompt: null,
+  isInstalled() {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  },
+  async install() {
+    if (!this.prompt) return false;
+    const prompt = this.prompt;
+    this.prompt = null;
+    prompt.prompt();
+    const choice = await prompt.userChoice.catch(() => null);
+    document.dispatchEvent(new CustomEvent("pw:install-changed"));
+    return Boolean(choice && choice.outcome === "accepted");
+  }
+};
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  window.PwInstall.prompt = event;
+  document.dispatchEvent(new CustomEvent("pw:install-changed"));
+});
+window.addEventListener("appinstalled", () => {
+  window.PwInstall.prompt = null;
+  document.dispatchEvent(new CustomEvent("pw:install-changed"));
+});
+
 /* ---------- push notifications ---------- */
 
 window.VAPID_PUBLIC_KEY = "BK5VB6dUwUk95sMOfJ2lz7j29h_piCc8UuvP13_8jMhDaVH_X3qrCtICq6WrYtOhiJnjUK-s-mvYhaWLL71M5j4";

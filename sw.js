@@ -15,6 +15,59 @@ function safeAppUrl(raw) {
   return new URL(DEFAULT_URL, scope).href;
 }
 
+/* ---------- installable app: fresh from the network, the last copy (or a friendly page) offline ----------
+   Only our own files are touched; Supabase, CDNs and everything else go straight to the network. */
+const CACHE = "pw-pages-v1";
+const OFFLINE_PAGE = "offline.html";
+const PRECACHE = [OFFLINE_PAGE, "icons/icon-192.png", "favicon.svg", "manifest.webmanifest"];
+
+const appUrl = path => new URL(path, self.registration.scope).href;
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(PRECACHE.map(appUrl)))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key.startsWith("pw-") && key !== CACHE).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+function isOwnFile(request) {
+  if (request.method !== "GET") return false;
+  const url = new URL(request.url);
+  const scope = new URL(self.registration.scope);
+  return url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok && response.type === "basic") cache.put(request, response.clone());
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (request.mode === "navigate") {
+      const offline = await cache.match(appUrl(OFFLINE_PAGE));
+      if (offline) return offline;
+    }
+    throw error;
+  }
+}
+
+self.addEventListener("fetch", event => {
+  if (!isOwnFile(event.request)) return;
+  event.respondWith(networkFirst(event.request));
+});
+
 function clip(text, max) {
   const value = String(text || "");
   return value.length > max ? value.slice(0, max - 1) + "…" : value;
