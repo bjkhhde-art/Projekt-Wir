@@ -153,6 +153,14 @@
       <label for="privateLinkTitleInput">Titel (optional)</label>
       <input id="privateLinkTitleInput" type="text" maxlength="120" placeholder="Worum geht's?">
 
+      <div id="privateLinkVisibility" class="pl-visibility">
+        <span class="pl-visibility-label">Wer darf es sehen?</span>
+        <div class="pl-visibility-options" role="radiogroup" aria-label="Wer darf es sehen?">
+          <button type="button" class="pl-visibility-btn" data-visible="both" role="radio">👫 Wir beide</button>
+          <button type="button" class="pl-visibility-btn" data-visible="me" role="radio">🔒 Nur ich</button>
+        </div>
+      </div>
+
       <label for="privateLinkTagInput">Hashtags</label>
       <div id="privateLinkTagEditor" class="pl-tag-editor">
         <span id="privateLinkTagChips" class="pl-tag-chips"></span>
