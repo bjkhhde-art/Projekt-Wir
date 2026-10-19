@@ -27,6 +27,9 @@ const PREVIEW_RETRY_MS = 2 * 60 * 1000;
 let privateLinks = [];
 let privateComments = [];
 let editingPrivateLinkId = null;
+/* "both" or "me": a link can be kept just for yourself */
+let modalVisibility = "both";
+const privateLinkVisibility = document.getElementById("privateLinkVisibility");
 let plSeenBefore = readSeen();
 let plPendingAction = null;
 let selectedTags = readTagFilter();
@@ -124,7 +127,9 @@ async function loadPrivateLinks() {
     return;
   }
 
-  privateLinks = links.data || [];
+  /* links one of us keeps just for themselves are not shown to the other */
+  const me = plPerson();
+  privateLinks = (links.data || []).filter(link => !link.visible_to || link.visible_to === me);
   privateComments = comments.data || [];
   selectedTags = Tags.sanitizeSelection(selectedTags, privateLinks);
   renderPrivateLinks();
@@ -158,6 +163,7 @@ function buildPrivateLinkCard(link) {
     <div class="pl-head">
       <span class="pl-host chip">${escapeHtml(hostOf(link.url))}</span>
       ${isNew ? `<span class="pl-new">Neu</span>` : ""}
+      ${link.visible_to ? `<span class="pl-only-me" title="Sieht nur ${escapeHtml(link.visible_to)}">🔒 Nur für dich</span>` : ""}
     </div>
     <h3 class="pl-title">${escapeHtml(link.title || link.preview_title || hostOf(link.url))}</h3>
     <p class="pl-meta">von ${escapeHtml(link.added_by)} · ${timeAgo(link.created_at)}</p>
@@ -419,9 +425,27 @@ function openPrivateModal(link, focusTags, prefill) {
   }
   privateLinkTagInput.value = "";
   renderModalTags();
+  /* only the one who shared a link decides who sees it */
+  const own = !link || link.added_by === plPerson();
+  privateLinkVisibility.classList.toggle("hidden", !own);
+  setModalVisibility(link && link.visible_to ? "me" : "both");
   privateLinkModal.classList.remove("hidden");
   (focusTags ? privateLinkTagInput : privateLinkUrlInput).focus();
 }
+
+function setModalVisibility(value) {
+  modalVisibility = value;
+  privateLinkVisibility.querySelectorAll(".pl-visibility-btn").forEach(btn => {
+    const on = btn.dataset.visible === value;
+    btn.classList.toggle("selected", on);
+    btn.setAttribute("aria-checked", String(on));
+  });
+  savePrivateLinkBtn.textContent = editingPrivateLinkId ? "Speichern" : value === "me" ? "Für mich speichern" : "Teilen";
+}
+
+privateLinkVisibility.querySelectorAll(".pl-visibility-btn").forEach(btn => {
+  btn.addEventListener("click", () => setModalVisibility(btn.dataset.visible));
+});
 
 async function savePrivateLink() {
   const url = cleanUrl(privateLinkUrlInput.value);
@@ -441,11 +465,14 @@ async function savePrivateLink() {
 
   const editing = editingPrivateLinkId;
   const previous = editing ? privateLinks.find(link => link.id === editing) : null;
+  const ownLink = !previous || previous.added_by === me;
+  const visibleTo = modalVisibility === "me" ? me : null;
+  const visibility = ownLink ? { visible_to: visibleTo } : {};
   const urlChanged = !previous || previous.url !== url;
   const previewReset = urlChanged ? { preview_status: "pending", preview_image: null, preview_title: null } : {};
   const { error } = editing
-    ? await supabaseClient.from("private_links").update({ url, title, tags, ...previewReset }).eq("id", editing)
-    : await supabaseClient.from("private_links").insert({ url, title, tags, added_by: me, preview_status: "pending" });
+    ? await supabaseClient.from("private_links").update({ url, title, tags, ...previewReset, ...visibility }).eq("id", editing)
+    : await supabaseClient.from("private_links").insert({ url, title, tags, added_by: me, preview_status: "pending", visible_to: visibleTo });
 
   if (error) {
     console.error("Fehler beim Speichern des Links:", error);
@@ -455,7 +482,7 @@ async function savePrivateLink() {
 
   privateLinkModal.classList.add("hidden");
   editingPrivateLinkId = null;
-  showToast(editing ? "Gespeichert 💾" : "Geteilt 🔥", "success");
+  showToast(editing ? "Gespeichert 💾" : visibleTo ? "Nur für dich gespeichert 🔒" : "Geteilt 🔥", "success");
   await loadPrivateLinks();
 
   if (urlChanged) {
@@ -463,7 +490,8 @@ async function savePrivateLink() {
     if (saved) requestPreview(saved.id);
   }
 
-  if (!editing) {
+  /* something kept just for yourself is not announced to the other */
+  if (!editing && !visibleTo) {
     sendAppNotification(supabaseClient, {
       title: "Projekt Wir 🔥",
       body: `${me} hat etwas für dich geteilt.`,
