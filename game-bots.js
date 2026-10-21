@@ -19,7 +19,8 @@ const jitter = (base, spread) => base + Math.floor(Math.random() * spread);
 /* ---------- Cabo ---------- */
 
 const CABO_UNKNOWN = 6.5; /* the average card: (0·2 + 4·(1+…+12) + 13·2) / 52 */
-const CABO_CALL_AT = 7;
+/* Cabo is only called with every own card known and a clearly low total – calling on a guess lost too many rounds */
+const CABO_CALL_AT = 5;
 
 /* what the bot remembers this round; a card that changed since (someone swapped it) is forgotten –
    that a swap happened is public, everybody at the table saw it */
@@ -107,7 +108,7 @@ function caboPlay(state, bot) {
   switch (state.turnPhase) {
     case "awaiting-draw": {
       const unknown = hand.filter((_, slot) => !(slot in memory.own)).length;
-      if (!state.caboCalledBy && unknown <= 1 && caboEstimate(state, bot, memory) <= CABO_CALL_AT) {
+      if (!state.caboCalledBy && unknown === 0 && caboEstimate(state, bot, memory) <= CABO_CALL_AT) {
         return withMemory(C.callCabo(state, bot), bot, memory);
       }
       const top = state.discard[state.discard.length - 1];
