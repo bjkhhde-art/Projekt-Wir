@@ -17,6 +17,7 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="einstellungen.css">
+  <script src="theme.js"></script>
   <script src="pin-lock.js"></script>
 </head>
 <body>
@@ -33,6 +34,16 @@
         <li><strong>Chrome:</strong> oben rechts auf <strong>⋮</strong> tippen → <strong>„App installieren“</strong> (oder „Zum Startbildschirm hinzufügen“).</li>
         <li><strong>Samsung Internet:</strong> unten auf <strong>≡</strong> tippen → <strong>„Seite hinzufügen zu“</strong> → <strong>„Startbildschirm“</strong>.</li>
       </ol>
+    </section>
+
+    <section class="card settings-card">
+      <h2 class="settings-title">🌗 Darstellung</h2>
+      <p class="settings-subtitle">Gilt nur für dieses Gerät</p>
+      <div class="theme-choice" role="radiogroup" aria-label="Darstellung">
+        <button class="theme-option" type="button" role="radio" data-theme-option="system" aria-checked="true">📱 System</button>
+        <button class="theme-option" type="button" role="radio" data-theme-option="light" aria-checked="false">☀️ Hell</button>
+        <button class="theme-option" type="button" role="radio" data-theme-option="dark" aria-checked="false">🌙 Dunkel</button>
+      </div>
     </section>
 
     <section class="card settings-card">

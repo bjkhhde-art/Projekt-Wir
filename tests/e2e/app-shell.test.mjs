@@ -58,6 +58,28 @@ const upserts = await page.evaluate(() => window.__mockUpserts || []);
 ok(upserts.some(u => u.table === "notification_settings" && u.payload.person === "Isi" && u.payload.games_enabled === false), "turning it off saves games_enabled = false for Isi");
 ok(await gamesSwitch.getAttribute("aria-checked") === "false", "the switch shows off");
 
+/* light / dark mode can be picked per device and holds on every page */
+const surfaceBg = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+await page.emulateMedia({ colorScheme: "light" });
+ok(await page.locator('.theme-option[data-theme-option="system"]').getAttribute("aria-checked") === "true", "the appearance setting starts on System");
+await page.click('.theme-option[data-theme-option="dark"]');
+ok(await surfaceBg() === "#191220" && await page.locator('.theme-option[data-theme-option="dark"]').getAttribute("aria-checked") === "true", "picking Dunkel turns the page dark although the phone is light");
+await page.goto(base + "index.html"); await page.waitForTimeout(300);
+ok(await surfaceBg() === "#191220" && await page.locator('meta[name="theme-color"]').first().getAttribute("content") === "#191220", "the dark choice holds on other pages, status bar included");
+await page.emulateMedia({ colorScheme: "dark" });
+await page.goto(base + "einstellungen.html"); await page.waitForTimeout(300);
+await page.click('.theme-option[data-theme-option="light"]');
+ok(await surfaceBg() === "#fdf5f9", "picking Hell keeps the page light although the phone is dark");
+await page.click('.theme-option[data-theme-option="system"]');
+ok(await surfaceBg() === "#191220" && await page.evaluate(() => localStorage.getItem("pw_theme")) === null, "System follows the phone again");
+await page.emulateMedia({ colorScheme: "light" });
+const unthemed = [];
+for (const file of pages.filter(f => !["404.html", "offline.html"].includes(f))) {
+  const html = await (await page.request.get(base + file)).text();
+  if (!html.includes('<script src="theme.js"></script>')) unthemed.push(file);
+}
+ok(unthemed.length === 0, "every app page loads theme.js: " + unthemed.join(", "));
+
 /* installable app: shortcuts, offline page, an install button in the settings */
 ok(["Spiele", "Reise", "Wir", "Mochi"].every(name => manifest.shortcuts.some(s => s.name === name)), "holding the app icon offers Spiele, Reise, Wir and Mochi");
 const offlinePage = await page.request.get(base + "offline.html");

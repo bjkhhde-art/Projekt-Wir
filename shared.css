@@ -44,10 +44,15 @@
 
   --nav-height: 78px;
   --content-max: 1080px;
+
+  color-scheme: light;
 }
 
+/* dark mode: follows the phone unless "Hell" or "Dunkel" is picked in the settings (theme.js) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
     --bg: #191220;
     --bg-blob-1: rgba(255, 92, 138, 0.16);
     --bg-blob-2: rgba(139, 92, 246, 0.22);
@@ -63,6 +68,25 @@
     --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.45);
     --shadow-nav: 0 -8px 30px rgba(0, 0, 0, 0.4);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #191220;
+  --bg-blob-1: rgba(255, 92, 138, 0.16);
+  --bg-blob-2: rgba(139, 92, 246, 0.22);
+  --surface: rgba(38, 26, 46, 0.82);
+  --surface-solid: #241a2c;
+  --surface-border: rgba(255, 255, 255, 0.08);
+
+  --text: #f5eef8;
+  --text-muted: rgba(245, 238, 248, 0.68);
+  --text-faint: rgba(245, 238, 248, 0.46);
+
+  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-nav: 0 -8px 30px rgba(0, 0, 0, 0.4);
 }
 
 * {

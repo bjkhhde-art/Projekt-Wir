@@ -9,6 +9,12 @@ const GameRoom = (() => {
   const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
   const LEAVE_CONFIRM_MS = 4000;
   const MAX_WRITE_ATTEMPTS = 4;
+  /* weak mobile network: every request gets a deadline, reads are retried, a regular re-sync catches missed live events */
+  const REQUEST_TIMEOUT_MS = 8000;
+  const READ_ATTEMPTS = 3;
+  const RETRY_BASE_MS = 500;
+  const POLL_LIVE_MS = 10000;
+  const POLL_NO_LIVE_MS = 3500;
   const MEMBERS = ["Isi", "Benji"];
   /* the computer players – a game opts in with config.bot (see game-bots.js) */
   const BOTS = ["Udiou", "Klausi"];
@@ -22,6 +28,17 @@ const GameRoom = (() => {
   const isMember = name => MEMBERS.includes(name);
   /* older Cabo rounds were saved as "finished" once over – they still count as the table in use */
   const isRunning = status => status === "active" || status === "finished";
+
+  const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  /* rejects when the request hangs for too long, so a stalled connection never freezes the game */
+  function withTimeout(request, ms = REQUEST_TIMEOUT_MS) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error("timeout")), ms);
+    });
+    return Promise.race([Promise.resolve(request), deadline]).finally(() => clearTimeout(timer));
+  }
 
   function newInviteCode() {
     const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -84,6 +101,10 @@ const GameRoom = (() => {
     let lastRenderedJson = null;
     let syncGeneration = 0;
     let actionInFlight = false;
+    let fetchFailed = false;
+    let wasOnline = true;
+    let offlineNotified = false;
+    let liveConnected = false;
     let leaveArmedTimer = null;
     const optionValues = (config.startOptions || []).map(o => o.value);
     let chosenOption = config.startOptions
@@ -136,24 +157,45 @@ const GameRoom = (() => {
 
     /* ---------- data ---------- */
 
+    /* null = there is no round; when the network fails fetchFailed is set and the old board stays as it is */
     async function fetchCurrentGame() {
-      const { data, error } = await client
-        .from(table)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        console.error("Fehler beim Laden des Spiels:", error);
-        return null;
+      for (let attempt = 0; attempt < READ_ATTEMPTS; attempt++) {
+        try {
+          const { data, error } = await withTimeout(client
+            .from(table)
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle());
+          if (!error) {
+            setOnline(true);
+            return data;
+          }
+          console.error("Fehler beim Laden des Spiels:", error);
+        } catch (error) {
+          console.error("Fehler beim Laden des Spiels:", error);
+        }
+        if (attempt < READ_ATTEMPTS - 1) await pause(RETRY_BASE_MS * 2 ** attempt);
       }
-      return data;
+      setOnline(false);
+      return null;
+    }
+
+    /* one toast when the connection drops and one when it is back – not one per failed request */
+    function setOnline(value) {
+      fetchFailed = !value;
+      if (value === wasOnline) return;
+      wasOnline = value;
+      if (!value) showToast("Schwache Verbindung – ich versuche es weiter …", "error");
+      else if (offlineNotified) showToast("Wieder verbunden 💗", "success");
+      if (!value) offlineNotified = true;
     }
 
     /* Several people may act at the same time, so every write is guarded by the row's version:
        if another device saved in between, the change is recomputed on the fresh row.
        change(fresh) returns the columns to write, or null to give up quietly; throwing shows the message. */
     async function mutate(change) {
+      let networkTrouble = false;
       for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
         const fresh = await fetchCurrentGame();
         if (!fresh) return false;
@@ -169,12 +211,22 @@ const GameRoom = (() => {
 
         const version = fresh.version || 0;
         if (patch.state && fresh.status === "finished") patch.status = "active";
-        const { data, error } = await client
-          .from(table)
-          .update({ ...patch, version: version + 1, updated_at: new Date().toISOString() })
-          .eq("id", fresh.id)
-          .eq("version", version)
-          .select();
+        let result;
+        try {
+          result = await withTimeout(client
+            .from(table)
+            .update({ ...patch, version: version + 1, updated_at: new Date().toISOString() })
+            .eq("id", fresh.id)
+            .eq("version", version)
+            .select());
+        } catch (error) {
+          /* hung or dropped: the row may or may not have been saved – look at the fresh row and decide again */
+          console.error("Fehler beim Speichern:", error);
+          networkTrouble = true;
+          await pause(RETRY_BASE_MS * 2 ** attempt);
+          continue;
+        }
+        const { data, error } = result;
         if (error) {
           console.error("Fehler beim Speichern:", error);
           showToast("Konnte nicht gespeichert werden.", "error");
@@ -182,7 +234,7 @@ const GameRoom = (() => {
         }
         if (data && data.length > 0) return true;
       }
-      showToast("Gleichzeitig getippt – bitte nochmal.", "error");
+      showToast(networkTrouble ? "Schwache Verbindung – bitte nochmal tippen." : "Gleichzeitig getippt – bitte nochmal.", "error");
       return false;
     }
 
@@ -773,6 +825,8 @@ const GameRoom = (() => {
       const generation = ++syncGeneration;
       const game = await fetchCurrentGame();
       if (generation !== syncGeneration) return;
+      /* no connection is not "no round": leave the board as it is until the network is back */
+      if (!game && fetchFailed) return;
 
       /* re-rendering an unchanged game would restart running card animations */
       const json = JSON.stringify(game);
@@ -807,11 +861,34 @@ const GameRoom = (() => {
       showBoard(game);
     }
 
+    /* live updates can silently stop on a weak connection: re-sync regularly (faster without a live
+       channel) and right away when the phone comes back online or the page is shown again */
+    function keepInSync() {
+      let timer = null;
+      const schedule = () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          if (!document.hidden && !actionInFlight) await sync();
+          schedule();
+        }, liveConnected ? POLL_LIVE_MS : POLL_NO_LIVE_MS);
+      };
+      const resync = () => {
+        if (document.hidden) return;
+        sync();
+        schedule();
+      };
+      document.addEventListener("visibilitychange", resync);
+      window.addEventListener("online", resync);
+      window.addEventListener("focus", resync);
+      schedule();
+    }
+
     function start() {
       client
         .channel(`${table}_changes`)
         .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
-        .subscribe();
+        .subscribe(status => { liveConnected = status === "SUBSCRIBED"; });
+      keepInSync();
       sync();
     }
 

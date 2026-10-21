@@ -204,6 +204,25 @@ refreshPushStatus();
 loadSettings();
 loadAlicanteSettings();
 
+/* ---------- Darstellung (pro Gerät) ---------- */
+
+const themeOptions = document.querySelectorAll(".theme-option");
+
+function renderTheme() {
+  const theme = window.PwTheme.get();
+  themeOptions.forEach(option => {
+    option.setAttribute("aria-checked", String(option.dataset.themeOption === theme));
+  });
+}
+
+themeOptions.forEach(option => {
+  option.addEventListener("click", () => {
+    window.PwTheme.set(option.dataset.themeOption);
+    renderTheme();
+  });
+});
+renderTheme();
+
 /* ---------- install as an app ---------- */
 
 const installText = document.getElementById("installText");

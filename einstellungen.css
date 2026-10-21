@@ -89,6 +89,40 @@
   cursor: not-allowed;
 }
 
+.theme-choice {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-pill);
+}
+
+.theme-option {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.theme-option[aria-checked="true"] {
+  background: var(--gradient-brand);
+  color: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.theme-option:active {
+  transform: scale(0.96);
+}
+
 .settings-time-row {
   display: flex;
   align-items: center;
