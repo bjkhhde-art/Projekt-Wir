@@ -152,9 +152,13 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .city-warning {
+  :root:not([data-theme="light"]) .city-warning {
     color: #fbbf24;
   }
+}
+
+:root[data-theme="dark"] .city-warning {
+  color: #fbbf24;
 }
 
 .news-section {
