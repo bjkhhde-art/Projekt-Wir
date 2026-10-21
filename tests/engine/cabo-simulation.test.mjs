@@ -27,8 +27,8 @@ function playRandomRound(state) {
     assert.equal(total, 52, `card conservation invariant violated at step ${steps} (got ${total})`);
 
     if (state.turnPhase === "awaiting-draw") {
-      // occasionally call cabo, mostly draw
-      if (!state.caboCalledBy && Math.random() < 0.04) {
+      // occasionally call cabo, mostly draw; a round that drags on gets called so the step budget only catches real loops
+      if (!state.caboCalledBy && (Math.random() < 0.04 || steps > MAX_STEPS / 2)) {
         state = Engine.callCabo(state, person);
         continue;
       }
