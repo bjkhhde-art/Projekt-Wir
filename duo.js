@@ -221,6 +221,7 @@ async function saveDailyRow(state, answer, guess) {
 
 /* the countdown ticks every second; at midnight the next question appears */
 setInterval(() => {
+  if (document.hidden) return;
   if (DuoDaily.dayKey() !== dailyDay) {
     loadDaily();
     return;

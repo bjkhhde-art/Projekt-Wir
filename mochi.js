@@ -627,7 +627,7 @@ function spawnHeart(large) {
 }
 
 setInterval(() => {
-  if (isAsleep()) spawnParticle("💤", { size: 20 });
+  if (!document.hidden && isAsleep()) spawnParticle("💤", { size: 20 });
 }, 2500);
 
 /* ---------- interactions ---------- */
@@ -1693,7 +1693,7 @@ function idleMoment() {
   }
 }
 
-setInterval(idleMoment, 9000);
+setInterval(() => { if (!document.hidden) idleMoment(); }, 9000);
 
 /* ---------- wishes, streak, chest ---------- */
 

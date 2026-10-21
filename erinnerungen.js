@@ -433,7 +433,7 @@ function startTripCountdown() {
   stopTripCountdown();
   if (!currentMemory || !isFutureMemory(currentMemory.start_date)) return;
   renderTripCountdown();
-  countdownTimer = setInterval(renderTripCountdown, 1000);
+  countdownTimer = setInterval(() => { if (!document.hidden) renderTripCountdown(); }, 1000);
 }
 
 function stopTripCountdown() {

@@ -46,10 +46,23 @@ function isOwnFile(request) {
   return url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
 }
 
+/* on a weak connection a stalled request must not block the page – after this long the last copy wins */
+const NETWORK_TIMEOUT_MS = 4000;
+
+function fetchWithTimeout(request, cachedFallback) {
+  return new Promise((resolve, reject) => {
+    const timer = cachedFallback && setTimeout(() => cachedFallback.then(hit => hit && resolve(hit)), NETWORK_TIMEOUT_MS);
+    fetch(request).then(
+      response => { clearTimeout(timer); resolve(response); },
+      error => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request, cache.match(request));
     if (response && response.ok && response.type === "basic") cache.put(request, response.clone());
     return response;
   } catch (error) {
