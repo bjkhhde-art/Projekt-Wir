@@ -25,6 +25,7 @@ const cacheApi = {
   async addAll(urls) { urls.forEach(url => store.set(url, { body: "cached " + url, ok: true, clone() { return this; } })); }
 };
 let online = true;
+let hangs = false;
 const fetched = [];
 const caches = {
   open: async () => cacheApi,
@@ -34,12 +35,13 @@ const caches = {
 };
 const fetch = async request => {
   fetched.push(request.url);
+  if (hangs) return new Promise(() => {});
   if (!online) throw new TypeError("offline");
   return { body: "fresh " + request.url, ok: true, type: "basic", clone() { return this; } };
 };
 self.skipWaiting = async () => {};
 self.clients.claim = async () => {};
-vm.runInNewContext(readFileSync(new URL("../../sw.js", import.meta.url), "utf8"), { self, URL, String, caches, fetch, Promise });
+vm.runInNewContext(readFileSync(new URL("../../sw.js", import.meta.url), "utf8"), { self, URL, String, caches, fetch, Promise, setTimeout, clearTimeout });
 
 async function tap(url) {
   let done;
@@ -95,5 +97,12 @@ ok(unknown.body === "cached " + scope + "offline.html", "offline and never opene
 let failed = false;
 try { await request(scope + "missing.js"); } catch (error) { failed = true; }
 ok(failed, "a missing script offline fails like without the app");
+
+/* a request that hangs (weak network) must not block: after the timeout the last copy opens */
+hangs = true;
+const t0 = Date.now();
+const slow = await request(scope + "reise.html?tab=erinnerungen", "navigate");
+ok(slow.body.startsWith("fresh") && Date.now() - t0 >= 3500, "a hanging request falls back to the last copy after the timeout");
+hangs = false;
 
 console.log(`\n${n} assertions passed (service worker: notification links, offline)`);
