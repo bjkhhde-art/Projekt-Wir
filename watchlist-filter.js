@@ -3,6 +3,7 @@
    (window.WatchlistFilter) and the node tests (module.exports). */
 (function () {
   const STATUS_OPTIONS = [
+    { value: "watching", label: "📺 Läuft gerade" },
     { value: "open", label: "🍿 Noch offen" },
     { value: "both", label: "👫 Zusammen" },
     { value: "Isi", label: "👤 Isi allein" },
@@ -27,7 +28,7 @@
   }
 
   function statusOf(entry) {
-    if (!entry.watched) return "open";
+    if (!entry.watched) return entry.watching ? "watching" : "open";
     return entry.seen_by || "unknown";
   }
 

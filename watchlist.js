@@ -33,6 +33,11 @@ const watchlistToggleWatchedBtn = document.getElementById("watchlistToggleWatche
 const watchlistDeleteBtn = document.getElementById("watchlistDeleteBtn");
 const watchlistWatchedAtInput = document.getElementById("watchlistWatchedAtInput");
 const seenByDateInput = document.getElementById("seenByDateInput");
+const watchlistSeriesField = document.getElementById("watchlistSeriesField");
+const watchlistWatchingInput = document.getElementById("watchlistWatchingInput");
+const watchlistSeriesCounts = document.getElementById("watchlistSeriesCounts");
+const watchlistSeasonsInput = document.getElementById("watchlistSeasonsInput");
+const watchlistSeasonEpisodes = document.getElementById("watchlistSeasonEpisodes");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
 const MEDIA_ICONS = { film: "🎬", serie: "📺" };
@@ -114,6 +119,174 @@ function attachLongPressToEdit(card, entry) {
   }, true);
 }
 
+/* series we are watching: seasons × episodes per season, ticked episodes stored as "season-episode" */
+function episodeKey(season, episode) {
+  return `${season}-${episode}`;
+}
+
+function seenEpisodes(entry) {
+  return new Set(Array.isArray(entry.episodes_seen) ? entry.episodes_seen : []);
+}
+
+/* episodes per season, e.g. [8, 10, 6] – seasons may differ in length */
+function seasonLengths(entry) {
+  return Array.isArray(entry.season_episodes) ? entry.season_episodes.filter(n => n >= 1) : [];
+}
+
+function totalEpisodes(entry) {
+  return seasonLengths(entry).reduce((sum, n) => sum + n, 0);
+}
+
+function seenEpisodeCount(entry, seen = seenEpisodes(entry)) {
+  let count = 0;
+  seasonLengths(entry).forEach((length, index) => {
+    for (let e = 1; e <= length; e++) if (seen.has(episodeKey(index + 1, e))) count++;
+  });
+  return count;
+}
+
+/* the last tick finishes the series: it moves to "Schon gesehen" (together, today – editable by holding the row) */
+async function saveEpisodes(entry, seen, finished) {
+  const update = { episodes_seen: [...seen] };
+  if (finished) {
+    update.watched = true;
+    update.watching = false;
+    update.watched_at = new Date().toISOString();
+    update.seen_by = entry.seen_by || "both";
+  }
+  const { error } = await supabaseClient.from("watchlist").update(update).eq("id", entry.id);
+
+  if (error) {
+    console.error("Fehler beim Speichern der Folgen:", error);
+    showToast("Folge konnte nicht gespeichert werden.", "error");
+    return;
+  }
+
+  if (finished) {
+    celebrate(8);
+    showToast(`Alle Folgen von "${entry.title}" gesehen 🎉`, "success");
+  }
+  await loadWatchlist();
+}
+
+function toggleEpisodes(entry, keys) {
+  const seen = seenEpisodes(entry);
+  const allSeen = keys.every(key => seen.has(key));
+  keys.forEach(key => (allSeen ? seen.delete(key) : seen.add(key)));
+  saveEpisodes(entry, seen, seenEpisodeCount(entry, seen) === totalEpisodes(entry));
+}
+
+function buildWatchingCard(entry) {
+  const card = document.createElement("div");
+  card.className = "watchlist-card card";
+  card.setAttribute("data-reveal", "");
+  attachLongPressToEdit(card, entry);
+
+  const head = document.createElement("div");
+  head.className = "watchlist-card-head";
+  head.innerHTML = `
+    <span class="watchlist-type-badge chip">📺 Läuft gerade</span>
+    ${entry.platform ? `<span class="watchlist-platform">▶️ ${escapeHtml(entry.platform)}</span>` : ""}
+  `;
+  card.appendChild(head);
+
+  const title = document.createElement("h3");
+  title.className = "watchlist-title";
+  title.textContent = entry.title;
+  card.appendChild(title);
+
+  const total = totalEpisodes(entry);
+  if (!total) {
+    const hint = document.createElement("p");
+    hint.className = "watchlist-not-watched-hint";
+    hint.textContent = "Halte die Karte gedrückt und trag Staffeln und Folgen ein.";
+    card.appendChild(hint);
+  } else {
+    const count = seenEpisodeCount(entry);
+    const progress = document.createElement("div");
+    progress.className = "watch-progress";
+    progress.innerHTML = `<span>${count} von ${total} Folgen</span><div class="watch-progress-bar"><span style="width:${Math.round(count / total * 100)}%"></span></div>`;
+    card.appendChild(progress);
+
+    const seen = seenEpisodes(entry);
+    seasonLengths(entry).forEach((length, index) => {
+      const s = index + 1;
+      const keys = Array.from({ length }, (_, i) => episodeKey(s, i + 1));
+      const season = document.createElement("div");
+      season.className = "watch-season";
+
+      const seasonHead = document.createElement("div");
+      seasonHead.className = "watch-season-head";
+      seasonHead.innerHTML = `<span>Staffel ${s}</span>`;
+      const allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "watch-season-all";
+      allBtn.textContent = keys.every(key => seen.has(key)) ? "Alle abwählen" : "Alle gesehen";
+      allBtn.addEventListener("click", () => toggleEpisodes(entry, keys));
+      seasonHead.appendChild(allBtn);
+      season.appendChild(seasonHead);
+
+      const grid = document.createElement("div");
+      grid.className = "watch-episodes";
+      keys.forEach((key, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "watch-episode" + (seen.has(key) ? " seen" : "");
+        btn.textContent = i + 1;
+        btn.title = `Staffel ${s}, Folge ${i + 1}`;
+        btn.setAttribute("aria-pressed", String(seen.has(key)));
+        btn.addEventListener("click", () => toggleEpisodes(entry, [key]));
+        grid.appendChild(btn);
+      });
+      season.appendChild(grid);
+      card.appendChild(season);
+    });
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "watchlist-actions";
+
+  const stopBtn = document.createElement("button");
+  stopBtn.type = "button";
+  stopBtn.className = "btn btn-secondary btn-sm";
+  stopBtn.textContent = "⏸️ Zurück auf die Liste";
+  stopBtn.addEventListener("click", () => setWatching(entry, false));
+  actions.appendChild(stopBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "watchlist-delete-btn";
+  deleteBtn.title = "Löschen";
+  deleteBtn.textContent = "🗑️";
+  deleteBtn.addEventListener("click", () => deleteEntry(entry));
+  actions.appendChild(deleteBtn);
+
+  card.appendChild(actions);
+  return card;
+}
+
+async function setWatching(entry, watching) {
+  const { error } = await supabaseClient.from("watchlist").update({ watching }).eq("id", entry.id);
+  if (error) {
+    console.error("Fehler beim Aktualisieren:", error);
+    showToast("Konnte nicht aktualisiert werden.", "error");
+    return;
+  }
+  await loadWatchlist();
+}
+
+/* a series without counts yet asks for them first (the edit form with "gerade" ticked) */
+function startWatching(entry) {
+  if (totalEpisodes(entry)) {
+    setWatching(entry, true);
+    return;
+  }
+  openEditModal(entry);
+  watchlistWatchingInput.checked = true;
+  updateSeriesFields();
+  watchlistSeasonsInput.focus();
+}
+
 function buildWatchlistCard(entry) {
   const card = document.createElement("div");
   card.className = "watchlist-card card";
@@ -153,6 +326,14 @@ function buildWatchlistCard(entry) {
   watchedBtn.className = "btn btn-sm";
   watchedBtn.textContent = "✅ Als gesehen markieren";
   watchedBtn.addEventListener("click", () => toggleWatched(entry));
+  if (entry.media_type === "serie") {
+    const startBtn = document.createElement("button");
+    startBtn.type = "button";
+    startBtn.className = "btn btn-secondary btn-sm";
+    startBtn.textContent = "▶️ Wir schauen gerade";
+    startBtn.addEventListener("click", () => startWatching(entry));
+    actions.appendChild(startBtn);
+  }
   actions.appendChild(watchedBtn);
 
   const deleteBtn = document.createElement("button");
@@ -263,10 +444,19 @@ function renderWatchlist() {
     return;
   }
 
-  const open = filtered.filter(entry => !entry.watched);
+  const watching = filtered.filter(entry => !entry.watched && entry.watching);
+  const open = filtered.filter(entry => !entry.watched && !entry.watching);
   const watched = filtered
     .filter(entry => entry.watched)
     .sort(search ? byRelevance : (a, b) => (b.watched_at || "").localeCompare(a.watched_at || ""));
+
+  if (watching.length > 0) {
+    const label = document.createElement("p");
+    label.className = "watchlist-section-label";
+    label.textContent = `📺 Wir schauen gerade · ${watching.length}`;
+    watchlistList.appendChild(label);
+    watching.forEach(entry => watchlistList.appendChild(buildWatchingCard(entry)));
+  }
 
   if (open.length > 0) {
     const label = document.createElement("p");
@@ -419,6 +609,8 @@ async function setWatched(entry, nextWatched, seenBy, watchedAt) {
     .from("watchlist")
     .update({
       watched: nextWatched,
+      watching: false,
+      ...(nextWatched ? {} : { episodes_seen: [] }),
       watched_at: nextWatched ? watchedAt || new Date().toISOString() : null,
       rating: nextWatched ? entry.rating : null,
       seen_by: nextWatched ? seenBy : null
@@ -485,7 +677,11 @@ openWatchlistModal.addEventListener("click", () => {
   watchlistAddedByInput.value = "Isi";
   watchlistEditExtras.classList.add("hidden");
   watchlistSeenByField.classList.add("hidden");
+  watchlistWatchingInput.checked = false;
+  watchlistSeasonsInput.value = "";
+  renderSeasonInputs([]);
   editingSeenBy = null;
+  updateSeriesFields();
   updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
@@ -504,7 +700,12 @@ function openEditModal(entry) {
   editingSeenBy = entry.seen_by || null;
   watchlistSeenByField.classList.toggle("hidden", !entry.watched);
   prepareDateInput(watchlistWatchedAtInput, entry.watched_at);
+  watchlistWatchingInput.checked = !!entry.watching;
+  const lengths = seasonLengths(entry);
+  watchlistSeasonsInput.value = lengths.length || "";
+  renderSeasonInputs(lengths);
   renderSeenByChoice();
+  updateSeriesFields();
   updateDuplicateHint();
   watchlistModal.classList.remove("hidden");
   watchlistTitleInput.focus();
@@ -542,8 +743,38 @@ function updateDuplicateHint() {
   saveWatchlistBtn.disabled = !!duplicate;
 }
 
+/* one field per season for its episode count; values already typed stay when the season count changes */
+function renderSeasonInputs(lengths) {
+  const count = Math.min(parseInt(watchlistSeasonsInput.value, 10) || 0, 99);
+  watchlistSeasonEpisodes.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const label = document.createElement("label");
+    label.innerHTML = `Staffel ${i + 1}<input type="number" min="1" max="999" inputmode="numeric" placeholder="Folgen" value="${lengths[i] || ""}">`;
+    watchlistSeasonEpisodes.appendChild(label);
+  }
+}
+
+function typedSeasonLengths() {
+  return [...watchlistSeasonEpisodes.querySelectorAll("input")].map(input => parseInt(input.value, 10) || 0);
+}
+
+watchlistSeasonsInput.addEventListener("input", () => renderSeasonInputs(typedSeasonLengths()));
+
+/* seasons / episodes only make sense for a series that is not finished yet */
+function updateSeriesFields() {
+  const entry = editingEntry();
+  const finished = !!(entry && entry.watched);
+  const show = watchlistTypeInput.value === "serie" && !finished;
+  watchlistSeriesField.classList.toggle("hidden", !show);
+  watchlistSeriesCounts.classList.toggle("hidden", !show || !watchlistWatchingInput.checked);
+}
+
+watchlistWatchingInput.addEventListener("change", updateSeriesFields);
 watchlistTitleInput.addEventListener("input", updateDuplicateHint);
-watchlistTypeInput.addEventListener("change", updateDuplicateHint);
+watchlistTypeInput.addEventListener("change", () => {
+  updateSeriesFields();
+  updateDuplicateHint();
+});
 
 async function saveWatchlistEntry() {
   const title = watchlistTitleInput.value.trim().replace(/\s+/g, " ");
@@ -566,6 +797,29 @@ async function saveWatchlistEntry() {
     platform: watchlistPlatformInput.value.trim() || null,
     added_by: watchlistAddedByInput.value
   };
+  const entryBefore = editingEntry();
+  if (watchlistTypeInput.value === "serie" && !(entryBefore && entryBefore.watched)) {
+    const watching = watchlistWatchingInput.checked;
+    const lengths = typedSeasonLengths();
+    const complete = lengths.length >= 1 && lengths.every(n => n >= 1 && n <= 999);
+    if (watching && !complete) {
+      showToast("Bitte Staffeln und die Folgen jeder Staffel eintragen.", "error");
+      return;
+    }
+    payload.watching = watching;
+    if (complete) {
+      payload.season_episodes = lengths;
+      /* ticks outside a shrunken grid fall away */
+      payload.episodes_seen = entryBefore
+        ? [...seenEpisodes(entryBefore)].filter(key => {
+            const [s, e] = key.split("-").map(Number);
+            return s <= lengths.length && e <= lengths[s - 1];
+          })
+        : [];
+    }
+  } else if (watchlistTypeInput.value !== "serie") {
+    payload.watching = false;
+  }
   if (editingWatchlistId && !watchlistSeenByField.classList.contains("hidden")) {
     payload.seen_by = editingSeenBy;
     /* only a changed day is written; an emptied field keeps the old date */
