@@ -39,7 +39,7 @@ ok(page.url().includes("ziele.html") && await page.locator('.hub-tab.active').ge
 /* Games: the questions instead of the quest */
 await page.goto(base + "games.html"); await page.waitForTimeout(400);
 const tiles = await page.locator(".game-tile h2").allTextContents();
-ok(JSON.stringify(tiles) === JSON.stringify(["Wir zwei", "Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Fragen"]), `Games lists the questions next to the games (${tiles.join(", ")})`);
+ok(JSON.stringify(tiles) === JSON.stringify(["Wir zwei", "Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Geo-Guesser", "Fragen"]), `Games lists the questions next to the games (${tiles.join(", ")})`);
 await page.locator(".game-tile", { hasText: "Fragen" }).click(); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html") && (await page.locator("h1").textContent()).startsWith("Fragen"), "the tile opens the questions page");
 ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuestionBtn"), "the questions page has its four categories and the next button");
@@ -66,7 +66,7 @@ await page.goBack(); await page.waitForTimeout(400);
 ok(page.url().endsWith("mochi.html"), "the back button returns to Mochi");
 await page.setViewportSize({ width: 390, height: 844 });
 
-for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html"]) {
+for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "geo.html"]) {
   await page.goto(base + game); await page.waitForTimeout(300);
   ok(await activeNav() === "games.html", `${game} highlights Games in the nav`);
 }
@@ -78,7 +78,7 @@ ok((await page.locator(".home-card", { hasText: "Games" }).textContent()).includ
 ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator("main").textContent()).includes("Frage für uns"), "the 'Frage für uns' card is gone from the start page");
 
 /* every single game has a back arrow to the games overview */
-for (const game of ["nimmt", "cabo", "qwixx", "flip7", "questions"]) {
+for (const game of ["nimmt", "cabo", "qwixx", "flip7", "geo", "questions"]) {
   /* the lobby page with its title – a round left over from another test (Flip 7 with three hides the title) is cleared */
   if (game !== "questions") await fetch(`http://localhost:8991/t/${game}_games/reset`, { method: "POST" });
   await page.goto(`http://localhost:9091/${game}.html`);
