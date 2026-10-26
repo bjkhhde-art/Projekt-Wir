@@ -10,12 +10,18 @@
   const MIN_PHOTOS = 3;
   const FORMAT = 1;
 
-  /* only trips that have photos can be asked for; ids are compared as text everywhere */
+  /* every trip is in the list to pick from (newest first), but only trips with photos can be the answer;
+     ids are compared as text everywhere */
   function buildPool(trips, images) {
-    const withPhotos = new Set((images || []).filter(i => i && i.image_url).map(i => String(i.trip_id)));
     const options = (trips || [])
-      .filter(t => t && withPhotos.has(String(t.id)))
-      .map(t => ({ id: String(t.id), title: String(t.title || "Reise"), location: String(t.location || "") }));
+      .filter(t => t && t.id !== undefined && t.id !== null)
+      .sort((a, b) => String(b.start_date || "").localeCompare(String(a.start_date || "")))
+      .map(t => ({
+        id: String(t.id),
+        title: String(t.title || "Reise"),
+        location: String(t.location || ""),
+        year: /^\d{4}/.test(t.start_date || "") ? String(t.start_date).slice(0, 4) : ""
+      }));
     const known = new Set(options.map(t => t.id));
     const photos = (images || [])
       .filter(i => i && i.image_url && known.has(String(i.trip_id)))
@@ -25,7 +31,7 @@
 
   /* why a game cannot start yet, or null */
   function poolProblem(pool) {
-    if (!pool || pool.trips.length < MIN_TRIPS) return "Für Geo-Guesser braucht ihr Fotos von mindestens zwei Reisen.";
+    if (!pool || new Set(pool.photos.map(p => p.trip)).size < MIN_TRIPS) return "Für Geo-Guesser braucht ihr Fotos von mindestens zwei Reisen.";
     if (pool.photos.length < MIN_PHOTOS) return "Für Geo-Guesser braucht ihr noch ein paar mehr Reisefotos.";
     return null;
   }

@@ -41,7 +41,8 @@ await lonely.context().close();
 const picture = "/icons/icon-512.png";
 await post("/t/trips/seed", { rows: [
   { id: 1, title: "Alicante", location: "Spanien", start_date: "2026-08-29", end_date: "2026-09-02" },
-  { id: 2, title: "Berlin", location: "Berlin", start_date: "2026-05-01", end_date: "2026-05-03" }
+  { id: 2, title: "Berlin", location: "Berlin", start_date: "2026-05-01", end_date: "2026-05-03" },
+  { id: 3, title: "Ostsee", location: "", start_date: "2026-10-01", end_date: "2026-10-03" }
 ] });
 await post("/t/trip_images/seed", { rows: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, trip_id: i % 2 ? 2 : 1, image_url: `${picture}?p${i}` })) });
 await post("/t/geo_games/reset", {});
@@ -58,8 +59,10 @@ await until(async () => (await isi.locator(".geo-photo img").count()) === 1 && (
 
 const srcOf = page => page.locator(".geo-photo img").getAttribute("src");
 ok(await srcOf(isi) === await srcOf(benji), "both see the same photo");
-ok((await isi.locator(".geo-trip").allTextContents()).length === 2, "both trips are offered");
+const listed = await isi.locator("#geoTrip option:not([disabled])").allTextContents();
+ok(listed.length === 3 && listed[0].includes("Ostsee") && listed[1].includes("Alicante · Spanien · 2026"), `the dropdown lists all trips, newest first (${listed.join(" | ")})`);
 ok(await isi.locator("#geoSubmit").isDisabled(), "submitting needs a chosen trip");
+ok(await isi.locator("#geoTrip").evaluate(el => el.value === ""), "the dropdown starts on its placeholder");
 
 /* work out which trip is right from the state */
 const rightTrip = async () => {
@@ -69,13 +72,13 @@ const rightTrip = async () => {
 let { right } = await rightTrip();
 const wrongOf = r => (r === "1" ? "2" : "1");
 
-await isi.click(`.geo-trip[data-trip="${right}"]`);
+await isi.selectOption("#geoTrip", right);
 await isi.click("#geoSubmit");
 await until(async () => (await latest()).state.picks.Isi === right, 4000, "Isi's pick saved");
 ok((await isi.locator(".geo-wait").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
 ok((await latest()).state.phase === "play", "no reveal after one pick");
 
-await benji.click(`.geo-trip[data-trip="${wrongOf(right)}"]`);
+await benji.selectOption("#geoTrip", wrongOf(right));
 await benji.click("#geoSubmit");
 await until(async () => (await isi.locator(".geo-answer h2").count()) === 1 && (await benji.locator(".geo-answer h2").count()) === 1, 4000, "reveal");
 const title = right === "1" ? "Alicante" : "Berlin";
@@ -93,9 +96,9 @@ ok(true, "when both are ready the next photo comes");
 /* the remaining four photos, both always right */
 for (let i = 1; i < 5; i++) {
   const { right: r } = await rightTrip();
-  await until(async () => (await isi.locator(".geo-trip:not([disabled])").count()) === 2 && (await benji.locator(".geo-trip:not([disabled])").count()) === 2, 4000, `photo ${i + 1} on both`);
+  await until(async () => (await isi.locator("#geoTrip:not([disabled])").count()) === 1 && (await benji.locator("#geoTrip:not([disabled])").count()) === 1, 4000, `photo ${i + 1} on both`);
   for (const page of [isi, benji]) {
-    await page.click(`.geo-trip[data-trip="${r}"]`);
+    await page.selectOption("#geoTrip", r);
     await page.click("#geoSubmit");
   }
   await until(async () => (await latest()).state.phase === "reveal", 4000, `reveal ${i + 1}`);

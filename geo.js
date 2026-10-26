@@ -41,7 +41,7 @@ const room = GameRoom.create({
 
 async function loadPool() {
   const [trips, images] = await Promise.all([
-    client.from("trips").select("id, title, location"),
+    client.from("trips").select("id, title, location, start_date"),
     client.from("trip_images").select("id, trip_id, image_url")
   ]);
   if (trips.error || images.error) {
@@ -73,8 +73,9 @@ function photoHtml(photo, index, total) {
     </figure>`;
 }
 
+/* "Alicante · Spanien · 2026" – the place and year tell similar trips apart */
 function tripLabel(trip) {
-  return `<span class="geo-trip-title">${escapeHtml(trip.title)}</span>${trip.location && trip.location !== trip.title ? `<span class="geo-trip-place">${escapeHtml(trip.location)}</span>` : ""}`;
+  return [trip.title, trip.location && trip.location !== trip.title ? trip.location : "", trip.year].filter(Boolean).join(" · ");
 }
 
 /* ---------- screens ---------- */
@@ -86,27 +87,27 @@ function renderPlay(game, state, me, partner) {
   const mine = state.picks[me];
   const theirs = state.picks[partner] !== null;
 
-  const trips = state.trips.map(trip => {
-    const chosen = mine !== null ? mine === trip.id : selected.trip === trip.id;
-    return `<button type="button" class="geo-trip${chosen ? " selected" : ""}" data-trip="${escapeHtml(trip.id)}"${mine !== null ? " disabled" : ""}>${tripLabel(trip)}</button>`;
-  }).join("");
+  const chosenId = mine !== null ? mine : selected.trip;
+  const options = state.trips.map(trip => `<option value="${escapeHtml(trip.id)}"${chosenId === trip.id ? " selected" : ""}>${escapeHtml(tripLabel(trip))}</option>`).join("");
 
   stageEl.innerHTML = `
     ${photoHtml(photo, state.index, state.photos.length)}
     <p class="geo-question">${mine === null ? "Auf welcher Reise ist dieses Foto entstanden?" : "Dein Tipp ist drin ✓"}</p>
-    <div class="geo-trips" role="radiogroup" aria-label="Reisen">${trips}</div>
+    <select id="geoTrip" class="geo-select" aria-label="Reise auswählen"${mine !== null ? " disabled" : ""}>
+      ${mine === null ? `<option value=""${chosenId === null ? " selected" : ""} disabled>Reise auswählen …</option>` : ""}
+      ${options}
+    </select>
     ${mine === null
       ? `<button type="button" id="geoSubmit" class="btn btn-block"${selected.trip === null ? " disabled" : ""}>Tipp abgeben</button>`
       : `<p class="geo-wait">${theirs ? "…" : `⏳ Warte auf ${escapeHtml(partner)}`}</p>`}`;
 
   if (mine !== null) return;
   const submit = document.getElementById("geoSubmit");
-  stageEl.querySelectorAll(".geo-trip").forEach(button => button.addEventListener("click", () => {
-    selected.trip = button.dataset.trip;
-    stageEl.querySelectorAll(".geo-trip").forEach(b => b.classList.toggle("selected", b === button));
-    submit.disabled = false;
+  document.getElementById("geoTrip").addEventListener("change", event => {
+    selected.trip = event.target.value || null;
+    submit.disabled = selected.trip === null;
     if (navigator.vibrate) navigator.vibrate(8);
-  }));
+  });
   submit.addEventListener("click", () => {
     if (selected.trip === null || submit.disabled) return;
     submit.disabled = true;
@@ -123,7 +124,7 @@ function renderReveal(game, state, me, partner) {
     const trip = G.tripById(state, picks[person]);
     return `<div class="geo-pick ${hit(person) ? "hit" : "miss"}">
       <span class="geo-pick-who">${hit(person) ? "✅" : "❌"} ${escapeHtml(nameFor(person, me))}</span>
-      <span class="geo-pick-trip">${escapeHtml(trip ? trip.title : "?")}</span>
+      <span class="geo-pick-trip">${escapeHtml(trip ? tripLabel(trip) : "?")}</span>
     </div>`;
   };
 

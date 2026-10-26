@@ -26,9 +26,9 @@ function seeded(seed) {
 }
 
 const trips = [
-  { id: 1, title: "Alicante", location: "Spanien" },
-  { id: 2, title: "Berlin", location: "Berlin" },
-  { id: 3, title: "Noch nicht verreist", location: "" }
+  { id: 1, title: "Alicante", location: "Spanien", start_date: "2026-08-29" },
+  { id: 2, title: "Berlin", location: "Berlin", start_date: "2026-05-01" },
+  { id: 3, title: "Noch nicht verreist", location: "", start_date: "2027-01-01" }
 ];
 const images = Array.from({ length: 12 }, (_, i) => ({ id: 100 + i, trip_id: i % 2 ? 2 : 1, image_url: `p${i}.jpg` }));
 images.push({ id: 200, trip_id: 99, image_url: "waise.jpg" }, { id: 201, trip_id: 1, image_url: null });
@@ -36,8 +36,10 @@ images.push({ id: 200, trip_id: 99, image_url: "waise.jpg" }, { id: 201, trip_id
 /* pool */
 {
   const pool = G.buildPool(trips, images);
-  ok(pool.trips.length === 2 && pool.trips.every(t => typeof t.id === "string"), "only trips with photos can be asked for, ids are text");
+  ok(pool.trips.length === 3 && pool.trips.every(t => typeof t.id === "string"), "every trip is in the list to pick from, ids are text");
+  ok(pool.photos.every(p => p.trip === "1" || p.trip === "2"), "only trips with photos are ever the answer");
   ok(pool.photos.length === 12, "photos of unknown trips and photos without a link are dropped");
+  ok(pool.trips.map(t => t.id).join() === "3,1,2" && pool.trips[1].year === "2026", "the list is sorted newest first and carries the year");
   ok(G.poolProblem(pool) === null, "a pool with two trips and enough photos is playable");
   ok(G.poolProblem(G.buildPool(trips, images.filter(i => i.trip_id === 1))) !== null, "one trip alone is not enough");
   ok(G.poolProblem(G.buildPool(trips, images.slice(0, 2))) !== null, "too few photos are not enough");
