@@ -40,7 +40,7 @@ ok(await page.locator(".watchlist-filter-btn").count() === 0, "the three fixed b
 ok(await page.locator("#watchlistFilterPanel").isHidden(), "the filter panel starts folded");
 await page.click("#watchlistFilterToggle");
 ok(await page.locator("#watchlistFilterPanel").isVisible(), "'Filter' opens the panel");
-ok(await page.locator('.wl-filter-group[data-group="status"] .wl-chip').count() === 5, "status: open, together, Isi, Benji, without info");
+ok(await page.locator('.wl-filter-group[data-group="status"] .wl-chip').count() === 6, "status: running, open, together, Isi, Benji, without info");
 const platforms = await page.locator('.wl-filter-group[data-group="platforms"] .wl-chip').allTextContents();
 ok(platforms.map(p => p.replace(/\s+/g, " ").trim()).join("|") === "Netflix 3|Disney+ 1|Kino 1|Prime Video 1", `platforms come from the list with counts, Netflix/netflix merged (${platforms.map(p => p.replace(/\s+/g, " ").trim()).join(", ")})`);
 ok((await page.locator('.wl-filter-group[data-group="periods"] .wl-chip').allTextContents()).map(t => t.trim()).join("|").includes("2025"), "years come from the watch dates");

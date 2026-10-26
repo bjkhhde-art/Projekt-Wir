@@ -101,6 +101,14 @@
         <option value="serie">📺 Serie</option>
       </select>
 
+      <div id="watchlistSeriesField" class="hidden">
+        <label class="watchlist-watching-check"><input id="watchlistWatchingInput" type="checkbox"> 📺 Wir schauen gerade</label>
+        <div id="watchlistSeriesCounts" class="watchlist-series-counts hidden">
+          <div><label for="watchlistSeasonsInput">Staffeln</label><input id="watchlistSeasonsInput" type="number" min="1" max="99" inputmode="numeric" placeholder="z. B. 3"></div>
+          <div><label for="watchlistEpisodesInput">Folgen pro Staffel</label><input id="watchlistEpisodesInput" type="number" min="1" max="999" inputmode="numeric" placeholder="z. B. 8"></div>
+        </div>
+      </div>
+
       <label>Wo schauen? (optional)</label>
       <input id="watchlistPlatformInput" type="text" placeholder="z. B. Netflix, Kino, Prime Video">
 

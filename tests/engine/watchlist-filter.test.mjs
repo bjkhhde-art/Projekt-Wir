@@ -41,6 +41,10 @@ ok(same(pick({ to: "2026-03-24" }), [2, 3]), "only an end date, the end day coun
 ok(same(pick({ types: ["serie"], status: ["Benji", "Isi"], platforms: ["netflix"] }), [2]), "groups combine with AND");
 ok(same(pick({ status: ["open"], periods: ["2026"] }), []), "a date filter leaves out titles not watched yet");
 
+ok(W.statusOf({ watched: false, watching: true }) === "watching", "an unfinished series we are watching has its own status");
+ok(W.matches({ media_type: "serie", watched: false, watching: true }, { ...W.emptyFilters(), status: ["watching"] }, NOW), "status filter: läuft gerade");
+ok(!W.matches({ media_type: "serie", watched: false, watching: true }, { ...W.emptyFilters(), status: ["open"] }, NOW), "a running series is not 'noch offen'");
+
 const opts = W.options(entries);
 ok(same(opts.platforms.map(p => p.label), ["Netflix", "Disney+", "Kino", "Prime Video", "Ohne Anbieter"]), "platform choices come from the list, most used first, 'Ohne Anbieter' last");
 ok(opts.platforms[0].count === 2, "'Netflix' and 'netflix ' are one platform");
