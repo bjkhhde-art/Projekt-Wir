@@ -37,7 +37,7 @@ const watchlistSeriesField = document.getElementById("watchlistSeriesField");
 const watchlistWatchingInput = document.getElementById("watchlistWatchingInput");
 const watchlistSeriesCounts = document.getElementById("watchlistSeriesCounts");
 const watchlistSeasonsInput = document.getElementById("watchlistSeasonsInput");
-const watchlistEpisodesInput = document.getElementById("watchlistEpisodesInput");
+const watchlistSeasonEpisodes = document.getElementById("watchlistSeasonEpisodes");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
 const MEDIA_ICONS = { film: "🎬", serie: "📺" };
@@ -128,15 +128,20 @@ function seenEpisodes(entry) {
   return new Set(Array.isArray(entry.episodes_seen) ? entry.episodes_seen : []);
 }
 
+/* episodes per season, e.g. [8, 10, 6] – seasons may differ in length */
+function seasonLengths(entry) {
+  return Array.isArray(entry.season_episodes) ? entry.season_episodes.filter(n => n >= 1) : [];
+}
+
 function totalEpisodes(entry) {
-  return (entry.season_count || 0) * (entry.episodes_per_season || 0);
+  return seasonLengths(entry).reduce((sum, n) => sum + n, 0);
 }
 
 function seenEpisodeCount(entry, seen = seenEpisodes(entry)) {
   let count = 0;
-  for (let s = 1; s <= entry.season_count; s++) {
-    for (let e = 1; e <= entry.episodes_per_season; e++) if (seen.has(episodeKey(s, e))) count++;
-  }
+  seasonLengths(entry).forEach((length, index) => {
+    for (let e = 1; e <= length; e++) if (seen.has(episodeKey(index + 1, e))) count++;
+  });
   return count;
 }
 
@@ -204,8 +209,9 @@ function buildWatchingCard(entry) {
     card.appendChild(progress);
 
     const seen = seenEpisodes(entry);
-    for (let s = 1; s <= entry.season_count; s++) {
-      const keys = Array.from({ length: entry.episodes_per_season }, (_, i) => episodeKey(s, i + 1));
+    seasonLengths(entry).forEach((length, index) => {
+      const s = index + 1;
+      const keys = Array.from({ length }, (_, i) => episodeKey(s, i + 1));
       const season = document.createElement("div");
       season.className = "watch-season";
 
@@ -234,7 +240,7 @@ function buildWatchingCard(entry) {
       });
       season.appendChild(grid);
       card.appendChild(season);
-    }
+    });
   }
 
   const actions = document.createElement("div");
@@ -673,7 +679,7 @@ openWatchlistModal.addEventListener("click", () => {
   watchlistSeenByField.classList.add("hidden");
   watchlistWatchingInput.checked = false;
   watchlistSeasonsInput.value = "";
-  watchlistEpisodesInput.value = "";
+  renderSeasonInputs([]);
   editingSeenBy = null;
   updateSeriesFields();
   updateDuplicateHint();
@@ -695,8 +701,9 @@ function openEditModal(entry) {
   watchlistSeenByField.classList.toggle("hidden", !entry.watched);
   prepareDateInput(watchlistWatchedAtInput, entry.watched_at);
   watchlistWatchingInput.checked = !!entry.watching;
-  watchlistSeasonsInput.value = entry.season_count || "";
-  watchlistEpisodesInput.value = entry.episodes_per_season || "";
+  const lengths = seasonLengths(entry);
+  watchlistSeasonsInput.value = lengths.length || "";
+  renderSeasonInputs(lengths);
   renderSeenByChoice();
   updateSeriesFields();
   updateDuplicateHint();
@@ -735,6 +742,23 @@ function updateDuplicateHint() {
   watchlistDuplicateHint.classList.toggle("hidden", !duplicate);
   saveWatchlistBtn.disabled = !!duplicate;
 }
+
+/* one field per season for its episode count; values already typed stay when the season count changes */
+function renderSeasonInputs(lengths) {
+  const count = Math.min(parseInt(watchlistSeasonsInput.value, 10) || 0, 99);
+  watchlistSeasonEpisodes.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const label = document.createElement("label");
+    label.innerHTML = `Staffel ${i + 1}<input type="number" min="1" max="999" inputmode="numeric" placeholder="Folgen" value="${lengths[i] || ""}">`;
+    watchlistSeasonEpisodes.appendChild(label);
+  }
+}
+
+function typedSeasonLengths() {
+  return [...watchlistSeasonEpisodes.querySelectorAll("input")].map(input => parseInt(input.value, 10) || 0);
+}
+
+watchlistSeasonsInput.addEventListener("input", () => renderSeasonInputs(typedSeasonLengths()));
 
 /* seasons / episodes only make sense for a series that is not finished yet */
 function updateSeriesFields() {
@@ -776,21 +800,20 @@ async function saveWatchlistEntry() {
   const entryBefore = editingEntry();
   if (watchlistTypeInput.value === "serie" && !(entryBefore && entryBefore.watched)) {
     const watching = watchlistWatchingInput.checked;
-    const seasons = parseInt(watchlistSeasonsInput.value, 10);
-    const episodes = parseInt(watchlistEpisodesInput.value, 10);
-    if (watching && !(seasons >= 1 && seasons <= 99 && episodes >= 1 && episodes <= 999)) {
-      showToast("Bitte Staffeln und Folgen pro Staffel eintragen.", "error");
+    const lengths = typedSeasonLengths();
+    const complete = lengths.length >= 1 && lengths.every(n => n >= 1 && n <= 999);
+    if (watching && !complete) {
+      showToast("Bitte Staffeln und die Folgen jeder Staffel eintragen.", "error");
       return;
     }
     payload.watching = watching;
-    if (seasons >= 1 && episodes >= 1) {
-      payload.season_count = seasons;
-      payload.episodes_per_season = episodes;
+    if (complete) {
+      payload.season_episodes = lengths;
       /* ticks outside a shrunken grid fall away */
       payload.episodes_seen = entryBefore
         ? [...seenEpisodes(entryBefore)].filter(key => {
             const [s, e] = key.split("-").map(Number);
-            return s <= seasons && e <= episodes;
+            return s <= lengths.length && e <= lengths[s - 1];
           })
         : [];
     }

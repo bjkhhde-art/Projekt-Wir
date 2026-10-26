@@ -509,14 +509,14 @@
   margin: 0;
 }
 
-.watchlist-series-counts {
-  display: flex;
-  gap: 10px;
+.watchlist-season-episodes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
 }
 
-.watchlist-series-counts > div {
-  flex: 1;
-  min-width: 0;
+.watchlist-season-episodes label {
+  margin-top: 8px;
 }
 
 .watch-progress {
