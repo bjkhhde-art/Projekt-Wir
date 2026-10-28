@@ -140,7 +140,7 @@ function renderGrid(state, animate) {
     const el = document.createElement("span");
     el.className = "mo-tok";
     el.style.background = colorOf(state, p);
-    el.textContent = p.slice(0, 1).toUpperCase();
+    el.textContent = GameRoom.botLabel(p).slice(0, 1).toUpperCase();
     el.title = p;
     tokenLayer.appendChild(el);
     tokenEls.set(p, el);

@@ -104,7 +104,7 @@
           <span class="settings-row-icon">🎮</span>
           <div>
             <p class="settings-row-label">Spiele</p>
-            <p class="settings-row-desc">Wenn du zu Cabo, 6 nimmt! oder Qwixx eingeladen wirst</p>
+            <p class="settings-row-desc">Wenn du zu einem Spiel eingeladen wirst</p>
           </div>
         </div>
         <button class="settings-switch" data-field="games_enabled" role="switch" aria-label="Benachrichtigungen: Spiele" aria-checked="true"><span class="settings-switch-knob"></span></button>
@@ -122,6 +122,20 @@
       <div class="settings-time-row">
         <label for="alicanteEndInput">Rückflug</label>
         <input type="date" id="alicanteEndInput">
+      </div>
+    </section>
+
+    <section class="card settings-card">
+      <h2 class="settings-title">🤖 Computer-Spieler</h2>
+      <p class="settings-subtitle">So heißen die beiden in allen Spielen – für Isi und Benji gleich. Leer lassen für den ursprünglichen Namen.</p>
+
+      <div class="settings-time-row">
+        <label for="botNameUdiou">Udiou heißt</label>
+        <input type="text" id="botNameUdiou" class="bot-name-input" data-bot="Udiou" maxlength="20" placeholder="Udiou" autocomplete="off">
+      </div>
+      <div class="settings-time-row">
+        <label for="botNameKlausi">Klausi heißt</label>
+        <input type="text" id="botNameKlausi" class="bot-name-input" data-bot="Klausi" maxlength="20" placeholder="Klausi" autocomplete="off">
       </div>
     </section>
   </main>
@@ -148,6 +162,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
+  <script src="bot-names.js"></script>
   <script src="einstellungen.js"></script>
 </body>
 </html>

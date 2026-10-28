@@ -158,6 +158,49 @@ alicanteEndInput.addEventListener("change", () => {
   saveAlicanteSettings({ alicante_end: alicanteEndInput.value });
 });
 
+/* ---------- names of the computer players (shared) ---------- */
+
+const botNameInputs = document.querySelectorAll(".bot-name-input");
+
+function showBotNames(names) {
+  botNameInputs.forEach(input => {
+    input.value = names[input.dataset.bot] || "";
+  });
+}
+
+async function saveBotName(input) {
+  const id = input.dataset.bot;
+  const name = BotNames.clean(input.value);
+  const wanted = BotNames.all();
+  if (name && name !== id) wanted[id] = name;
+  else delete wanted[id];
+  const problem = BotNames.problem(id, name, wanted);
+  if (problem) {
+    showToast(problem, "error");
+    showBotNames(BotNames.all());
+    return;
+  }
+  try {
+    const saved = await BotNames.save(supabaseClient, wanted);
+    showBotNames(saved);
+    showToast(name && name !== id ? `${id} heißt jetzt ${name} 🤖` : `${id} heißt wieder ${id} 🤖`, "success");
+  } catch (error) {
+    console.error("Fehler beim Speichern der Namen:", error);
+    showToast("Name konnte nicht gespeichert werden.", "error");
+    showBotNames(BotNames.all());
+  }
+}
+
+botNameInputs.forEach(input => {
+  input.addEventListener("change", () => saveBotName(input));
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") input.blur();
+  });
+});
+
+showBotNames(BotNames.all());
+BotNames.load(supabaseClient).then(showBotNames);
+
 /* ---------- push status ---------- */
 
 function refreshPushStatus() {
