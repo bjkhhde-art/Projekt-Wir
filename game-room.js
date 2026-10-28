@@ -70,10 +70,13 @@ const GameRoom = (() => {
     };
   }
 
+  /* what the computer players are called on the screen (renamed in the settings, see bot-names.js) */
+  const botLabel = name => (window.BotNames ? BotNames.display(name) : name);
+
   function guestNameProblem(name, taken) {
     if (!name) return "Bitte gib einen Namen ein.";
     const lower = name.toLowerCase();
-    if ([...MEMBERS, ...BOTS].some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
+    if ([...MEMBERS, ...BOTS, ...BOTS.map(botLabel)].some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
     if (taken.some(t => t.toLowerCase() === lower)) return `„${name}“ spielt schon mit – nimm einen anderen Namen.`;
     return null;
   }
@@ -874,6 +877,7 @@ const GameRoom = (() => {
       };
       const resync = () => {
         if (document.hidden) return;
+        if (config.bot && window.BotNames) BotNames.load(client);
         sync();
         schedule();
       };
@@ -884,6 +888,11 @@ const GameRoom = (() => {
     }
 
     function start() {
+      /* the computer players' chosen names replace Udiou/Klausi in everything shown on this page */
+      if (config.bot && window.BotNames) {
+        BotNames.watch(document.body);
+        BotNames.load(client);
+      }
       client
         .channel(`${table}_changes`)
         .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
@@ -942,5 +951,5 @@ const GameRoom = (() => {
     };
   }
 
-  return { create, cleanGuestName, guestNameProblem, readyFor, REACTIONS, BOTS };
+  return { create, cleanGuestName, guestNameProblem, readyFor, botLabel, REACTIONS, BOTS };
 })();

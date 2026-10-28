@@ -137,7 +137,8 @@
 }
 
 .settings-time-row select,
-.settings-time-row input[type="date"] {
+.settings-time-row input[type="date"],
+.settings-time-row input[type="text"] {
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--surface-border);
   background: var(--surface-solid);
@@ -145,6 +146,11 @@
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--text);
+}
+
+.settings-time-row input.bot-name-input {
+  width: min(180px, 52vw);
+  font-size: 16px; /* no zoom on iPhone */
 }
 
 .settings-time-row.hidden {

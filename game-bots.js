@@ -21,12 +21,14 @@ const jitter = (base, spread) => base + Math.floor(Math.random() * spread);
 const CABO_UNKNOWN = 6.5; /* the average card: (0·2 + 4·(1+…+12) + 13·2) / 52 */
 /* Cabo is only called with every own card known and a clearly low total – calling on a guess lost too many rounds */
 const CABO_CALL_AT = 5;
+/* ...but a round must end: from this many own turns on, the bar rises by one per turn and unknown cards count at their average */
+const CABO_PATIENCE_TURNS = 20;
 
 /* what the bot remembers this round; a card that changed since (someone swapped it) is forgotten –
    that a swap happened is public, everybody at the table saw it */
 function caboMemory(state, bot) {
   const saved = (state.botMemory && state.botMemory[bot]) || { own: {}, opp: {} };
-  const memory = { own: {}, opp: {} };
+  const memory = { own: {}, opp: {}, turns: saved.turns || 0 };
   Object.entries(saved.own || {}).forEach(([slot, value]) => {
     if (state.hands[bot][slot] === value) memory.own[slot] = value;
   });
@@ -107,8 +109,10 @@ function caboPlay(state, bot) {
 
   switch (state.turnPhase) {
     case "awaiting-draw": {
+      memory.turns += 1;
       const unknown = hand.filter((_, slot) => !(slot in memory.own)).length;
-      if (!state.caboCalledBy && unknown === 0 && caboEstimate(state, bot, memory) <= CABO_CALL_AT) {
+      const overdue = Math.max(0, memory.turns - CABO_PATIENCE_TURNS);
+      if (!state.caboCalledBy && (unknown === 0 || overdue > 0) && caboEstimate(state, bot, memory) <= CABO_CALL_AT + overdue) {
         return withMemory(C.callCabo(state, bot), bot, memory);
       }
       const top = state.discard[state.discard.length - 1];
