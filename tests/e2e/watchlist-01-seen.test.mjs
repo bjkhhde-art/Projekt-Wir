@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* watchlist: open titles as cards, watched ones as a compact, collapsible list */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const rows = async () => (await (await fetch(`${API}/t/watchlist/dump`)).json());
@@ -27,7 +28,7 @@ await ctx.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/wir.html?tab=watchlist");
+await page.goto(`${SITE}/wir.html?tab=watchlist`);
 await page.waitForTimeout(800);
 
 ok(await page.locator(".watchlist-card").count() === 2, "titles still to watch stay big cards");

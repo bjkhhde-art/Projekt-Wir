@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { API_BASE, SITE } from "../support/ports.mjs";
 const require = createRequire(import.meta.url);
 const D = require("../../duo-daily.js");
 const C = require("../../duo-content.js");
 
 /* "Wir zwei": question of the day with the flame, start page tile, who-of-us and hot-or-not */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const answers = async () => (await (await fetch(`${API}/t/daily_answers/dump`)).json());
@@ -39,7 +40,7 @@ const isi = await phone("Isi");
 const benji = await phone("Benji");
 
 /* the start page shows the question of the day */
-await benji.goto("http://localhost:9091/index.html");
+await benji.goto(`${SITE}/index.html`);
 await benji.waitForTimeout(900);
 ok((await benji.locator("#dashDailyState").textContent()).includes("Heute noch offen"), "the start page says today is still open");
 ok(!(await benji.locator("#dashDailyTile").textContent()).includes(question.text), "without giving the question away");
@@ -48,11 +49,11 @@ ok((await benji.locator("#dashDailyStatus").textContent()).includes(`Rekord: ${b
 ok(await benji.locator("#dashDailyTile").getAttribute("href") === "duo.html?mode=daily", "the tile leads to the question of the day");
 
 /* the games page has the tile – it leads to the colourful list of modes */
-await isi.goto("http://localhost:9091/games.html");
+await isi.goto(`${SITE}/games.html`);
 ok(await isi.locator('a[href="questions.html?mode=other"]', { hasText: "Wir zwei" }).count() === 1, "'Wir zwei' on the games page leads to the list of modes");
 
 /* the question of the day is answered together, in a lobby – tapping the card opens it right away */
-await isi.goto("http://localhost:9091/questions.html?mode=other");
+await isi.goto(`${SITE}/questions.html?mode=other`);
 await isi.click(".other-daily");
 await isi.waitForURL(/duo\.html\?mode=daily/);
 await isi.waitForSelector(".duo-streak-number");
@@ -108,18 +109,18 @@ ok((await isi.locator("#duoLeaveBtn").textContent()).includes("Zurück"), "after
 await isi.click("#duoDone");
 await wait(900);
 ok(await isi.locator("#duoBoard").isHidden() && await isi.locator("#duoLobby").isHidden() && (await isi.locator("#duoDaily .duo-reveal").count()) === 1, "'Fertig' closes it – today is done, no new lobby, just today's result");
-await isi.goto("http://localhost:9091/duo.html?mode=daily");
+await isi.goto(`${SITE}/duo.html?mode=daily`);
 await wait(1200);
 ok((await latest()).status === "closed", "opening it again today does not start another round");
 
 /* Hot oder Not: Isi taps the card, Benji opens the same mode and is in */
-await isi.goto("http://localhost:9091/questions.html?mode=other");
+await isi.goto(`${SITE}/questions.html?mode=other`);
 await isi.click(".other-hotnot");
 await isi.waitForURL(/duo\.html\?mode=hotnot/);
 await wait(1000);
 ok((await latest()).status === "waiting" && (await latest()).state.option === "hotnot", "the Hot-oder-Not card opens its lobby directly");
 ok(await isi.locator("#daily").isHidden() && (await isi.locator("#duoTitle").textContent()).includes("Hot oder Not"), "the page is only about Hot oder Not");
-await benji.goto("http://localhost:9091/duo.html?mode=hotnot");
+await benji.goto(`${SITE}/duo.html?mode=hotnot`);
 await benji.waitForSelector(".qz-option.hot", { timeout: 5000 });
 await wait(600);
 ok(await isi.locator(".qz-card").isVisible() && await benji.locator(".qz-option.hot").count() === 1, "Benji opening the same mode joins and starts the round right away – only for us two");
@@ -155,7 +156,7 @@ ok((await latest()).state.round === 2 && (await isi.locator(".qz-lead").textCont
 await isi.click("#duoBackBtn");
 await isi.waitForURL(/questions\.html\?mode=other/);
 ok((await latest()).status === "active", "the back arrow leaves the round running");
-await isi.goto("http://localhost:9091/duo.html?mode=hotnot");
+await isi.goto(`${SITE}/duo.html?mode=hotnot`);
 await isi.waitForSelector(".qz-option.hot", { timeout: 4000 });
 ok(true, "opening the mode again continues the round");
 
@@ -168,10 +169,10 @@ await isi.click("#grStartBtn");
 await wait(800);
 ok((await latest()).status === "waiting" && (await latest()).state.option === "hotnot", "a new Hot-oder-Not lobby");
 /* Isi goes back and picks another card while still alone: her lobby switches */
-await isi.goto("http://localhost:9091/duo.html?mode=who");
+await isi.goto(`${SITE}/duo.html?mode=who`);
 await wait(1200);
 ok((await latest()).status === "waiting" && (await latest()).state.option === "who", "picking another card switches Isi's waiting lobby");
-await benji.goto("http://localhost:9091/duo.html");
+await benji.goto(`${SITE}/duo.html`);
 await benji.waitForSelector("#grJoinBtn", { timeout: 4000 });
 ok((await benji.locator("#duoTitle").textContent()).includes("Wer von uns beiden"), "Benji sees what Isi wants to play");
 await benji.click("#grJoinBtn");

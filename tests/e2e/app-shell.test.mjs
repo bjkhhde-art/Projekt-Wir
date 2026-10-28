@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
+import { SITE } from "../support/ports.mjs";
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(page.url() + ": " + e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
-const base = "http://localhost:9091/";
+const base = `${SITE}/`;
 
 /* web app manifest + icons */
 const manifestRes = await page.request.get(base + "manifest.webmanifest");

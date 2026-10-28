@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { SITE } from "../support/ports.mjs";
 
 /* the long password replaces the PIN; unlocked phones stay unlocked */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
@@ -15,7 +16,7 @@ async function lockedPage(init) {
 }
 
 const page = await lockedPage();
-await page.goto("http://localhost:9091/index.html");
+await page.goto(`${SITE}/index.html`);
 await page.waitForSelector("#pin-gate");
 ok(await page.locator("#pinGateInput").getAttribute("type") === "password", "the lock asks for a password (hidden while typing)");
 const gateText = await page.locator("#pin-gate").textContent();
@@ -37,7 +38,7 @@ await page.fill("#pinGateInput", "#Isi+Benji!05012026");
 await page.press("#pinGateInput", "Enter");
 await page.waitForSelector("#pin-gate", { state: "detached", timeout: 5000 });
 ok(await page.evaluate(() => localStorage.getItem("pw_unlocked")) === "true", "the right password unlocks the phone");
-await page.goto("http://localhost:9091/wir.html");
+await page.goto(`${SITE}/wir.html`);
 await page.waitForTimeout(500);
 ok(await page.locator("#pin-gate").count() === 0, "and it stays unlocked on other pages");
 
@@ -46,7 +47,7 @@ const old = await lockedPage(() => {
   sessionStorage.setItem("__pw_locked", "1");
   localStorage.setItem("pw_unlocked", "true");
 });
-await old.goto("http://localhost:9091/index.html");
+await old.goto(`${SITE}/index.html`);
 await old.waitForTimeout(600);
 ok(await old.locator("#pin-gate").count() === 0 && await old.evaluate(() => document.documentElement.style.visibility) !== "hidden", "phones that are already unlocked stay unlocked");
 

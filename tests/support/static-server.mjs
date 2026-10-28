@@ -28,7 +28,8 @@ function prepareHtml(html) {
     .replace(SUPABASE_CDN, '<script src="/tests/support/supabase-mock.js"></script>');
 }
 
-export function startStaticServer(port = 9091) {
+/* apiBase: the fake backend this site talks to (one per parallel test worker) */
+export function startStaticServer(port = 9091, apiBase = "http://localhost:8991") {
   const server = http.createServer(async (req, res) => {
     const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
     const filePath = path.join(ROOT, urlPath === "/" ? "index.html" : urlPath);
@@ -42,6 +43,7 @@ export function startStaticServer(port = 9091) {
       const ext = path.extname(filePath);
       let body = await readFile(filePath);
       if (ext === ".html") body = prepareHtml(body.toString());
+      if (urlPath === "/tests/support/supabase-mock.js") body = body.toString().replace('"http://localhost:8991"', JSON.stringify(apiBase));
       res.writeHead(200, { "Content-Type": TYPES[ext] || "application/octet-stream", "Cache-Control": "no-store" });
       res.end(body);
     } catch {

@@ -3,10 +3,14 @@ import http from "node:http";
 /* Test-only in-memory stand-in for Supabase in the browser tests. Legacy routes (/latest, /games/:id, ...) address cabo_games;
    /t/<table>/... addresses any table. PATCH honours ?version=N like `.eq("version", N)`.
    /rt/presence/<channel> and /rt/broadcast/<channel> emulate realtime presence and broadcast. */
-const tables = {};
-function table(name) {
-  if (!tables[name]) tables[name] = { rows: [], nextId: 1 };
-  return tables[name];
+/* every backend (one per parallel test worker) keeps its own data */
+function createStore() {
+  return { tables: {}, presence: {}, broadcasts: {}, nextBroadcastId: 1 };
+}
+
+function table(db, name) {
+  if (!db.tables[name]) db.tables[name] = { rows: [], nextId: 1 };
+  return db.tables[name];
 }
 
 function send(res, code, body) {
@@ -24,8 +28,8 @@ function readBody(req) {
 
 const newest = rows => rows.slice().sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id);
 
-async function handle(req, res, name, path, url) {
-  const t = table(name);
+async function handle(db, req, res, name, path, url) {
+  const t = table(db, name);
 
   if (req.method === "GET" && path === "/latest") {
     send(res, 200, newest(t.rows)[0] || null);
@@ -50,7 +54,7 @@ async function handle(req, res, name, path, url) {
   }
   if (req.method === "POST" && path === "/seed") {
     const body = await readBody(req);
-    tables[name] = { rows: body.rows || [], nextId: (body.rows || []).length + 1 };
+    db.tables[name] = { rows: body.rows || [], nextId: (body.rows || []).length + 1 };
     send(res, 200, { ok: true });
     return true;
   }
@@ -75,7 +79,7 @@ async function handle(req, res, name, path, url) {
     return true;
   }
   if (req.method === "POST" && path === "/reset") {
-    tables[name] = { rows: [], nextId: 1 };
+    db.tables[name] = { rows: [], nextId: 1 };
     send(res, 200, { ok: true });
     return true;
   }
@@ -84,13 +88,9 @@ async function handle(req, res, name, path, url) {
 
 
 /* presence: a key counts as online while it sent a heartbeat within the last 1.5 s */
-const presence = {};
-const broadcasts = {};
-let nextBroadcastId = 1;
-
-async function handleRealtime(req, res, kind, channel, url) {
+async function handleRealtime(db, req, res, kind, channel, url) {
   if (kind === "presence") {
-    const members = presence[channel] = presence[channel] || {};
+    const members = db.presence[channel] = db.presence[channel] || {};
     if (req.method === "POST") {
       const body = await readBody(req);
       members[body.key] = { meta: body.meta, at: Date.now() };
@@ -104,10 +104,10 @@ async function handleRealtime(req, res, kind, channel, url) {
     send(res, 200, state);
     return;
   }
-  const list = broadcasts[channel] = broadcasts[channel] || [];
+  const list = db.broadcasts[channel] = db.broadcasts[channel] || [];
   if (req.method === "POST") {
     const body = await readBody(req);
-    list.push({ id: nextBroadcastId++, ...body });
+    list.push({ id: db.nextBroadcastId++, ...body });
     send(res, 200, { ok: true });
     return;
   }
@@ -116,6 +116,7 @@ async function handleRealtime(req, res, kind, channel, url) {
 }
 
 export function startFakeBackend(port = 8991) {
+  let db = createStore();
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
 
@@ -129,16 +130,23 @@ export function startFakeBackend(port = 8991) {
       return;
     }
 
+    /* run-all.mjs empties everything before each test file, so no file sees another one's data */
+    if (req.method === "POST" && url.pathname === "/__reset-all") {
+      db = createStore();
+      send(res, 200, { ok: true });
+      return;
+    }
+
     const realtimeMatch = url.pathname.match(/^\/rt\/(presence|broadcast)\/([\w-]+)$/);
     if (realtimeMatch) {
-      await handleRealtime(req, res, realtimeMatch[1], realtimeMatch[2], url);
+      await handleRealtime(db, req, res, realtimeMatch[1], realtimeMatch[2], url);
       return;
     }
 
     const tableMatch = url.pathname.match(/^\/t\/([a-z0-9_]+)(\/.*)$/);
     const handled = tableMatch
-      ? await handle(req, res, tableMatch[1], tableMatch[2], url)
-      : await handle(req, res, "cabo_games", url.pathname, url);
+      ? await handle(db, req, res, tableMatch[1], tableMatch[2], url)
+      : await handle(db, req, res, "cabo_games", url.pathname, url);
 
     if (!handled) send(res, 404, { error: "unknown route " + req.method + " " + url.pathname });
   });

@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* emoji reactions in the games: live for everybody at the table, never stored */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const GAMES = `${API}/t/nimmt_games`;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await fetch(`${GAMES}/reset`, { method: "POST" });
@@ -22,8 +23,8 @@ async function phone(name, guest) {
 
 const isi = await phone("Isi");
 const benji = await phone("Benji");
-await isi.goto("http://localhost:9091/nimmt.html");
-await benji.goto("http://localhost:9091/nimmt.html");
+await isi.goto(`${SITE}/nimmt.html`);
+await benji.goto(`${SITE}/nimmt.html`);
 await wait(400);
 ok(await isi.locator("#grReactBtn").isHidden(), "no emoji button in the lobby");
 await isi.click("#grStartBtn");

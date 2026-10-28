@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Cabo with three: Isi, Benji and a friend who comes in through the invite link */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await fetch(`${API}/reset`, { method: "POST" });
 const latest = async () => (await fetch(`${API}/latest`)).json();
@@ -14,10 +15,10 @@ const errors = [];
 async function member(name) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   await ctx.addInitScript(p => localStorage.setItem("pw_person", p), name);
-  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost:9091" });
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: SITE });
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(name + ": " + e.message));
-  await page.goto("http://localhost:9091/cabo.html");
+  await page.goto(`${SITE}/cabo.html`);
   await page.waitForTimeout(400);
   return page;
 }
@@ -135,10 +136,10 @@ ok((await lena.locator("#caboEvent").textContent()).includes("Benji hat deine 4.
 ok((await isi.locator("#caboStatus").textContent()).includes("Du bist dran"), "and it is Isi's turn again");
 
 /* the friend still cannot get into the app, and a wrong link shows nothing */
-await lena.goto("http://localhost:9091/wir.html");
+await lena.goto(`${SITE}/wir.html`);
 await lena.waitForSelector("#pin-gate");
 ok(await lena.locator("#pin-gate").isVisible(), "other pages stay locked for the friend");
-await lena.goto("http://localhost:9091/cabo.html?invite=wrongcode123");
+await lena.goto(`${SITE}/cabo.html?invite=wrongcode123`);
 await lena.waitForSelector(".gr-lobby-card h2");
 ok((await lena.locator(".gr-lobby-card h2").textContent()).includes("gilt nicht mehr") && await lena.locator("#caboBoard").isHidden(), "an unknown invite shows nothing of the game");
 await lena.goto(link);

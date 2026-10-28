@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { API_BASE, SITE } from "../support/ports.mjs";
 const require = createRequire(import.meta.url);
 const F = require("../../flip7-engine.js");
 
 /* Flip 7 on two phones: lobby, deal with flying cards, Noch eine / Stopp, Freeze with a target,
    busting, the round summary and the next round – with a stacked deck so every rule shows up */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const latest = async () => (await fetch(`${API}/t/flip7_games/latest`)).json();
 await fetch(`${API}/t/flip7_games/reset`, { method: "POST" });
@@ -28,7 +29,7 @@ async function phone(person) {
   await ctx.addInitScript(p => localStorage.setItem("pw_person", p), person);
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(person + ": " + e.message));
-  await page.goto("http://localhost:9091/flip7.html");
+  await page.goto(`${SITE}/flip7.html`);
   await page.waitForTimeout(700);
   return page;
 }

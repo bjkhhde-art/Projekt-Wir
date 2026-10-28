@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { API_BASE, SITE } from "../support/ports.mjs";
 const require = createRequire(import.meta.url);
 const Core = require("../../mochi-core.js");
 
 /* Isi and Benji on two phones: live sync, wishes, streak, double cuddle, messenger, chest, taps */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
-const base = "http://localhost:9091/";
+const API = API_BASE;
+const base = `${SITE}/`;
 const DAY = "2026-11-09"; // wishes that day: shower, cuddle, feed:Avocado
 const TIME = new Date("2026-11-09T14:00:00+01:00");
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -96,6 +97,8 @@ async function openEnvelope(page) {
 }
 
 async function longPress(page) {
+  /* scrolled down (after feeding), the sticky tab bar would sit on top of Mochi and catch the press */
+  await page.evaluate(() => window.scrollTo(0, 0));
   const b = await page.locator("#petCreature").boundingBox();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height * 0.6);
   await page.mouse.down();
@@ -155,7 +158,8 @@ await isi.click("#replyDelivery");
 await until(async () => (await messages()).length === 3, 3000, "reply stored");
 ok((await messages())[2].kind === "kiss" && (await messages())[2].to_person === "Benji", "'Küsschen zurück' sends a kiss straight back");
 
-/* chest */
+/* chest – first the reward for the kiss must be booked, or its coins would land in the middle of the count */
+await until(async () => (await petRow()).messages_sent === (await messages()).length, 4000, "message rewards booked");
 before = await petRow();
 ok(await isi.locator("#chestBtn").evaluate(el => el.classList.contains("has-gift")), "the chest waits for Isi");
 await isi.click("#chestBtn");

@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* the computer players get new names in the settings; the games show them everywhere,
    while the games themselves keep the ids Udiou/Klausi */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms, label) {
   const end = Date.now() + ms;
@@ -26,7 +27,7 @@ const page = await ctx.newPage();
 page.on("pageerror", e => errors.push(e.message));
 
 /* settings */
-await page.goto("http://localhost:9091/einstellungen.html");
+await page.goto(`${SITE}/einstellungen.html`);
 await page.waitForTimeout(600);
 ok(await page.locator("#botNameUdiou").isVisible() && await page.locator("#botNameKlausi").isVisible(), "the settings have a field for each computer player");
 ok(await page.locator("#botNameUdiou").getAttribute("placeholder") === "Udiou", "empty fields show the original names");
@@ -48,7 +49,7 @@ const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } })
 await ctx2.addInitScript(() => { localStorage.setItem("pw_person", "Isi"); });
 const game = await ctx2.newPage();
 game.on("pageerror", e => errors.push(e.message));
-await game.goto("http://localhost:9091/monopoly.html");
+await game.goto(`${SITE}/monopoly.html`);
 await until(async () => await game.locator("#grStartBtn").count() === 1, 4000, "lobby");
 await game.click("#grStartBtn");
 await until(async () => await game.locator(".gr-bot-btn").count() === 2, 4000, "bot buttons");

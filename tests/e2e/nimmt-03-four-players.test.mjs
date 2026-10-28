@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* 6 nimmt! with four: Isi, Benji and two friends from the invite link */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991/t/nimmt_games";
+const API = `${API_BASE}/t/nimmt_games`;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await fetch(`${API}/reset`, { method: "POST" });
 const latest = async () => (await fetch(`${API}/latest`)).json();
@@ -26,8 +27,8 @@ async function phone(name, guest) {
 
 const isi = await phone("Isi");
 const benji = await phone("Benji");
-await isi.goto("http://localhost:9091/nimmt.html");
-await benji.goto("http://localhost:9091/nimmt.html");
+await isi.goto(`${SITE}/nimmt.html`);
+await benji.goto(`${SITE}/nimmt.html`);
 await wait(400);
 ok((await isi.locator(".gr-lobby-card p").first().textContent()).includes("bis zu 4"), "the lobby says up to four can play");
 await isi.click("#grStartBtn");

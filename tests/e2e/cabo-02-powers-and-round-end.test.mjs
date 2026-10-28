@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 const BROWSER_PATH = process.env.CHROMIUM_PATH || undefined;
 let assertions = 0;
@@ -9,7 +10,7 @@ function ok(cond, msg) {
   console.log("PASS:", msg);
 }
 
-await fetch("http://localhost:8991/reset", { method: "POST" });
+await fetch(`${API_BASE}/reset`, { method: "POST" });
 
 const browser = await chromium.launch({ executablePath: BROWSER_PATH });
 const isiCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
@@ -20,8 +21,8 @@ const benji = await benjiCtx.newPage();
 await isi.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 await benji.addInitScript(() => localStorage.setItem("pw_person", "Benji"));
 
-await isi.goto("http://localhost:9091/cabo.html");
-await benji.goto("http://localhost:9091/cabo.html");
+await isi.goto(`${SITE}/cabo.html`);
+await benji.goto(`${SITE}/cabo.html`);
 await isi.waitForTimeout(300);
 await benji.waitForTimeout(300);
 
@@ -38,11 +39,11 @@ await isi.waitForTimeout(500);
 await benji.waitForTimeout(500);
 
 async function getLatestGame() {
-  const res = await fetch("http://localhost:8991/latest-nonfinished");
+  const res = await fetch(`${API_BASE}/latest-nonfinished`);
   return res.json();
 }
 async function patchGame(id, patch) {
-  await fetch(`http://localhost:8991/games/${id}`, {
+  await fetch(`${API_BASE}/games/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch)

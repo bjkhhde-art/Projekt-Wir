@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 const BROWSER_PATH = process.env.CHROMIUM_PATH || undefined;
 let assertions = 0;
@@ -9,7 +10,7 @@ function ok(cond, msg) {
   console.log("PASS:", msg);
 }
 
-await fetch("http://localhost:8991/reset", { method: "POST" });
+await fetch(`${API_BASE}/reset`, { method: "POST" });
 
 const browser = await chromium.launch({ executablePath: BROWSER_PATH });
 const isi = await (await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" })).newPage();
@@ -21,8 +22,8 @@ benji.on("pageerror", e => errors.push("benji: " + e.message));
 
 await isi.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 await benji.addInitScript(() => localStorage.setItem("pw_person", "Benji"));
-await isi.goto("http://localhost:9091/cabo.html");
-await benji.goto("http://localhost:9091/cabo.html");
+await isi.goto(`${SITE}/cabo.html`);
+await benji.goto(`${SITE}/cabo.html`);
 await isi.waitForTimeout(300);
 
 await isi.locator("#grStartBtn").click();
@@ -36,12 +37,12 @@ await benji.locator("#ownHand .cabo-card-slot").nth(0).click();
 await isi.waitForTimeout(600);
 
 async function latest() {
-  return (await fetch("http://localhost:8991/latest")).json();
+  return (await fetch(`${API_BASE}/latest`)).json();
 }
 async function setup(mutate) {
   const game = await latest();
   mutate(game.state);
-  await fetch(`http://localhost:8991/games/${game.id}`, {
+  await fetch(`${API_BASE}/games/${game.id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ state: game.state })

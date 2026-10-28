@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Geo-Guesser on two phones: the same trip photo for both, each picks a trip, the answer shows when both have */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const latest = async () => (await (await fetch(`${API}/t/geo_games/latest`)).json());
@@ -24,7 +25,7 @@ async function open(person) {
   await ctx.addInitScript(p => localStorage.setItem("pw_person", p), person);
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(person + ": " + e.message));
-  await page.goto("http://localhost:9091/geo.html");
+  await page.goto(`${SITE}/geo.html`);
   await page.waitForTimeout(600);
   return page;
 }

@@ -1,5 +1,7 @@
 (function () {
   const API = "http://localhost:8991";
+  /* how often the emulated realtime looks for changes (real Supabase pushes them at once) */
+  const REALTIME_POLL_MS = 100;
   /* game tables keep their original, simpler semantics (maybeSingle = newest row) */
   const isGameTable = table => table.endsWith("_games");
 
@@ -118,7 +120,8 @@
     let presenceState = {};
     let lastBroadcastId = 0;
     let tracked = null;
-    const timers = [];
+    /* set by unsubscribe: the polling loops stop at their next tick */
+    let closed = false;
 
     const chan = {
       on(type, opts, callback) {
@@ -129,24 +132,33 @@
       },
 
       subscribe(statusCallback) {
+        /* the next look starts only when the last one is done – overlapping looks could report an
+           older answer after a newer one */
+        const everyTick = fn => {
+          const tick = async () => {
+            if (closed) return;
+            try { await fn(); } catch (e) { /* ignore */ }
+            if (!closed) setTimeout(tick, REALTIME_POLL_MS);
+          };
+          setTimeout(tick, REALTIME_POLL_MS);
+        };
+
         handlers.postgres.forEach(h => {
-          timers.push(setInterval(async () => {
-            try {
-              const res = await fetch(`${API}/t/${h.table}/latest`);
-              const row = await res.json();
-              /* like real realtime, a change to any row counts – game tables only care about the newest game */
-              const watched = h.table.endsWith("_games") ? row : await (await fetch(`${API}/t/${h.table}/dump`)).json();
-              const serialized = JSON.stringify(watched);
-              if (serialized !== h.lastSeen) {
-                h.lastSeen = serialized;
-                h.callback({ new: row, eventType: "UPDATE" });
-              }
-            } catch (e) { /* ignore */ }
-          }, 300));
+          everyTick(async () => {
+            /* like real realtime, a change to any row counts – game tables only care about the newest game.
+               The table is read before the newest row, so the row handed over is never older than what was seen */
+            const watched = h.table.endsWith("_games") ? null : await (await fetch(`${API}/t/${h.table}/dump`)).json();
+            const row = await (await fetch(`${API}/t/${h.table}/latest`)).json();
+            const serialized = JSON.stringify(watched === null ? row : watched);
+            if (serialized !== h.lastSeen) {
+              h.lastSeen = serialized;
+              h.callback({ new: row, eventType: "UPDATE" });
+            }
+          });
         });
 
         if (handlers.presence.length || Object.keys(handlers.broadcast).length) {
-          timers.push(setInterval(async () => {
+          everyTick(async () => {
             try {
               if (tracked) {
                 await fetch(`${API}/rt/presence/${name}`, {
@@ -170,7 +182,7 @@
                 (handlers.broadcast[msg.event] || []).forEach(cb => cb({ event: msg.event, payload: msg.payload }));
               });
             } catch (e) { /* ignore */ }
-          }, 300));
+          });
 
           /* skip broadcasts that happened before this page subscribed */
           fetch(`${API}/rt/broadcast/${name}?after=0`).then(r => r.json()).then(all => {
@@ -201,7 +213,7 @@
       },
 
       unsubscribe() {
-        timers.forEach(clearInterval);
+        closed = true;
       }
     };
     return chan;
