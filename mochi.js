@@ -380,8 +380,19 @@ function growthStage(careScore) {
 
 /* Every write goes through here. The patch is built from the freshest state and written only if
    nobody else wrote in between ("version"); otherwise we reload and build it again. Stats are
-   always stored decayed, so a write never resets how hungry or tired Mochi is. */
-async function mutatePet(buildPatch) {
+   always stored decayed, so a write never resets how hungry or tired Mochi is.
+   Writes from this phone run one after the other: two at once (a cuddle that also completes a
+   double cuddle) would build the second one on the first's unconfirmed state and its version,
+   and could overwrite what the other phone saved in between. */
+let petWrites = Promise.resolve();
+
+function mutatePet(buildPatch) {
+  const write = petWrites.then(() => writePet(buildPatch));
+  petWrites = write.catch(() => null);
+  return write;
+}
+
+async function writePet(buildPatch) {
   if (!petState) await loadPetState();
   if (!petState) return null;
 
