@@ -1,4 +1,4 @@
-/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx and Flip 7.
+/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7 and Monopoly.
 
    Both play by the same rules; each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
    play() only uses what a careful human at the table could know: in Cabo the bot keeps its own
@@ -7,7 +7,7 @@
 
 const GameBots = (() => {
 
-const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js" };
+const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js", MonopolyEngine: "./monopoly-engine.js" };
 /* each page only loads its own engine – look it up when needed */
 function lib(name) {
   if (typeof window !== "undefined" && window[name]) return window[name];
@@ -353,7 +353,108 @@ const flip7 = {
   }
 };
 
-return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7 };
+/* ---------- Monopoly ---------- */
+
+const MONOPOLY_RESERVE = 120; /* cash the bot wants to keep after buying */
+const MONOPOLY_BUILD_RESERVE = 250;
+
+/* the street to build on next: a full colour set, evenly, the cheapest house first */
+function monopolyBuildSpot(state, bot) {
+  const M = lib("MonopolyEngine");
+  return M.ownedBy(state, bot)
+    .filter(i => M.canBuild(state, bot, i) === null && state.cash[bot] - M.SQUARES[i].houseCost >= MONOPOLY_BUILD_RESERVE)
+    .sort((a, b) => M.SQUARES[a].houseCost - M.SQUARES[b].houseCost || M.housesOn(state, a) - M.housesOn(state, b) || a - b)[0];
+}
+
+/* what a bundle of streets is worth to `who`: the price, plus a bonus for each street that finishes a colour */
+function monopolyTradeValue(state, M, who, streets) {
+  return streets.reduce((sum, i) => {
+    const sq = M.SQUARES[i];
+    const group = sq.group ? M.groupSquares(sq.group) : [];
+    const completes = group.length > 0 && group.every(g => M.ownerOf(state, g) === who || streets.includes(g));
+    return sum + sq.price + (completes ? 350 : 0);
+  }, 0);
+}
+
+function monopolyAnswerTrade(state, bot) {
+  const M = lib("MonopolyEngine");
+  const t = state.trade;
+  if (M.tradeProblem(state, t)) return M.declineTrade(state, bot);
+  const gets = monopolyTradeValue(state, M, bot, t.give) + t.cash;
+  const gives = monopolyTradeValue(state, M, t.from, t.get);
+  return gets >= gives * 1.05 ? M.acceptTrade(state, bot) : M.declineTrade(state, bot);
+}
+
+/* once per turn: offer a generous price for the one street missing to a full colour */
+function monopolyProposeTrade(state, bot) {
+  const M = lib("MonopolyEngine");
+  if (state.trade || state.lastTradeTurn === state.turnCount) return null;
+  const groups = Object.keys(M.GROUPS).filter(g => !M.ownsGroup(state, bot, g));
+  for (const g of groups) {
+    const squares = M.groupSquares(g);
+    const missing = squares.filter(i => M.ownerOf(state, i) !== bot);
+    const mine = squares.length - missing.length;
+    if (missing.length !== 1 || mine < 1) continue;
+    const index = missing[0];
+    const owner = M.ownerOf(state, index);
+    if (!owner || state.out.includes(owner) || !M.tradable(state, index)) continue;
+    const offer = Math.round((M.SQUARES[index].price + 350) * 1.15 / 10) * 10;
+    if (state.cash[bot] - offer < 150) continue;
+    if (M.tradeProblem(state, { from: bot, to: owner, give: [], get: [index], cash: offer })) continue;
+    return M.proposeTrade(state, bot, owner, [], [index], offer);
+  }
+  return null;
+}
+
+function monopolyPlay(state, bot) {
+  const M = lib("MonopolyEngine");
+  if (!state.players.includes(bot) || state.out.includes(bot) || state.phase === "finished") return null;
+  if (state.trade && state.trade.to === bot) return monopolyAnswerTrade(state, bot);
+  if (state.trade && state.trade.from === bot) return null;
+  if (state.turnPerson !== bot) return null;
+
+  if (state.phase === "buy") {
+    const square = M.SQUARES[state.offer];
+    /* stations and the second street of a colour are always worth it; otherwise keep some cash */
+    const left = state.cash[bot] - square.price;
+    const completes = square.group && M.groupSquares(square.group).filter(i => M.ownerOf(state, i) !== bot).length === 1;
+    return left >= MONOPOLY_RESERVE || (left >= 30 && (square.type === "station" || completes))
+      ? M.buy(state, bot)
+      : M.decline(state, bot);
+  }
+  if (state.phase === "roll") {
+    if (state.jail[bot] !== null) {
+      if (state.jailCards[bot].length > 0) return M.useJailCard(state, bot);
+      if (state.cash[bot] >= 400 && state.turnCount < 40) return M.payJail(state, bot);
+    }
+    return M.roll(state, bot);
+  }
+  if (state.phase === "after") {
+    const spot = monopolyBuildSpot(state, bot);
+    if (spot !== undefined) return M.build(state, bot, spot);
+    return monopolyProposeTrade(state, bot) || M.endTurn(state, bot);
+  }
+  return null;
+}
+
+const monopoly = {
+  play: monopolyPlay,
+  delay(state) {
+    const events = state.lastMove && state.lastMove.events ? state.lastMove.events.length : 0;
+    return Math.min(4200, jitter(1100, 600) + events * 250);
+  },
+  reaction(before, after, bot) {
+    const events = (after.lastMove && after.lastMove.events) || [];
+    if (after.phase === "finished" && after.result && after.result.winner === bot) return "😏";
+    if (events.some(e => e.type === "bankrupt" && e.person === bot)) return "😭";
+    if (events.some(e => e.type === "rent" && e.owner === bot && e.amount >= 200)) return "😏";
+    if (events.some(e => e.type === "jail" && e.person === bot)) return "🙈";
+    if (events.some(e => e.type === "rent" && e.person === bot && e.amount >= 300)) return "😱";
+    return null;
+  }
+};
+
+return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7, monopoly };
 
 })();
 
