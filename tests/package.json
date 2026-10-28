@@ -2,7 +2,7 @@
   "name": "projekt-wir-tests",
   "private": true,
   "type": "module",
-  "description": "Engine and two-device browser tests for the games (Cabo, 6 nimmt!, Qwixx)",
+  "description": "Engine and two-device browser tests for the games (Cabo, 6 nimmt!, Qwixx, Flip 7, Monopoly)",
   "scripts": {
     "test": "node run-all.mjs"
   },

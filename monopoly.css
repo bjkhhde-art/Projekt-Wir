@@ -1,0 +1,526 @@
+/* Monopoly – board (11 × 11 grid), players and panels */
+
+.mo-game {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* the decision comes first, the board below it – on a phone the buttons stay in view */
+.mo-players { order: 1; }
+.mo-status { order: 2; }
+.mo-actions { order: 3; }
+.mo-board { order: 5; }
+.mo-info { order: 6; }
+#moMine { order: 7; }
+#moTrade { order: 8; }
+.gr-leave { order: 9; }
+/* in debt the list of streets (sell, mortgage) moves up, right under the buttons */
+.mo-game.mo-debt #moMine { order: 4; margin-top: 0; margin-bottom: 14px; }
+
+/* ---------- players ---------- */
+
+.mo-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mo-player {
+  padding: 7px 9px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 2px solid var(--surface-border);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.mo-player.turn {
+  border-color: var(--tok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tok) 22%, transparent);
+}
+
+.mo-player.out {
+  opacity: 0.5;
+}
+
+.mo-player-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.mo-player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mo-player.lead .mo-player-name::after {
+  content: " 👑";
+}
+
+.mo-token-dot {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--tok);
+}
+
+.mo-player-cash {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.mo-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 4px;
+  min-height: 8px;
+}
+
+.mo-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.mo-dot.big {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ---------- board ---------- */
+
+.mo-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.45fr repeat(9, 1fr) 1.45fr;
+  grid-template-rows: 1.45fr repeat(9, 1fr) 1.45fr;
+  aspect-ratio: 1;
+  width: 100%;
+  background: #cfe8d6;
+  border: 2px solid #2d3a35;
+  border-radius: 10px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mo-board { background: #2b4a3a; }
+}
+:root[data-theme="dark"] .mo-board { background: #2b4a3a; }
+
+.mo-sq {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #2d3a35;
+  background: #f4f1e6;
+  color: #1c2420;
+  font: inherit;
+  font-size: 8px;
+  line-height: 1.1;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+:root[data-theme="dark"] .mo-sq { background: #ece7d6; }
+
+.mo-sq.selected {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: -2px;
+  z-index: 2;
+}
+
+.mo-sq.owned {
+  box-shadow: inset 0 -3px 0 var(--owner);
+}
+
+.mo-band {
+  align-self: stretch;
+  flex: none;
+  height: 34%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  letter-spacing: -1px;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid #2d3a35;
+}
+
+.mo-icon {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.mo-price {
+  margin-top: auto;
+  padding-bottom: 2px;
+  font-weight: 700;
+  font-size: 8px;
+}
+
+.mo-sq.corner {
+  justify-content: center;
+  padding: 2px;
+}
+
+.mo-sq.corner .mo-icon {
+  font-size: 18px;
+}
+
+.mo-corner-name {
+  font-size: 7px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.mo-center {
+  grid-row: 2 / 11;
+  grid-column: 2 / 11;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mo-title {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: clamp(16px, 6vw, 26px);
+  letter-spacing: 0.08em;
+  color: #c0392b;
+  transform: rotate(-4deg);
+  text-shadow: 0 1px 0 #fff8;
+}
+
+.mo-dice {
+  display: flex;
+  gap: 8px;
+}
+
+.mo-die {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #fff;
+  color: #1c2420;
+  font-size: 34px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.mo-dice.rolling .mo-die {
+  animation: mo-roll 0.55s ease-out;
+}
+
+@keyframes mo-roll {
+  0% { transform: rotate(-200deg) scale(0.4); opacity: 0.2; }
+  70% { transform: rotate(14deg) scale(1.12); opacity: 1; }
+  100% { transform: rotate(0) scale(1); }
+}
+
+.mo-event {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 100%;
+  font-size: clamp(9.5px, 2.7vw, 12px);
+  font-weight: 600;
+  color: #1c2420;
+}
+
+.mo-event span {
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.mo-tokens {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mo-tok {
+  position: absolute;
+  width: 4.6%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  transition: left 0.12s linear, top 0.12s linear;
+  z-index: 3;
+}
+
+/* ---------- info, status, buttons ---------- */
+
+.mo-info {
+  margin-top: 10px;
+  scroll-margin-bottom: 96px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+}
+
+.mo-info-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mo-info-head span:last-child {
+  margin-left: auto;
+  font-weight: 700;
+}
+
+.mo-info-band {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.mo-info p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+.mo-info .mo-info-owner {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mo-info table,
+.mo-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+}
+
+.mo-info td,
+.mo-summary td {
+  padding: 3px 0;
+}
+
+.mo-info td:last-child,
+.mo-summary td:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+
+.mo-info tr.now {
+  color: var(--pink-deep);
+  font-weight: 800;
+}
+
+.mo-status {
+  margin: 2px 0 8px;
+  text-align: center;
+  font-weight: 700;
+  min-height: 1.4em;
+}
+
+.mo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mo-actions:empty { display: none; }
+
+.mo-offer,
+.mo-summary {
+  padding: 14px 16px;
+}
+
+.mo-offer h3,
+.mo-summary h3,
+.mo-panel h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.mo-offer p,
+.mo-summary p {
+  margin: 4px 0;
+  font-size: 13.5px;
+}
+
+.mo-warn { color: var(--pink-deep); font-weight: 600; }
+.mo-wait,
+.mo-sub,
+.mo-empty { color: var(--text-muted); }
+
+.mo-offer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mo-offer-actions .btn { flex: 1; }
+
+.mo-next { margin-top: 12px; }
+
+/* ---------- my streets and trading ---------- */
+
+.mo-panel {
+  margin-top: 16px;
+}
+
+.mo-panel:empty { display: none; }
+
+.mo-own {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mo-own li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  font-size: 13.5px;
+}
+
+.mo-own-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mo-own-state { color: var(--text-muted); font-size: 12px; }
+
+.mo-build { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; padding-left: 20px; }
+
+.mo-own li.mortgaged .mo-own-name { text-decoration: line-through; opacity: 0.7; }
+.mo-own li.mortgaged .mo-dot { opacity: 0.35; }
+.mo-dot.pledged { opacity: 0.3; }
+
+.mo-sq.mortgaged {
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0, 0, 0, 0.16) 4px 6px);
+}
+
+.mo-sq.mortgaged .mo-price { text-decoration: line-through; }
+
+.mo-debt-box {
+  padding: 14px 16px;
+  border: 2px solid var(--pink-deep);
+}
+
+.mo-debt-box h3 { margin: 0 0 6px; font-size: 16px; }
+.mo-debt-box p { margin: 4px 0; font-size: 13.5px; }
+.mo-debt-box .mo-offer-actions { margin-top: 10px; }
+
+.mo-mini {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--gradient-brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mo-mini.sell { background: var(--surface-solid); color: var(--text); }
+.mo-mini:disabled { opacity: 0.35; cursor: default; }
+
+.mo-label {
+  margin: 10px 0 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mo-picks,
+.mo-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mo-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 2px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mo-pick.on {
+  border-color: var(--pink);
+  background: color-mix(in srgb, var(--pink) 14%, var(--surface-solid));
+  font-weight: 700;
+}
+
+.mo-cash {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mo-cash label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mo-cash input {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
