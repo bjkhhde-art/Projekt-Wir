@@ -14,7 +14,8 @@ for (const file of pages) {
   const page = await context.newPage();
   const problems = [];
   page.on("pageerror", e => problems.push("script error: " + e.message));
-  page.on("console", m => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) problems.push("console: " + m.text()); });
+  /* "Fehler beim Laden …" is the app logging a failed outside service (weather, news) that it handles itself */
+  page.on("console", m => { if (m.type() === "error" && !/Failed to load resource|^Fehler beim Laden/.test(m.text())) problems.push("console: " + m.text()); });
   page.on("response", r => { if (r.status() >= 400 && r.url().startsWith(base)) problems.push(`${r.status()} ${r.url()}`); });
   await page.goto(base + file); await page.waitForTimeout(700);
   const [scrollWidth, innerWidth] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);

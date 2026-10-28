@@ -20,17 +20,21 @@
 
   const DELETED = /^(diese nachricht wurde gelöscht\.?|du hast diese nachricht gelöscht\.?|this message was deleted\.?|you deleted this message\.?)$/i;
   const MEDIA_KINDS = [
-    ["image", /^(<?(bild|image|foto|photo)n? (weggelassen|omitted|ausgeschlossen)>?|<angehängt:.*(photo|img|\.jpe?g|\.png|\.heic).*>|.*\.(jpe?g|png|heic)( \(datei angehängt\))?)$/i],
-    ["video", /^(<?video (weggelassen|omitted|ausgeschlossen)>?|<angehängt:.*(video|vid-|\.mp4|\.mov).*>|.*\.(mp4|mov)( \(datei angehängt\))?)$/i],
-    ["audio", /^(<?(audio|sprachnachricht|voice message)n? (weggelassen|omitted|ausgeschlossen)>?|<angehängt:.*(audio|ptt|\.opus|\.m4a|\.aac).*>|.*\.(opus|m4a|aac)( \(datei angehängt\))?)$/i],
-    ["sticker", /^(<?sticker (weggelassen|omitted|ausgeschlossen)>?|<angehängt:.*(sticker|\.webp).*>|.*\.webp( \(datei angehängt\))?)$/i],
+    ["image", /^(<?(bild|image|foto|photo)n? (weggelassen|omitted|ausgeschlossen)>?|<(?:angehängt|anhang|attached):.*(photo|img|\.jpe?g|\.png|\.heic).*>|.*\.(jpe?g|png|heic)( \(datei angehängt\))?)$/i],
+    ["video", /^(<?video (weggelassen|omitted|ausgeschlossen)>?|<(?:angehängt|anhang|attached):.*(video|vid-|\.mp4|\.mov).*>|.*\.(mp4|mov)( \(datei angehängt\))?)$/i],
+    ["audio", /^(<?(audio|sprachnachricht|voice message)n? (weggelassen|omitted|ausgeschlossen)>?|<(?:angehängt|anhang|attached):.*(audio|ptt|\.opus|\.m4a|\.aac).*>|.*\.(opus|m4a|aac)( \(datei angehängt\))?)$/i],
+    ["sticker", /^(<?sticker (weggelassen|omitted|ausgeschlossen)>?|<(?:angehängt|anhang|attached):.*(sticker|\.webp).*>|.*\.webp( \(datei angehängt\))?)$/i],
     ["gif", /^<?gif (weggelassen|omitted|ausgeschlossen)>?$/i],
-    ["doc", /^(<?(dokument|document|kontakt|contact)(karte)? (weggelassen|omitted|ausgeschlossen)>?|<angehängt:.*>|.* \(datei angehängt\))$/i],
+    ["doc", /^(<?(dokument|document|kontakt|contact)(karte)? (weggelassen|omitted|ausgeschlossen)>?|<(?:angehängt|anhang|attached):.*>|.* \(datei angehängt\))$/i],
     ["media", /^<?(medien|media) (ausgeschlossen|weggelassen|omitted)>?$/i]
   ];
 
+  /* iPhone exports write these notices with the chat name as author; they are not messages */
+  const SYSTEM_TEXT = /^(nachrichten und anrufe sind ende-zu-ende|messages and calls are end-to-end)|^(verpasster )?(sprach|video)anruf(, ?\d+ ?(sek|min|std)\.?)?\.?$|^(missed )?(voice|video) call(, ?\d+ ?(sec|min|hr)s?\.?)?\.?$/i;
+
   function classify(text) {
     const clean = text.replace(INVISIBLE, "").replace(/\s*<(diese nachricht wurde bearbeitet|this message was edited)>$/i, "").trim();
+    if (SYSTEM_TEXT.test(clean)) return null;
     if (DELETED.test(clean)) return { kind: "deleted", text: "" };
     for (const [kind, pattern] of MEDIA_KINDS) {
       if (pattern.test(clean)) return { kind, text: "" };
@@ -63,9 +67,11 @@
     const flush = () => {
       if (!current) return;
       const result = classify(current.x);
-      current.x = result.text;
-      current.k = result.kind;
-      if (current.x || current.k !== "text") messages.push(current);
+      if (result) {
+        current.x = result.text;
+        current.k = result.kind;
+        if (current.x || current.k !== "text") messages.push(current);
+      }
       current = null;
     };
 
@@ -212,10 +218,7 @@
       });
     });
 
-    people.forEach((p, i) => {
-      p.replyMedian = median(replyMinutes[i]);
-      p.avgWords = p.messages ? p.words / Math.max(1, p.messages - p.deleted - Object.values(p.media).reduce((a, b) => a + b, 0)) : 0;
-    });
+    people.forEach((p, i) => { p.replyMedian = median(replyMinutes[i]); });
 
     /* every month between the first and the last message, also the silent ones */
     const months = [];

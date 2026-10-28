@@ -6,6 +6,7 @@
 /* ---------- upload ---------- */
 
 .cu-card {
+  position: relative;
   max-width: 520px;
   margin: 0 auto;
   padding: 26px 22px;
@@ -30,6 +31,8 @@
 
 .cu-input {
   position: absolute;
+  left: 0;
+  bottom: 0;
   width: 1px;
   height: 1px;
   opacity: 0;

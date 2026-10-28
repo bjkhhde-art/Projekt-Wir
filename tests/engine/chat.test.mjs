@@ -39,6 +39,23 @@ const i = E.parseChat(ios);
 ok(i.length === 4 && i[0].a === "Isi" && i[0].x === "Hallo", "iPhone export with direction marks is read");
 ok(i[1].k === "image" && i[2].k === "audio" && i[3].k === "sticker", "iPhone media lines are told apart (Bild, Audio, Sticker)");
 
+/* iPhone writes the encryption notice and calls with the chat name as author – they are not messages */
+const notices = E.parseChat([
+  "[27.11.25, 21:34:00] Benji: \u200eNachrichten und Anrufe sind Ende-zu-Ende-verschlüsselt. Nur Personen in diesem Chat können sie lesen.",
+  "[27.11.25, 21:35:00] Isi: \u200eVerpasster Sprachanruf",
+  "[27.11.25, 21:36:00] Isi: \u200eVideoanruf, 5 Min.",
+  "[27.11.25, 21:37:00] Isi: Anruf mich später, ja?",
+  "[27.11.25, 21:38:00] Benji: Mach ich"
+].join("\n"));
+ok(notices.length === 2 && notices[0].x === "Anruf mich später, ja?", "encryption notice and call lines are dropped, a real message starting with „Anruf“ stays");
+
+const attached = E.parseChat([
+  "[27.11.25, 21:35:00] Isi: \u200e<Anhang: 00000012-PHOTO-2025-11-27-21-35-00.jpg>",
+  "[27.11.25, 21:36:00] Isi: \u200e<Anhang: 00000013-AUDIO-2025-11-27-21-36-00.opus>",
+  "[27.11.25, 21:37:00] Benji: \u200e<attached: 00000014-VIDEO-2025-11-27-21-37-00.mp4>"
+].join("\n"));
+ok(attached.map(m => m.k).join() === "image,audio,video", "iPhone attachments („Anhang“, „attached“) are told apart by file name");
+
 const us = E.parseChat("1/5/26, 9:34 PM - Isi: Hi\n1/5/26, 12:05 AM - Benji: Nacht");
 ok(us.length === 2 && new Date(us[0].t).getMonth() === 0 && new Date(us[0].t).getDate() === 5 && new Date(us[0].t).getHours() === 21, "US dates with PM are read (1/5/26 9:34 PM = 5 January, 21:34)");
 ok(new Date(us[1].t).getHours() === 0, "12:05 AM is five past midnight");
@@ -149,6 +166,8 @@ const sample = "27.11.25, 21:35 - Isi: Hallo äöü 😂\n27.11.25, 21:36 - Benj
 ok(await Z.readChatText(zipOf("_chat.txt", sample, true)) === sample, "a compressed .zip export gives its chat text back (with umlauts and emoji)");
 ok(await Z.readChatText(zipOf("_chat.txt", sample, false)) === sample, "a stored .zip export works too");
 ok(await Z.readChatText(Buffer.from(sample)) === sample, "a plain .txt is passed through");
+ok(await Z.readChatText(new Blob([zipOf("WhatsApp Chat mit Benji/_chat.txt", sample, true)])) === sample, "a zip given as a Blob (a chosen file) is read without loading it whole");
+ok(await Z.readChatText(new Blob([sample])) === sample, "a plain .txt given as a Blob is read");
 await assert.rejects(Z.readChatText(Buffer.from("PK\u0003\u0004 kaputt, nur Müll hier drin, nichts weiter")), /ZIP/);
 assertions++; console.log("PASS: a broken zip gives a readable error");
 
