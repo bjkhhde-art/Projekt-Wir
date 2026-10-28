@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* 6 nimmt! with animations ON: cards really fly, nothing stays hidden, both screens animate. */
 const BROWSER_PATH = process.env.CHROMIUM_PATH || undefined;
-const API = "http://localhost:8991/t/nimmt_games";
+const API = `${API_BASE}/t/nimmt_games`;
 let assertions = 0;
 function ok(cond, msg) { assert.ok(cond, msg); assertions++; console.log("PASS:", msg); }
 
@@ -17,8 +18,8 @@ isi.on("pageerror", e => errors.push("isi: " + e.message));
 benji.on("pageerror", e => errors.push("benji: " + e.message));
 await isi.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 await benji.addInitScript(() => localStorage.setItem("pw_person", "Benji"));
-await isi.goto("http://localhost:9091/nimmt.html");
-await benji.goto("http://localhost:9091/nimmt.html");
+await isi.goto(`${SITE}/nimmt.html`);
+await benji.goto(`${SITE}/nimmt.html`);
 await isi.waitForTimeout(300);
 
 const latest = async () => (await fetch(`${API}/latest`)).json();

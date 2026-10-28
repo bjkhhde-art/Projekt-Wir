@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Qwixx with animations ON: rolling dice tumble and flicker on both screens, crosses and locks animate. */
 const BROWSER_PATH = process.env.CHROMIUM_PATH || undefined;
-const API = "http://localhost:8991/t/qwixx_games";
+const API = `${API_BASE}/t/qwixx_games`;
 let assertions = 0;
 function ok(cond, msg) { assert.ok(cond, msg); assertions++; console.log("PASS:", msg); }
 
@@ -17,8 +18,8 @@ isi.on("pageerror", e => errors.push("isi: " + e.message));
 benji.on("pageerror", e => errors.push("benji: " + e.message));
 await isi.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 await benji.addInitScript(() => localStorage.setItem("pw_person", "Benji"));
-await isi.goto("http://localhost:9091/qwixx.html");
-await benji.goto("http://localhost:9091/qwixx.html");
+await isi.goto(`${SITE}/qwixx.html`);
+await benji.goto(`${SITE}/qwixx.html`);
 await isi.waitForTimeout(400);
 await isi.locator("#grStartBtn").click();
 await benji.waitForTimeout(700);

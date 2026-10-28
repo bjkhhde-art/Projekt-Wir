@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Versus on two phones like LovBirdz, full screen: roles, own pace, swap after three, reveal at the end */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const latest = async () => (await (await fetch(`${API}/t/versus_games/latest`)).json());
 await fetch(`${API}/t/versus_games/reset`, { method: "POST" });
@@ -24,7 +25,7 @@ async function open(person, query = "?mode=versus") {
   await ctx.addInitScript(p => localStorage.setItem("pw_person", p), person);
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(person + ": " + e.message));
-  await page.goto("http://localhost:9091/questions.html" + query);
+  await page.goto(`${SITE}/questions.html` + query);
   await page.waitForTimeout(600);
   return page;
 }
@@ -193,7 +194,7 @@ ok(await isi.locator("#otherMode").isVisible() && await isi.locator("#vsBoard").
 ok((await latest()).status === "active", "the round keeps running");
 await isi.click('.mode-btn[data-mode="talk"]');
 ok(await isi.locator("#talkMode").isVisible() && await isi.locator("#newQuestionBtn").isVisible(), "the conversation questions are still there");
-await isi.goto("http://localhost:9091/questions.html"); await isi.waitForTimeout(600);
+await isi.goto(`${SITE}/questions.html`); await isi.waitForTimeout(600);
 ok(await isi.locator("#talkMode").isVisible() && await isi.locator("#vsBoard").isHidden(), "the chosen tab is remembered – no full screen over the conversation questions");
 await isi.click('.mode-btn[data-mode="other"]');
 await isi.click(".other-versus");

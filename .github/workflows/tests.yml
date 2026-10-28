@@ -20,5 +20,10 @@ jobs:
           cache: npm
           cache-dependency-path: tests/package-lock.json
       - run: npm ci
+      # the browser download (~300 MB) is kept between runs; the system libraries are still installed
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm test

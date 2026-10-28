@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* the phone's back button inside a page: back to the previous tab, from a trip back to the overview,
    from Versus back to the other games – and only then to the page before */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
@@ -39,9 +40,9 @@ const back = async () => {
 const activeTab = () => page.locator(".hub-tab.active").getAttribute("data-tab");
 
 /* ---------- Wir: three tabs ---------- */
-await page.goto("http://localhost:9091/index.html");
+await page.goto(`${SITE}/index.html`);
 await wait(400);
-await page.goto("http://localhost:9091/wir.html");
+await page.goto(`${SITE}/wir.html`);
 await wait(500);
 ok(await activeTab() === "watchlist", "Wir opens with the first tab");
 await page.click('.hub-tab[data-tab="briefe"]');
@@ -57,7 +58,7 @@ await back();
 ok(page.url().endsWith("/index.html"), "only then back to the page before");
 
 /* ---------- Reise: tab, trip, overview ---------- */
-await page.goto("http://localhost:9091/reise.html");
+await page.goto(`${SITE}/reise.html`);
 await wait(600);
 await page.click('.hub-tab[data-tab="erinnerungen"]');
 await wait(400);
@@ -76,7 +77,7 @@ await back();
 ok(await activeTab() === "vergleich", "and the next back goes to the previous tab – the trip is not reopened");
 
 /* ---------- questions: talk → other → Versus ---------- */
-await page.goto("http://localhost:9091/questions.html");
+await page.goto(`${SITE}/questions.html`);
 await wait(700);
 ok(!(await page.locator("#talkMode").isHidden()), "the questions page opens with the talk questions");
 await page.click('.mode-btn[data-mode="other"]');

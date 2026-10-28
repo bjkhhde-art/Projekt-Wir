@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* "Nur für uns": share a link, rate it, comment on it – on two phones */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const links = async () => (await (await fetch(`${API}/t/private_links/dump`)).json());
@@ -24,14 +25,14 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const errors = [];
 async function open(person) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost:9091" });
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: SITE });
   await ctx.addInitScript(p => {
     localStorage.setItem("pw_person", p);
     if (!localStorage.getItem("pw_private_links_seen")) localStorage.setItem("pw_private_links_seen", "2020-01-01T00:00:00.000Z");
   }, person);
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(person + ": " + e.message));
-  await page.goto("http://localhost:9091/wir.html?tab=privat");
+  await page.goto(`${SITE}/wir.html?tab=privat`);
   await page.waitForTimeout(600);
   return page;
 }

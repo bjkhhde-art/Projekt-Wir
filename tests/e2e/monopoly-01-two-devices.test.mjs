@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { API_BASE, SITE } from "../support/ports.mjs";
 const require = createRequire(import.meta.url);
 const M = require("../../monopoly-engine.js");
 
 /* Monopoly on two phones: lobby with the two start modes, rolling, buying, rent, building,
    an offer that is accepted, the computer player Udiou and the end of a short game */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const latest = async () => (await fetch(`${API}/t/monopoly_games/latest`)).json();
 await fetch(`${API}/t/monopoly_games/reset`, { method: "POST" });
@@ -28,7 +29,7 @@ async function phone(person) {
   await ctx.addInitScript(p => localStorage.setItem("pw_person", p), person);
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push(person + ": " + e.message));
-  await page.goto("http://localhost:9091/monopoly.html");
+  await page.goto(`${SITE}/monopoly.html`);
   await page.waitForTimeout(700);
   return page;
 }

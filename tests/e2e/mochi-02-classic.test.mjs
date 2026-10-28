@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* the existing Mochi features keep working on top of the versioned writes: shop, room, sleep */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const petRow = async () => (await (await fetch(API + "/t/pet_state/dump")).json())[0];
@@ -22,7 +23,7 @@ await ctx.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/mochi.html");
+await page.goto(`${SITE}/mochi.html`);
 await wait(1200);
 
 /* buying an outfit */

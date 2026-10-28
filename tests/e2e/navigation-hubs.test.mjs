@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* where things live: Couple Quest + Vision under Ziele, the questions under Games */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
@@ -8,7 +9,7 @@ const page = await (await browser.newContext({ viewport: { width: 390, height: 8
 const errors = [];
 page.on("pageerror", e => errors.push(page.url() + ": " + e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
-const base = "http://localhost:9091/";
+const base = `${SITE}/`;
 const activeNav = () => page.locator(".nav-item.active").getAttribute("href");
 const visible = selector => page.locator(selector).isVisible();
 
@@ -80,8 +81,8 @@ ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator
 /* every single game has a back arrow to the games overview */
 for (const game of ["nimmt", "cabo", "qwixx", "flip7", "monopoly", "geo", "questions"]) {
   /* the lobby page with its title – a round left over from another test (Flip 7 with three hides the title) is cleared */
-  if (game !== "questions") await fetch(`http://localhost:8991/t/${game}_games/reset`, { method: "POST" });
-  await page.goto(`http://localhost:9091/${game}.html`);
+  if (game !== "questions") await fetch(`${API_BASE}/t/${game}_games/reset`, { method: "POST" });
+  await page.goto(`${SITE}/${game}.html`);
   await page.waitForTimeout(400);
   const back = page.locator(".page-back");
   const box = await back.boundingBox();

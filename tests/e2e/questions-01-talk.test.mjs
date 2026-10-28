@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Conversation questions: groups with more than 1000 questions load completely (page by page),
    and questions do not repeat until all of a group were shown */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 const RELATIONSHIP = ["Beziehung", "Kommunikation", "Konflikte", "Intimität", "Träume & Ziele", "Zukunft", "Familie", "Finanzen"];
@@ -23,7 +24,7 @@ const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 await ctx.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 const page = await ctx.newPage();
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/questions.html?mode=talk");
+await page.goto(`${SITE}/questions.html?mode=talk`);
 await page.waitForTimeout(800);
 
 ok((await page.locator("#questionCounter").textContent()).startsWith("5 Fragen"), "inactive questions are left out");

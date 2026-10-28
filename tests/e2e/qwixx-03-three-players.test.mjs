@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Qwixx with three: Isi, a friend from the invite link and Benji */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991/t/qwixx_games";
+const API = `${API_BASE}/t/qwixx_games`;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await fetch(`${API}/reset`, { method: "POST" });
 const latest = async () => (await fetch(`${API}/latest`)).json();
@@ -27,8 +28,8 @@ const status = page => page.locator("#qxStatus").textContent();
 
 const isi = await phone("Isi");
 const benji = await phone("Benji");
-await isi.goto("http://localhost:9091/qwixx.html");
-await benji.goto("http://localhost:9091/qwixx.html");
+await isi.goto(`${SITE}/qwixx.html`);
+await benji.goto(`${SITE}/qwixx.html`);
 await wait(400);
 await isi.click("#grStartBtn");
 await isi.waitForSelector("#grInviteLink");

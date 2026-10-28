@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Benji alone against Udiou: Cabo (Udiou looks at his cards and plays whole turns) and Qwixx
    (Udiou decides on the white sum and rolls when it is his turn) */
@@ -22,9 +23,9 @@ const benji = await ctx.newPage();
 benji.on("pageerror", e => errors.push("Benji: " + e.message));
 
 async function startAgainstUdiou(page, file, table) {
-  const API = `http://localhost:8991/t/${table}`;
+  const API = `${API_BASE}/t/${table}`;
   await fetch(`${API}/reset`, { method: "POST" });
-  await page.goto(`http://localhost:9091/${file}`);
+  await page.goto(`${SITE}/${file}`);
   await page.click("#grStartBtn");
   await page.waitForSelector(".gr-bot-btn");
   await page.click('.gr-bot-btn[data-bot="Udiou"]');
@@ -48,7 +49,7 @@ async function startAgainstUdiou(page, file, table) {
   /* Benji draws a 1 and throws it away – then Udiou plays a whole turn */
   const game = await latest();
   game.state.deck.push(1);
-  await fetch(`http://localhost:8991/t/cabo_games/games/${game.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ state: game.state, version: (game.version || 0) + 1 }) });
+  await fetch(`${API_BASE}/t/cabo_games/games/${game.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ state: game.state, version: (game.version || 0) + 1 }) });
   await wait(700);
   await benji.click("#drawPile");
   await until(async () => (await latest()).state.drawnCard === 1, 4000, "drawn");
@@ -76,7 +77,8 @@ async function startAgainstUdiou(page, file, table) {
   await until(async () => (await latest()).state.phase === "color", 4000, "color phase");
   await benji.locator(".qx-actions button", { hasText: "Fehlwurf" }).click();
   await until(async () => (await latest()).state.active === "Udiou", 4000, "Udiou's turn");
-  ok((await benji.locator("#qxStatus").textContent()).includes("Udiou"), "Benji's phone says Udiou rolls next");
+  await until(async () => (await benji.locator("#qxStatus").textContent()).includes("Udiou"), 4000, "Benji's status");
+  ok(true, "Benji's phone says Udiou rolls next");
   await until(async () => (await latest()).state.rollNo === 2, 8000, "Udiou rolls");
   ok((await latest()).state.lastMove.person === "Udiou", "Udiou rolls the dice himself");
   await until(async () => await benji.locator(".qx-actions button", { hasText: "Nichts ankreuzen" }).count() === 1, 4000, "Benji's white choice");

@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* watchlist filter panel: several choices per group, groups combined, remembered */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 const daysAgo = d => new Date(Date.now() - d * 86400000).toISOString();
@@ -25,7 +26,7 @@ const page = await (await browser.newContext({ viewport: { width: 390, height: 8
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
-await page.goto("http://localhost:9091/wir.html?tab=watchlist");
+await page.goto(`${SITE}/wir.html?tab=watchlist`);
 await page.waitForTimeout(800);
 
 const shown = async () => {

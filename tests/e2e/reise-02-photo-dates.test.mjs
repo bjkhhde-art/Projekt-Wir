@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* trip photos in the order they were taken: the date shows on each photo, can be changed in the
    edit menu, and new uploads read it from the camera data (EXIF) or the file name */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const dump = async table => (await (await fetch(`${API}/t/${table}/dump`)).json());
@@ -54,7 +55,7 @@ await ctx.route(/leaflet.*\.css/, route => route.fulfill({ contentType: "text/cs
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/reise.html?tab=erinnerungen");
+await page.goto(`${SITE}/reise.html?tab=erinnerungen`);
 await page.waitForTimeout(800);
 await page.locator(".memory-card", { hasText: "Alicante" }).click();
 await page.waitForTimeout(600);

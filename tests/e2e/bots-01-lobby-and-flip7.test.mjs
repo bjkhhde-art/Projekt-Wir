@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Udiou and Klausi 🤖, the computer players: Isi brings them to the table in the lobby, they play
    Flip 7 on their own and are always ready for the next round */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991/t/flip7_games";
+const API = `${API_BASE}/t/flip7_games`;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await fetch(`${API}/reset`, { method: "POST" });
 const latest = async () => (await fetch(`${API}/latest`)).json();
@@ -33,7 +34,7 @@ async function phone(name, guest) {
 }
 
 const isi = await phone("Isi");
-await isi.goto("http://localhost:9091/flip7.html");
+await isi.goto(`${SITE}/flip7.html`);
 await isi.click("#grStartBtn");
 const botButton = name => isi.locator(`.gr-bot-btn[data-bot="${name}"]`);
 await isi.waitForSelector(".gr-bot-btn");

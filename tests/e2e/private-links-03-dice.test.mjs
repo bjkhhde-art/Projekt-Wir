@@ -1,9 +1,10 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* "Nur für uns" → 🎲 Zufall: a random link from our list, or something new via random-video */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const links = async () => (await (await fetch(`${API}/t/private_links/dump`)).json());
@@ -20,7 +21,7 @@ await post("/t/private_link_comments/seed", { rows: [] });
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost:9091" });
+await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: SITE });
 await ctx.addInitScript(() => {
   localStorage.setItem("pw_person", "Isi");
   /* the random-video function, answered by the test: window.__videoAnswers is a queue */
@@ -31,7 +32,7 @@ await ctx.addInitScript(() => {
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/wir.html?tab=privat");
+await page.goto(`${SITE}/wir.html?tab=privat`);
 await page.waitForTimeout(700);
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";

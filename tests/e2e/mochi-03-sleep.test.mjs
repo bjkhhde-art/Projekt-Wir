@@ -1,10 +1,11 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { API_BASE, SITE } from "../support/ports.mjs";
 
 /* Mochi keeps sleeping – across closing and reopening the page – until one of us wakes him */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
-const API = "http://localhost:8991";
+const API = API_BASE;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const petRow = async () => (await (await fetch(API + "/t/pet_state/dump")).json())[0];
@@ -33,7 +34,7 @@ const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 const sleeping = () => page.locator("#petCreature").evaluate(el => el.classList.contains("sleeping"));
 
-await page.goto("http://localhost:9091/mochi.html");
+await page.goto(`${SITE}/mochi.html`);
 await wait(1200);
 ok(await sleeping(), "put to bed six hours ago, Mochi is still asleep when the page opens");
 ok((await page.locator("#sleepLabel").textContent()) === "Aufwecken", "the button offers to wake him");
