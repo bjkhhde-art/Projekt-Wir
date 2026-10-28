@@ -3,13 +3,27 @@
 .mo-game {
   max-width: 520px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
+
+/* the decision comes first, the board below it – on a phone the buttons stay in view */
+.mo-players { order: 1; }
+.mo-status { order: 2; }
+.mo-actions { order: 3; }
+.mo-board { order: 5; }
+.mo-info { order: 6; }
+#moMine { order: 7; }
+#moTrade { order: 8; }
+.gr-leave { order: 9; }
+/* in debt the list of streets (sell, mortgage) moves up, right under the buttons */
+.mo-game.mo-debt #moMine { order: 4; margin-top: 0; margin-bottom: 14px; }
 
 /* ---------- players ---------- */
 
 .mo-players {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 6px;
   margin-bottom: 10px;
 }
@@ -274,6 +288,7 @@
 
 .mo-info {
   margin-top: 10px;
+  scroll-margin-bottom: 96px;
   padding: 12px 14px;
   font-size: 13.5px;
 }
@@ -330,7 +345,7 @@
 }
 
 .mo-status {
-  margin: 14px 0 8px;
+  margin: 2px 0 8px;
   text-align: center;
   font-weight: 700;
   min-height: 1.4em;
@@ -340,7 +355,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 12px;
 }
+
+.mo-actions:empty { display: none; }
 
 .mo-offer,
 .mo-summary {
@@ -394,8 +412,9 @@
 
 .mo-own li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding: 7px 10px;
   border-radius: 12px;
   background: var(--surface);
@@ -406,12 +425,31 @@
 .mo-own-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mo-own-state { color: var(--text-muted); font-size: 12px; }
 
-.mo-build { display: flex; gap: 4px; }
+.mo-build { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; padding-left: 20px; }
+
+.mo-own li.mortgaged .mo-own-name { text-decoration: line-through; opacity: 0.7; }
+.mo-own li.mortgaged .mo-dot { opacity: 0.35; }
+.mo-dot.pledged { opacity: 0.3; }
+
+.mo-sq.mortgaged {
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0, 0, 0, 0.16) 4px 6px);
+}
+
+.mo-sq.mortgaged .mo-price { text-decoration: line-through; }
+
+.mo-debt-box {
+  padding: 14px 16px;
+  border: 2px solid var(--pink-deep);
+}
+
+.mo-debt-box h3 { margin: 0 0 6px; font-size: 16px; }
+.mo-debt-box p { margin: 4px 0; font-size: 13.5px; }
+.mo-debt-box .mo-offer-actions { margin-top: 10px; }
 
 .mo-mini {
-  min-width: 44px;
-  min-height: 34px;
-  padding: 0 10px;
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--surface-border);
   background: var(--gradient-brand);

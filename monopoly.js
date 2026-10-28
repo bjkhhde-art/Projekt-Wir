@@ -65,6 +65,7 @@ function squareIcon(square, index) {
 function renderBoard(game) {
   const state = game.state;
   const fresh = takeUnseenMove(game);
+  boardEl.classList.toggle("mo-debt", state.phase === "debt" && state.debt && state.debt.person === me());
   renderPlayers(state);
   renderGrid(state, fresh);
   renderInfo(state);
@@ -90,7 +91,7 @@ function renderPlayers(state) {
     const dots = M.ownedBy(state, p).map(i => {
       const sq = M.SQUARES[i];
       const color = sq.group ? M.GROUPS[sq.group].color : sq.type === "station" ? "#6b7280" : "#a3a3b8";
-      return `<i class="mo-dot" style="background:${color}" title="${escapeHtml(sq.name)}"></i>`;
+      return `<i class="mo-dot${M.isMortgaged(state, i) ? " pledged" : ""}" style="background:${color}" title="${escapeHtml(sq.name)}"></i>`;
     }).join("");
     const jail = state.jail[p] !== null && !out ? ` <span title="im Gefängnis">⛓️</span>` : "";
     const card = state.jailCards[p].length ? ` <span title="Freikarte">🎫</span>` : "";
@@ -109,12 +110,13 @@ function squareHtml(state, index) {
   const owner = M.ownerOf(state, index);
   const houses = M.housesOn(state, index);
   const corner = index % 10 === 0;
+  const pledged = M.isMortgaged(state, index);
   const band = sq.group ? `<span class="mo-band" style="background:${M.GROUPS[sq.group].color}">${houses >= 5 ? "H" : "▪".repeat(houses)}</span>` : "";
   const price = M.isOwnable(sq) ? `<span class="mo-price">${sq.price}</span>` : sq.type === "tax" ? `<span class="mo-price">${sq.amount}</span>` : "";
   const icon = sq.type === "street" ? "" : `<span class="mo-icon">${squareIcon(sq, index)}</span>`;
   const label = corner ? `<span class="mo-corner-name">${escapeHtml(sq.name)}</span>` : "";
   const ownerStyle = owner ? ` style="grid-row:${row};grid-column:${col};--owner:${colorOf(state, owner)}"` : ` style="grid-row:${row};grid-column:${col}"`;
-  return `<button type="button" class="mo-sq t-${sq.type}${corner ? " corner" : ""}${owner ? " owned" : ""}${selectedSquare === index ? " selected" : ""}" data-sq="${index}" aria-label="${escapeHtml(sq.name)}"${ownerStyle}>${band}${icon}${label}${price}</button>`;
+  return `<button type="button" class="mo-sq t-${sq.type}${corner ? " corner" : ""}${owner ? " owned" : ""}${pledged ? " mortgaged" : ""}${selectedSquare === index ? " selected" : ""}" data-sq="${index}" aria-label="${escapeHtml(sq.name)}"${ownerStyle}>${band}${icon}${label}${price}</button>`;
 }
 
 function renderGrid(state, animate) {
@@ -241,6 +243,10 @@ function describe(e) {
     case "build": return `🏗️ ${who(e.person)} ${you(e.person) ? "baust" : "baut"} auf ${squareName(e.square)} ${e.houses >= 5 ? "ein Hotel" : `Haus Nr. ${e.houses}`}.`;
     case "sell": return `${who(e.person)} ${you(e.person) ? "verkaufst" : "verkauft"} ein Haus auf ${squareName(e.square)} (+${money(e.amount)}).`;
     case "forced-sale": return `Ein Haus auf ${squareName(e.square)} muss weg (+${money(e.amount)}).`;
+    case "mortgage": return `🏦 ${who(e.person)} ${you(e.person) ? "nimmst" : "nimmt"} auf ${squareName(e.square)} eine Hypothek auf (+${money(e.amount)}).`;
+    case "redeem": return `🏦 ${who(e.person)} löst die Hypothek auf ${squareName(e.square)} ab (−${money(e.amount)}).`;
+    case "debt": return `⚠️ ${you(e.person) ? "Du schuldest" : `${e.person} schuldet`} ${money(e.amount)} und muss Geld auftreiben.`;
+    case "debt-paid": return `✅ ${you(e.person) ? "Du hast" : `${e.person} hat`} die Schulden bezahlt.`;
     case "bankrupt": return `💥 ${who(e.person)} ${you(e.person) ? "bist" : "ist"} pleite!`;
     case "trade-offer": return `🤝 ${who(e.person)} ${you(e.person) ? "machst" : "macht"} ${you(e.to) ? "dir" : e.to} ein Angebot.`;
     case "trade-done": return `🤝 Tausch zwischen ${you(e.person) ? "dir" : e.person} und ${you(e.to) ? "dir" : e.to} abgemacht.`;
@@ -271,7 +277,7 @@ function renderInfo(state) {
   if (sq.type === "street") {
     const rows = ["Miete", "mit Haus", "mit 2 Häusern", "mit 3 Häusern", "mit 4 Häusern", "mit Hotel"];
     body = `<table>${sq.rent.map((r, i) => `<tr class="${M.housesOn(state, index) === i ? "now" : ""}"><td>${rows[i]}</td><td>${money(r)}</td></tr>`).join("")}</table>
-      <p>Alle ${M.GROUPS[sq.group].name.toLowerCase()}en Straßen: doppelte Miete. Haus: ${money(sq.houseCost)}.</p>`;
+      <p>Besitzt du alle Straßen dieser Farbe, ist die Miete ohne Haus doppelt. Haus: ${money(sq.houseCost)}.</p>`;
   } else if (sq.type === "station") {
     body = `<p>Miete: 25 € mit einem Bahnhof, 50 € mit zwei, 100 € mit drei, 200 € mit allen vier.</p>`;
   } else if (sq.type === "utility") {
@@ -292,8 +298,10 @@ function renderInfo(state) {
   const head = sq.group ? `<span class="mo-info-band" style="background:${M.GROUPS[sq.group].color}"></span>` : "";
   infoEl.innerHTML = `
     <div class="mo-info-head">${head}<strong>${escapeHtml(sq.name)}</strong>${M.isOwnable(sq) ? `<span>${money(sq.price)}</span>` : ""}</div>
-    ${owner ? `<p class="mo-info-owner">Gehört ${you(owner)} – ${M.housesOn(state, index) >= 5 ? "mit Hotel" : M.housesOn(state, index) > 0 ? `${M.housesOn(state, index)} ${M.housesOn(state, index) === 1 ? "Haus" : "Häuser"}` : "ohne Häuser"}</p>` : M.isOwnable(sq) ? `<p class="mo-info-owner">Noch frei</p>` : ""}
-    ${body}`;
+    ${owner && M.isMortgaged(state, index) ? `<p class="mo-info-owner">Gehört ${you(owner)} – mit Hypothek (keine Miete)</p>` : owner ? `<p class="mo-info-owner">Gehört ${you(owner)} – ${M.housesOn(state, index) >= 5 ? "mit Hotel" : M.housesOn(state, index) > 0 ? `${M.housesOn(state, index)} ${M.housesOn(state, index) === 1 ? "Haus" : "Häuser"}` : "ohne Häuser"}</p>` : M.isOwnable(sq) ? `<p class="mo-info-owner">Noch frei</p>` : ""}
+    ${body}
+    ${M.isOwnable(sq) ? `<p>Hypothek: ${money(M.mortgageValue(index))} – zurück für ${money(M.redeemCost(index))}.</p>` : ""}`;
+  infoEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
   function you(p) { return p === me() ? "dir" : p; }
 }
 
@@ -315,6 +323,10 @@ function renderStatus(state) {
     statusEl.textContent = describeWinners(state.result, me());
   } else if (state.out.includes(me())) {
     statusEl.textContent = `Du bist pleite – ${turn} ist dran …`;
+  } else if (state.phase === "debt") {
+    statusEl.textContent = state.debt.person === me()
+      ? "Du musst Geld auftreiben 💸"
+      : `${state.debt.person} muss Geld auftreiben …`;
   } else if (state.trade && state.trade.to === me()) {
     statusEl.textContent = `${state.trade.from} macht dir ein Angebot 🤝`;
   } else if (turn === me()) {
@@ -338,6 +350,11 @@ function renderControls(state) {
 
   if (!mine) return;
 
+  if (state.phase === "debt") {
+    renderDebt(state);
+    return;
+  }
+
   if (state.phase === "roll") {
     if (state.jail[me()] !== null) {
       if (state.jailCards[me()].length) actionsEl.appendChild(button("Freikarte benutzen 🎫", "btn btn-secondary btn-block", () => room.dispatch(M.useJailCard), "moJailCard"));
@@ -354,6 +371,26 @@ function renderControls(state) {
     const again = state.rolledDoubles && state.jail[me()] === null;
     actionsEl.appendChild(button(again ? "Pasch! Nochmal würfeln 🎲" : "Zug beenden ✓", "btn btn-block", () => room.dispatch(M.endTurn), "moEnd"));
   }
+}
+
+function renderDebt(state) {
+  const total = M.debtTotal(state.debt);
+  const missing = total - state.cash[me()];
+  const creditors = [...new Set(state.debt.owed.map(o => o.to))];
+  const to = creditors.length === 1 && creditors[0] ? ` an ${creditors[0]}` : "";
+  const box = document.createElement("div");
+  box.className = "mo-debt-box card";
+  box.innerHTML = `
+    <h3>⚠️ Du schuldest ${money(total)}${escapeHtml(to)}</h3>
+    <p>Dir fehlen noch <strong>${money(missing)}</strong>. Verkaufe Häuser oder nimm Hypotheken auf Straßen auf (unten bei „Meine Straßen“) – sobald das Geld reicht, wird automatisch bezahlt.</p>
+    <p>Mit allem, was du verkaufen und beleihen kannst, kommst du auf ${money(M.assets(state, me()))}.</p>`;
+  const row = document.createElement("div");
+  row.className = "mo-offer-actions";
+  row.appendChild(button("Aufgeben (pleite) 💥", "btn btn-secondary", async () => {
+    if (await confirmDialog("Du verlierst alles und scheidest aus. Wirklich aufgeben?")) room.dispatch(M.declareBankrupt);
+  }, "moGiveUp"));
+  box.appendChild(row);
+  actionsEl.appendChild(box);
 }
 
 function tradeText(state, trade) {
@@ -419,21 +456,37 @@ function renderMine(state) {
     mineEl.innerHTML = `<h3>Meine Straßen</h3><p class="mo-empty">Du besitzt noch nichts. Lande auf einer freien Straße und kaufe sie!</p>`;
     return;
   }
-  const canAct = state.turnPerson === person && (state.phase === "roll" || state.phase === "after");
+  const mineTurn = state.turnPerson === person;
+  const canAct = mineTurn && (state.phase === "roll" || state.phase === "after");
+  const inDebt = mineTurn && state.phase === "debt";
   const rows = owned.map(i => {
     const sq = M.SQUARES[i];
     const houses = M.housesOn(state, i);
+    const pledged = M.isMortgaged(state, i);
     const color = sq.group ? M.GROUPS[sq.group].color : sq.type === "station" ? "#6b7280" : "#a3a3b8";
     const full = sq.group && M.ownsGroup(state, person, sq.group);
-    const state2 = houses >= 5 ? "Hotel 🏨" : houses > 0 ? "🏠".repeat(houses) : full ? "Farbset ✓" : "";
-    const controls = canAct && sq.type === "street" && full
-      ? `<span class="mo-build"><button type="button" class="mo-mini" data-build="${i}" aria-label="Haus auf ${escapeHtml(sq.name)} bauen" ${M.canBuild(state, person, i) ? "disabled" : ""}>+ ${sq.houseCost}</button><button type="button" class="mo-mini sell" data-sell="${i}" aria-label="Haus auf ${escapeHtml(sq.name)} verkaufen" ${M.canSell(state, person, i) ? "disabled" : ""}>−</button></span>`
-      : "";
-    return `<li><i class="mo-dot big" style="background:${color}"></i><span class="mo-own-name">${escapeHtml(sq.name)}</span><span class="mo-own-state">${state2}</span>${controls}</li>`;
+    const label = pledged ? "Hypothek 🏦" : houses >= 5 ? "Hotel 🏨" : houses > 0 ? "🏠".repeat(houses) : full ? "Farbset ✓" : "";
+    const buttons = [];
+    if ((canAct || inDebt) && houses > 0) {
+      buttons.push(`<button type="button" class="mo-mini sell" data-sell="${i}" ${M.canSell(state, person, i) ? "disabled" : ""}>Haus verkaufen +${money(Math.floor(sq.houseCost / 2))}</button>`);
+    }
+    if (canAct && sq.type === "street" && full && !pledged) {
+      buttons.push(`<button type="button" class="mo-mini" data-build="${i}" ${M.canBuild(state, person, i) ? "disabled" : ""}>Haus bauen −${money(sq.houseCost)}</button>`);
+    }
+    if ((canAct || inDebt) && !pledged && houses === 0) {
+      buttons.push(`<button type="button" class="mo-mini sell" data-mortgage="${i}" ${M.canMortgage(state, person, i) ? "disabled" : ""}>Hypothek +${money(M.mortgageValue(i))}</button>`);
+    }
+    if (canAct && pledged) {
+      buttons.push(`<button type="button" class="mo-mini" data-redeem="${i}" ${M.canRedeem(state, person, i) ? "disabled" : ""}>Auslösen −${money(M.redeemCost(i))}</button>`);
+    }
+    return `<li class="${pledged ? "mortgaged" : ""}"><i class="mo-dot big" style="background:${color}"></i><span class="mo-own-name">${escapeHtml(sq.name)}</span><span class="mo-own-state">${label}</span>${buttons.length ? `<span class="mo-build">${buttons.join("")}</span>` : ""}</li>`;
   }).join("");
   mineEl.innerHTML = `<h3>Meine Straßen</h3><ul class="mo-own">${rows}</ul>`;
-  mineEl.querySelectorAll("[data-build]").forEach(b => b.addEventListener("click", () => room.dispatch(M.build, Number(b.dataset.build))));
-  mineEl.querySelectorAll("[data-sell]").forEach(b => b.addEventListener("click", () => room.dispatch(M.sellHouse, Number(b.dataset.sell))));
+  const wire = (attr, fn) => mineEl.querySelectorAll(`[${attr}]`).forEach(b => b.addEventListener("click", () => room.dispatch(fn, Number(b.getAttribute(attr)))));
+  wire("data-build", M.build);
+  wire("data-sell", M.sellHouse);
+  wire("data-mortgage", M.mortgage);
+  wire("data-redeem", M.redeem);
 }
 
 /* ---------- trading ---------- */

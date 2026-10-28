@@ -118,6 +118,25 @@ await isi.locator("[data-build]:not([disabled])").first().click();
 await until(async () => Object.values((await latest()).state.props).some(p => p.houses === 1), 4000, "house built");
 ok((await latest()).state.cash.Isi === 1350, "a house costs 50 €");
 
+/* debts: Isi owes Benji 150 with 50 in cash – houses can be sold, streets mortgaged, or she gives up */
+const dstate = JSON.parse(JSON.stringify((await latest()).state));
+Object.assign(dstate, { phase: "debt", turnPerson: "Isi", offer: null, trade: null });
+dstate.cash = { Isi: 50, Benji: 1500 };
+dstate.props = { 1: { owner: "Isi", houses: 1 }, 3: { owner: "Isi", houses: 1 }, 5: { owner: "Isi", houses: 0 }, 15: { owner: "Isi", houses: 0 } };
+dstate.debt = { person: "Isi", owed: [{ to: "Benji", amount: 150 }], reason: "rent" };
+await setState(dstate);
+await until(async () => await isi.locator("#moGiveUp").count() === 1, 4000, "debt box");
+ok((await isi.locator(".mo-debt-box").textContent()).includes("150") && await isi.locator("#moRoll, #moEnd").count() === 0, "in debt Isi sees what she owes and cannot roll or end the turn");
+ok((await benji.locator("#moStatus").textContent()).includes("Isi muss Geld auftreiben"), "Benji sees that Isi is raising money");
+await isi.locator("[data-sell]:not([disabled])").first().click();
+await until(async () => (await latest()).state.cash.Isi === 75, 4000, "house sold");
+await isi.locator("[data-mortgage]:not([disabled])").first().click();
+await until(async () => (await latest()).state.phase === "after", 4000, "debt paid");
+const paid = (await latest()).state;
+ok(paid.cash.Benji === 1650 && !paid.debt && Object.values(paid.props).some(p => p.mortgaged), "a house sale and a mortgage raised the money; the debt was paid automatically");
+await until(async () => await isi.locator("[data-redeem]").count() === 1, 3000, "redeem button");
+ok(await isi.locator(".mo-sq.mortgaged").count() === 1, "the mortgaged street is marked on the board");
+
 /* Udiou joins another game: he plays by himself and the short game ends */
 await isi.click("#moLeaveBtn"); await isi.click("#moLeaveBtn");
 await until(async () => (await latest()).status === "closed", 4000, "closed");

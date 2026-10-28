@@ -1,9 +1,10 @@
 /* Monopoly – pure rules for 2–4 players (classic board with 40 squares).
    No DOM: loaded as <script> in the browser, testable in Node via require.
 
-   Simplified in two places: no auctions (whoever does not buy leaves the street unowned) and
-   no mortgages (a player short of cash is forced to sell houses, otherwise goes bankrupt).
-   Trading is kept simple: streets and cash for streets, one offer at a time, made on your own
+   Simplified: no auctions (whoever does not buy leaves the street unowned).
+   Debts: whoever has to pay more than they hold goes into the "debt" phase and raises the money
+   themselves – sell houses (half price) and mortgage streets (half the price, no rent while
+   mortgaged, redeem for the mortgage + 10 %) – or gives up. Trading is kept simple: streets and cash for streets, one offer at a time, made on your own
    turn. Everything else follows the classic rules: doubles, jail, rent doubled on a full
    colour set, building evenly, houses and hotels, "Ereignis" and "Gemeinschaft" cards.
 
@@ -152,10 +153,14 @@ function utilitiesOwned(state, person) {
   return SQUARES.reduce((n, s, i) => n + (s.type === "utility" && ownerOf(state, i) === person ? 1 : 0), 0);
 }
 
+const isMortgaged = (state, index) => Boolean(state.props[index] && state.props[index].mortgaged);
+const mortgageValue = index => Math.floor(SQUARES[index].price / 2);
+const redeemCost = index => Math.ceil((mortgageValue(index) * 11) / 10);
+
 function rentFor(state, index, diceTotal) {
   const square = SQUARES[index];
   const owner = ownerOf(state, index);
-  if (!owner) return 0;
+  if (!owner || isMortgaged(state, index)) return 0;
   if (square.type === "street") {
     const houses = housesOn(state, index);
     if (houses > 0) return square.rent[houses];
@@ -169,7 +174,7 @@ function rentFor(state, index, diceTotal) {
 function netWorth(state, person) {
   return ownedBy(state, person).reduce((sum, i) => {
     const sq = SQUARES[i];
-    return sum + sq.price + housesOn(state, i) * (sq.houseCost || 0);
+    return sum + (isMortgaged(state, i) ? mortgageValue(i) : sq.price) + housesOn(state, i) * (sq.houseCost || 0);
   }, state.cash[person]);
 }
 
@@ -179,18 +184,32 @@ function event(state, entry) {
 
 /* ---------- money ---------- */
 
-/* the houses are worth half to the bank when they have to go */
+/* what a player could still raise: cash, houses at half price, mortgages on the streets */
+function assets(state, person) {
+  return ownedBy(state, person).reduce((sum, i) => {
+    const sq = SQUARES[i];
+    return sum + housesOn(state, i) * Math.floor((sq.houseCost || 0) / 2) + (isMortgaged(state, i) ? 0 : mortgageValue(i));
+  }, state.cash[person]);
+}
+
+/* houses go first (most built street first), then mortgages – only for payers who cannot choose */
 function liquidate(state, person, needed) {
   while (state.cash[person] < needed) {
-    const candidates = ownedBy(state, person).filter(i => housesOn(state, i) > 0);
-    if (candidates.length === 0) return;
-    /* even rule backwards: take from the most built street first */
-    candidates.sort((a, b) => housesOn(state, b) - housesOn(state, a) || b - a);
-    const index = candidates[0];
-    state.props[index].houses -= 1;
-    const refund = Math.floor(SQUARES[index].houseCost / 2);
-    state.cash[person] += refund;
-    event(state, { type: "forced-sale", person, square: index, amount: refund });
+    const built = ownedBy(state, person).filter(i => housesOn(state, i) > 0);
+    if (built.length > 0) {
+      built.sort((a, b) => housesOn(state, b) - housesOn(state, a) || b - a);
+      const index = built[0];
+      state.props[index].houses -= 1;
+      const refund = Math.floor(SQUARES[index].houseCost / 2);
+      state.cash[person] += refund;
+      event(state, { type: "forced-sale", person, square: index, amount: refund });
+      continue;
+    }
+    const free = ownedBy(state, person).filter(i => !isMortgaged(state, i)).sort((a, b) => SQUARES[a].price - SQUARES[b].price);
+    if (free.length === 0) return;
+    state.props[free[0]].mortgaged = true;
+    state.cash[person] += mortgageValue(free[0]);
+    event(state, { type: "mortgage", person, square: free[0], amount: mortgageValue(free[0]), forced: true });
   }
 }
 
@@ -200,7 +219,7 @@ function bankrupt(state, person, creditor) {
   state.cash[person] = 0;
   if (creditor) state.cash[creditor] += rest;
   ownedBy(state, person).forEach(i => {
-    if (creditor) state.props[i] = { owner: creditor, houses: 0 };
+    if (creditor) state.props[i] = { owner: creditor, houses: 0, ...(isMortgaged(state, i) ? { mortgaged: true } : {}) };
     else delete state.props[i];
   });
   /* a held get-out card goes back into its deck */
@@ -208,10 +227,12 @@ function bankrupt(state, person, creditor) {
   state.jailCards[person] = [];
   state.out.push(person);
   state.trade = null;
+  state.debt = null;
 }
 
-/* `to` is a player or null (the bank). Returns false when the payer is bankrupt afterwards. */
-function pay(state, from, to, amount) {
+/* a payment nobody can choose how to raise (a card taking money from the others, the jail fine):
+   houses and streets are sold automatically; bankrupt when that is not enough */
+function forcedPay(state, from, to, amount) {
   if (amount <= 0) return true;
   liquidate(state, from, amount);
   if (state.cash[from] >= amount) {
@@ -221,6 +242,41 @@ function pay(state, from, to, amount) {
   }
   bankrupt(state, from, to);
   return false;
+}
+
+const debtTotal = debt => debt.owed.reduce((sum, o) => sum + o.amount, 0);
+
+function payDebt(state) {
+  const { person, owed } = state.debt;
+  owed.forEach(o => {
+    state.cash[person] -= o.amount;
+    if (o.to) state.cash[o.to] += o.amount;
+  });
+  state.debt = null;
+  state.phase = "after";
+  event(state, { type: "debt-paid", person });
+}
+
+/* the player on turn owes money: pay at once, go bankrupt if nothing can raise it, or let them raise it */
+function owe(state, person, owed, reason) {
+  const list = owed.filter(o => o.amount > 0);
+  const total = list.reduce((sum, o) => sum + o.amount, 0);
+  if (total <= 0) return;
+  if (state.cash[person] >= total) {
+    list.forEach(o => {
+      state.cash[person] -= o.amount;
+      if (o.to) state.cash[o.to] += o.amount;
+    });
+    return;
+  }
+  if (assets(state, person) < total) {
+    const creditors = [...new Set(list.map(o => o.to))];
+    bankrupt(state, person, creditors.length === 1 ? creditors[0] : null);
+    return;
+  }
+  state.debt = { person, owed: list, reason };
+  state.phase = "debt";
+  event(state, { type: "debt", person, amount: total });
 }
 
 /* ---------- movement ---------- */
@@ -259,7 +315,7 @@ function applyCard(state, person, card, depth) {
   switch (card.kind) {
     case "money":
       if (card.amount >= 0) state.cash[person] += card.amount;
-      else pay(state, person, null, -card.amount);
+      else owe(state, person, [{ to: null, amount: -card.amount }]);
       break;
     case "moveTo":
       moveTo(state, person, card.to);
@@ -278,17 +334,14 @@ function applyCard(state, person, card, depth) {
         const h = housesOn(state, i);
         total += h >= MAX_HOUSES ? card.hotel : h * card.house;
       });
-      if (total > 0) pay(state, person, null, total);
+      owe(state, person, [{ to: null, amount: total }]);
       break;
     }
     case "payEach":
-      for (const other of alive(state).filter(p => p !== person)) {
-        if (state.out.includes(person)) break;
-        pay(state, person, other, card.amount);
-      }
+      owe(state, person, alive(state).filter(p => p !== person).map(other => ({ to: other, amount: card.amount })));
       break;
     case "collectEach":
-      alive(state).filter(p => p !== person).forEach(other => pay(state, other, person, card.amount));
+      alive(state).filter(p => p !== person).forEach(other => forcedPay(state, other, person, card.amount));
       break;
     default:
       break;
@@ -312,14 +365,14 @@ function land(state, person, depth = 0) {
       }
     } else if (owner !== person) {
       const amount = rentFor(state, index, state.dice ? state.dice[0] + state.dice[1] : 7);
-      event(state, { type: "rent", person, owner, square: index, amount });
-      pay(state, person, owner, amount);
+      if (amount > 0) event(state, { type: "rent", person, owner, square: index, amount });
+      if (amount > 0) owe(state, person, [{ to: owner, amount }]);
     }
     return;
   }
   if (square.type === "tax") {
     event(state, { type: "tax", person, square: index, amount: square.amount });
-    pay(state, person, null, square.amount);
+    owe(state, person, [{ to: null, amount: square.amount }]);
     return;
   }
   if (square.type === "chance" || square.type === "chest") {
@@ -408,7 +461,7 @@ function settle(state) {
     advance(state);
     return;
   }
-  if (state.phase !== "buy") state.phase = "after";
+  if (state.phase !== "buy" && state.phase !== "debt") state.phase = "after";
 }
 
 function assertTurn(state, person, phases) {
@@ -433,6 +486,7 @@ function newGameState(players, mode, wins, gameNo, first, moveSeq, rand) {
     dice: null,
     offer: null,
     trade: null,
+    debt: null,
     lastTradeTurn: -1,
     pos: perPlayer(players, () => 0),
     cash: perPlayer(players, () => START_CASH),
@@ -491,7 +545,7 @@ function roll(state, person, rand = Math.random) {
       }
       next.jail[person] = null;
       event(next, { type: "jail-free", person, how: "fine" });
-      pay(next, person, null, JAIL_FINE);
+      forcedPay(next, person, null, JAIL_FINE);
       if (next.out.includes(person)) {
         settle(next);
         return recordMove(next, { type: "roll", person });
@@ -547,6 +601,7 @@ function canBuild(state, person, index) {
   const square = SQUARES[index];
   if (!square || square.type !== "street" || ownerOf(state, index) !== person) return "Diese Straße gehört dir nicht.";
   if (!ownsGroup(state, person, square.group)) return "Dafür brauchst du alle Straßen dieser Farbe.";
+  if (groupSquares(square.group).some(i => isMortgaged(state, i))) return "Löse erst die Hypothek auf dieser Farbe ab.";
   const h = housesOn(state, index);
   if (h >= MAX_HOUSES) return "Hier steht schon ein Hotel.";
   const lowest = Math.min(...groupSquares(square.group).map(i => housesOn(state, i)));
@@ -577,7 +632,7 @@ function build(state, person, index) {
 }
 
 function sellHouse(state, person, index) {
-  assertTurn(state, person, ["roll", "after"]);
+  assertTurn(state, person, ["roll", "after", "debt"]);
   const problem = canSell(state, person, index);
   if (problem) throw new Error(problem);
   const next = begin(state);
@@ -585,7 +640,57 @@ function sellHouse(state, person, index) {
   next.cash[person] += refund;
   next.props[index].houses -= 1;
   event(next, { type: "sell", person, square: index, amount: refund });
+  if (next.debt && next.cash[person] >= debtTotal(next.debt)) payDebt(next);
   return recordMove(next, { type: "sell", person });
+}
+
+/* debts: a street without houses (and without houses on its colour) can be mortgaged */
+function canMortgage(state, person, index) {
+  const square = SQUARES[index];
+  if (!square || !isOwnable(square) || ownerOf(state, index) !== person) return "Diese Straße gehört dir nicht.";
+  if (isMortgaged(state, index)) return "Hier liegt schon eine Hypothek.";
+  if (square.group && groupSquares(square.group).some(i => housesOn(state, i) > 0)) return "Verkaufe erst alle Häuser dieser Farbe.";
+  return null;
+}
+
+function canRedeem(state, person, index) {
+  if (ownerOf(state, index) !== person || !isMortgaged(state, index)) return "Auf dieser Straße liegt keine Hypothek.";
+  if (state.cash[person] < redeemCost(index)) return "Dafür reicht dein Geld nicht.";
+  return null;
+}
+
+function mortgage(state, person, index) {
+  assertTurn(state, person, ["roll", "after", "debt"]);
+  const problem = canMortgage(state, person, index);
+  if (problem) throw new Error(problem);
+  const next = begin(state);
+  next.props[index].mortgaged = true;
+  next.cash[person] += mortgageValue(index);
+  event(next, { type: "mortgage", person, square: index, amount: mortgageValue(index) });
+  if (next.debt && next.cash[person] >= debtTotal(next.debt)) payDebt(next);
+  return recordMove(next, { type: "mortgage", person });
+}
+
+function redeem(state, person, index) {
+  assertTurn(state, person, ["roll", "after"]);
+  const problem = canRedeem(state, person, index);
+  if (problem) throw new Error(problem);
+  const next = begin(state);
+  delete next.props[index].mortgaged;
+  next.cash[person] -= redeemCost(index);
+  event(next, { type: "redeem", person, square: index, amount: redeemCost(index) });
+  return recordMove(next, { type: "redeem", person });
+}
+
+/* in debt and no way out (or no wish to): everything goes to the creditor, or back to the bank */
+function declareBankrupt(state, person) {
+  assertTurn(state, person, ["debt"]);
+  const next = begin(state);
+  const creditors = [...new Set(next.debt.owed.map(o => o.to))];
+  bankrupt(next, person, creditors.length === 1 ? creditors[0] : null);
+  next.rolledDoubles = false;
+  settle(next);
+  return recordMove(next, { type: "bankrupt", person });
 }
 
 /* from jail before rolling: pay the fine or use the get-out card */
@@ -653,8 +758,9 @@ function acceptTrade(state, person) {
   const problem = tradeProblem(state, trade);
   if (problem) throw new Error(problem);
   const next = begin(state);
-  trade.give.forEach(i => { next.props[i] = { owner: trade.to, houses: 0 }; });
-  trade.get.forEach(i => { next.props[i] = { owner: trade.from, houses: 0 }; });
+  const moved = (i, owner) => { next.props[i] = { owner, houses: 0, ...(isMortgaged(next, i) ? { mortgaged: true } : {}) }; };
+  trade.give.forEach(i => moved(i, trade.to));
+  trade.get.forEach(i => moved(i, trade.from));
   next.cash[trade.from] -= trade.cash;
   next.cash[trade.to] += trade.cash;
   next.trade = null;
@@ -701,6 +807,13 @@ return {
   netWorth,
   canBuild,
   canSell,
+  canMortgage,
+  canRedeem,
+  isMortgaged,
+  mortgageValue,
+  redeemCost,
+  assets,
+  debtTotal,
   countCards,
   tradable,
   tradeProblem,
@@ -713,6 +826,9 @@ return {
   decline,
   build,
   sellHouse,
+  mortgage,
+  redeem,
+  declareBankrupt,
   payJail,
   useJailCard,
   endTurn,

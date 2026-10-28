@@ -406,6 +406,19 @@ function monopolyProposeTrade(state, bot) {
   return null;
 }
 
+/* in debt: houses first, then the street whose mortgage covers the rest most closely, else give up */
+function monopolyRaiseMoney(state, bot) {
+  const M = lib("MonopolyEngine");
+  const missing = M.debtTotal(state.debt) - state.cash[bot];
+  const owned = M.ownedBy(state, bot);
+  const built = owned.filter(i => M.canSell(state, bot, i) === null);
+  if (built.length) return M.sellHouse(state, bot, built.sort((a, b) => M.housesOn(state, b) - M.housesOn(state, a) || b - a)[0]);
+  const free = owned.filter(i => M.canMortgage(state, bot, i) === null);
+  if (!free.length) return M.declareBankrupt(state, bot);
+  const enough = free.filter(i => M.mortgageValue(i) >= missing).sort((a, b) => M.mortgageValue(a) - M.mortgageValue(b));
+  return M.mortgage(state, bot, enough.length ? enough[0] : free.sort((a, b) => M.mortgageValue(b) - M.mortgageValue(a))[0]);
+}
+
 function monopolyPlay(state, bot) {
   const M = lib("MonopolyEngine");
   if (!state.players.includes(bot) || state.out.includes(bot) || state.phase === "finished") return null;
@@ -413,6 +426,7 @@ function monopolyPlay(state, bot) {
   if (state.trade && state.trade.from === bot) return null;
   if (state.turnPerson !== bot) return null;
 
+  if (state.phase === "debt") return monopolyRaiseMoney(state, bot);
   if (state.phase === "buy") {
     const square = M.SQUARES[state.offer];
     /* stations and the second street of a colour are always worth it; otherwise keep some cash */
@@ -430,6 +444,8 @@ function monopolyPlay(state, bot) {
     return M.roll(state, bot);
   }
   if (state.phase === "after") {
+    const back = M.ownedBy(state, bot).find(i => M.canRedeem(state, bot, i) === null && state.cash[bot] - M.redeemCost(i) >= 400);
+    if (back !== undefined) return M.redeem(state, bot, back);
     const spot = monopolyBuildSpot(state, bot);
     if (spot !== undefined) return M.build(state, bot, spot);
     return monopolyProposeTrade(state, bot) || M.endTurn(state, bot);

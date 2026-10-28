@@ -147,17 +147,67 @@ ok(s.cash.Isi === 50 && s.cash.Benji === 1550 && s.phase === "after", "paying re
 s = start();
 s.cash.Isi = 30;
 s.pos.Isi = 36;
+s.props = { 39: { owner: "Benji", houses: 0 } };
+s = M.roll(s, "Isi", dice(1, 2));
+ok(s.phase === "finished" && s.out.includes("Isi") && s.result.winner === "Benji" && s.cash.Benji === 1530, "nothing left to sell: bankrupt at once, the creditor gets the cash");
+
+/* ---------- debts: raise the money yourself ---------- */
+const indebted = () => {
+  const x = start();
+  x.cash.Isi = 10;
+  x.pos.Isi = 36;
+  x.props = { 39: { owner: "Benji", houses: 0 }, 37: { owner: "Isi", houses: 0 }, 1: { owner: "Isi", houses: 2 }, 3: { owner: "Isi", houses: 2 } };
+  return M.roll(x, "Isi", dice(1, 2)); /* rent 50 on Schlossallee */
+};
+s = indebted();
+ok(s.phase === "debt" && s.debt.person === "Isi" && M.debtTotal(s.debt) === 50 && s.cash.Isi === 10 && !s.out.includes("Isi"), "short of cash but with assets: the player goes into debt instead of losing at once");
+throwsWith(() => M.endTurn(s, "Isi"), /geht gerade nicht/, "the turn cannot end while in debt");
+throwsWith(() => M.roll(s, "Isi"), /geht gerade nicht/, "and nothing is rolled");
+throwsWith(() => M.mortgage(s, "Isi", 3), /Häuser/, "streets with houses on their colour cannot be mortgaged");
+s = M.sellHouse(s, "Isi", 1);
+ok(s.phase === "debt" && s.cash.Isi === 35, "a house sells for half the building price (25)");
+throwsWith(() => M.sellHouse(s, "Isi", 1) && M.sellHouse(M.sellHouse(s, "Isi", 1), "Isi", 1), /gleichmäßig/, "houses are sold evenly even in debt");
+s = M.sellHouse(s, "Isi", 3);
+ok(s.phase === "after" && s.cash.Isi === 10 && s.cash.Benji === 1550 && !s.debt, "as soon as there is enough (60 ≥ 50), the debt is paid automatically");
+/* mortgage */
+s = start();
+s.props = { 5: { owner: "Isi", houses: 0 }, 12: { owner: "Isi", houses: 0 } };
+const mort = M.mortgage(s, "Isi", 5);
+ok(mort.cash.Isi === 1600 && M.isMortgaged(mort, 5), "a mortgage on a station pays 100 (half the price)");
+throwsWith(() => M.mortgage(mort, "Isi", 5), /schon eine Hypothek/, "no second mortgage on the same street");
+ok(M.rentFor({ ...mort, props: { ...mort.props, 5: mort.props[5] } }, 5) === 0, "a mortgaged street collects no rent");
+ok(M.netWorth(mort, "Isi") === 1600 + 100 + 150, "net worth counts a mortgaged street at half");
+const back = M.redeem(mort, "Isi", 5);
+ok(back.cash.Isi === 1500 - 10 && !M.isMortgaged(back, 5), "redeeming costs the mortgage plus 10 % (110)");
+throwsWith(() => M.redeem(s, "Isi", 5), /keine Hypothek/, "nothing to redeem without a mortgage");
+/* a street with a mortgage changes hands as it is */
+let tm = start(["Isi", "Benji", "Lena"]);
+tm.props = { 5: { owner: "Isi", houses: 0, mortgaged: true } };
+tm = M.acceptTrade(M.proposeTrade(tm, "Isi", "Benji", [5], [], 0), "Benji");
+ok(M.ownerOf(tm, 5) === "Benji" && M.isMortgaged(tm, 5), "the mortgage stays with the street when traded");
+/* mortgage to cover a debt */
+s = start();
+s.cash.Isi = 10; s.pos.Isi = 36;
 s.props = { 39: { owner: "Benji", houses: 0 }, 37: { owner: "Isi", houses: 0 } };
 s = M.roll(s, "Isi", dice(1, 2));
-ok(s.phase === "finished" && s.out.includes("Isi") && s.result.winner === "Benji", "no money left: bankrupt, the other wins");
-ok(M.ownerOf(s, 37) === "Benji" && s.cash.Benji === 1530, "the creditor gets the cash and the streets");
-/* forced house sale */
-s = start();
-s.cash.Isi = 10;
-s.pos.Isi = 36;
-s.props = { 39: { owner: "Benji", houses: 0 }, 37: { owner: "Isi", houses: 0 }, 1: { owner: "Isi", houses: 2 }, 3: { owner: "Isi", houses: 2 } };
-s = M.roll(s, "Isi", dice(1, 2)); /* rent 50, sells houses for 25 each */
-ok(!s.out.includes("Isi") && M.housesOn(s, 1) + M.housesOn(s, 3) === 2 && s.cash.Isi >= 0, "houses are sold off to pay the rent before going bankrupt");
+ok(s.phase === "debt", "only a street to mortgage: still a debt, not bankrupt");
+s = M.mortgage(s, "Isi", 37);
+ok(s.phase === "after" && s.cash.Isi === 135 && s.cash.Benji === 1550, "mortgaging Parkstraße (175) pays the rent");
+/* giving up */
+s = indebted();
+throwsWith(() => M.declareBankrupt(start(), "Isi"), /geht gerade nicht/, "giving up is only possible in debt");
+s = M.declareBankrupt(s, "Isi");
+ok(s.phase === "finished" && s.out.includes("Isi") && M.ownerOf(s, 37) === "Benji" && s.cash.Benji === 1510, "giving up: the creditor gets everything");
+/* debts with several creditors (chairman card) */
+s = start(["Isi", "Benji", "Lena"]);
+s.cash.Isi = 60; s.pos.Isi = 5;
+s.props = { 39: { owner: "Isi", houses: 0 } };
+s.chance = ["ch11", ...s.chance.filter(c => c !== "ch11")];
+s = M.roll(s, "Isi", dice(1, 1));
+ok(s.phase === "debt" && M.debtTotal(s.debt) === 100, "chairman card: 100 owed to two players, 60 in cash");
+s = M.mortgage(s, "Isi", 39);
+ok(s.phase === "after" && s.cash.Isi === 60 + 200 - 100 && s.cash.Benji === 1550 && s.cash.Lena === 1550, "the mortgage covers both payments");
+
 /* three players: the game goes on */
 s = start(["Isi", "Benji", "Lena"]);
 s.cash.Isi = 0; s.pos.Isi = 2;
@@ -282,5 +332,46 @@ for (let i = 0; i < 15; i++) {
   bankrupts += end.out.length;
 }
 ok(bankrupts >= 15, "15 full games end with exactly one player left");
+
+/* ---------- a restless human: random legal actions of every kind, nothing may throw unexpectedly or get stuck ---------- */
+function fuzz(seed) {
+  const rand = seeded(seed);
+  const pick = list => list[Math.floor(rand() * list.length)];
+  const players = ["Isi", "Benji", "Lena", "Udiou"].slice(0, 2 + (seed % 3));
+  let state = M.createInitialState(players, seed % 2 ? "short" : "full", rand);
+  for (let step = 0; step < 2500 && state.phase !== "finished"; step++) {
+    const me = state.turnPerson;
+    const owned = M.ownedBy(state, me);
+    const tries = [];
+    if (state.trade) {
+      tries.push(() => M.acceptTrade(state, state.trade.to), () => M.declineTrade(state, state.trade.to), () => M.declineTrade(state, state.trade.from));
+    }
+    tries.push(() => M.sellHouse(state, me, pick(owned.length ? owned : [1])));
+    tries.push(() => M.mortgage(state, me, pick(owned.length ? owned : [1])));
+    tries.push(() => M.redeem(state, me, pick(owned.length ? owned : [1])));
+    tries.push(() => M.build(state, me, pick(owned.length ? owned : [1])));
+    tries.push(() => {
+      const other = pick(M.alive(state).filter(p => p !== me));
+      const theirs = M.ownedBy(state, other);
+      return M.proposeTrade(state, me, other, owned.length ? [pick(owned)] : [], theirs.length ? [pick(theirs)] : [], Math.floor(rand() * 5) * 50 - 100);
+    });
+    tries.push(() => M.payJail(state, me), () => M.useJailCard(state, me));
+    /* the move that always exists in the current phase */
+    const forward = { roll: () => M.roll(state, me, rand), buy: () => (rand() < 0.7 ? M.buy(state, me) : M.decline(state, me)), after: () => M.endTurn(state, me), debt: () => M.declareBankrupt(state, me) };
+    let next = null;
+    if (rand() < 0.45) {
+      try { next = pick(tries)(); } catch (error) { assert.ok(/./.test(error.message), "errors carry a message"); }
+    }
+    if (!next) next = forward[state.phase]();
+    state = next;
+    assert.ok(M.countCards(state) === 24, "cards stay 24");
+    assert.ok(state.players.every(p => state.cash[p] >= 0), "no negative cash");
+    assert.ok(Object.entries(state.props).every(([i, p]) => p.houses >= 0 && p.houses <= 5 && !state.out.includes(p.owner) && !(p.mortgaged && p.houses > 0)), "props stay sane");
+    assert.ok(state.phase !== "debt" || (state.debt && state.debt.person === state.turnPerson && state.cash[state.turnPerson] < M.debtTotal(state.debt)), "debt only while the money is missing");
+  }
+  return state;
+}
+for (let i = 0; i < 60; i++) fuzz(i + 1);
+ok(true, "60 games with random actions (building, mortgages, trades, giving up) never break or get stuck");
 
 console.log(`\n${assertions} assertions passed (monopoly-engine)`);
