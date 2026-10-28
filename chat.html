@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>I + B | Chat-Wrapped</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fdf5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191220" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Projekt Wir">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="chat.css">
+  <script src="theme.js"></script>
+  <script src="pin-lock.js"></script>
+</head>
+<body data-nav="games.html" data-hub="chat">
+
+  <main class="page page-with-back">
+    <a href="games.html" class="page-back" aria-label="Zurück zu den Spielen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <h1 class="page-title">Chat-Wrapped 💬</h1>
+    <p class="page-subtitle">Euer WhatsApp-Chat in Zahlen, Awards und Zitaten</p>
+
+    <section id="chatUpload" class="card cu-card">
+      <div class="cu-icon" aria-hidden="true">📥</div>
+      <h2>Chat hochladen</h2>
+      <p class="cu-text">In WhatsApp den Chat öffnen, oben auf den Namen tippen und <strong>Chat exportieren</strong> &rarr; <strong>Ohne Medien</strong> wählen. Die Datei (<code>.txt</code> oder <code>.zip</code>) hier auswählen.</p>
+
+      <label id="chatDrop" class="cu-drop" for="chatFileInput">
+        <span class="cu-drop-title">Datei auswählen oder hierher ziehen</span>
+        <span class="cu-drop-sub">.txt oder .zip aus dem WhatsApp-Export</span>
+      </label>
+      <input id="chatFileInput" type="file" accept=".txt,.zip,text/plain,application/zip" class="cu-input">
+
+      <p id="chatUploadStatus" class="cu-status" role="status" aria-live="polite"></p>
+      <p class="cu-privacy">🔒 Der Chat wird <strong>nicht hochgeladen</strong>. Er wird nur hier im Browser ausgewertet und bleibt auf diesem Gerät gespeichert &ndash; jeder von euch lädt ihn einmal selbst hoch.</p>
+    </section>
+
+    <div id="chatApp" class="hidden">
+      <div class="ca-bar">
+        <div id="chatSummary" class="ca-summary"></div>
+        <div class="ca-bar-actions">
+          <button id="chatReplaceBtn" class="btn btn-secondary btn-sm" type="button">Neuer Export</button>
+          <button id="chatDeleteBtn" class="btn btn-ghost btn-sm" type="button">Löschen</button>
+        </div>
+      </div>
+
+      <div class="hub-tabs" role="tablist">
+        <button class="hub-tab" data-tab="wrapped" role="tab">✨ Wrapped</button>
+        <button class="hub-tab" data-tab="quiz" role="tab">🕵️ Quiz</button>
+        <button class="hub-tab" data-tab="quotes" role="tab">💬 Zitate</button>
+        <button class="hub-tab" data-tab="awards" role="tab">🏆 Awards</button>
+      </div>
+
+      <section class="hub-panel" data-panel="wrapped">
+        <div id="wrappedDeck" class="cw-deck" tabindex="0" aria-label="Wrapped-Karten, nach rechts wischen"></div>
+        <div class="cw-nav">
+          <button id="wrappedPrev" class="cw-arrow" type="button" aria-label="Vorherige Karte">‹</button>
+          <div id="wrappedDots" class="cw-dots"></div>
+          <button id="wrappedNext" class="cw-arrow" type="button" aria-label="Nächste Karte">›</button>
+        </div>
+      </section>
+
+      <section class="hub-panel" data-panel="quiz" hidden>
+        <div id="quizStage"></div>
+      </section>
+
+      <section class="hub-panel" data-panel="quotes" hidden>
+        <div id="quoteStage"></div>
+      </section>
+
+      <section class="hub-panel" data-panel="awards" hidden>
+        <div id="awardsStage"></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+  </nav>
+
+  <script src="shared.js"></script>
+  <script src="hub-tabs.js"></script>
+  <script src="chat-engine.js"></script>
+  <script src="chat-zip.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>
