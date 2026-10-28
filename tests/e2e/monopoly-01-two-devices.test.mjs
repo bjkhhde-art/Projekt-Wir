@@ -127,7 +127,8 @@ dstate.debt = { person: "Isi", owed: [{ to: "Benji", amount: 150 }], reason: "re
 await setState(dstate);
 await until(async () => await isi.locator("#moGiveUp").count() === 1, 4000, "debt box");
 ok((await isi.locator(".mo-debt-box").textContent()).includes("150") && await isi.locator("#moRoll, #moEnd").count() === 0, "in debt Isi sees what she owes and cannot roll or end the turn");
-ok((await benji.locator("#moStatus").textContent()).includes("Isi muss Geld auftreiben"), "Benji sees that Isi is raising money");
+await until(async () => (await benji.locator("#moStatus").textContent()).includes("Isi muss Geld auftreiben"), 6000, "Benji's status");
+ok(true, "Benji sees that Isi is raising money");
 await isi.locator("[data-sell]:not([disabled])").first().click();
 await until(async () => (await latest()).state.cash.Isi === 75, 4000, "house sold");
 await isi.locator("[data-mortgage]:not([disabled])").first().click();
@@ -162,6 +163,7 @@ for (let i = 0; i < 60; i++) {
   await wait(500);
 }
 await until(async () => (await latest()).state.phase === "finished", 15000, "game over");
+await until(async () => await isi.locator(".mo-summary").count() === 1, 6000, "summary");
 ok((await isi.locator(".mo-summary").textContent()).includes("Endstand"), "the short game ends with a result");
 ok(await isi.locator(".gr-ready-btn").count() === 1, "and offers a new game");
 
