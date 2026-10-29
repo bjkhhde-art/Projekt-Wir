@@ -2,6 +2,10 @@
   const API = "http://localhost:8991";
   /* game tables keep their original, simpler semantics (maybeSingle = newest row) */
   const isGameTable = table => table.endsWith("_games");
+  /* chat_* tables are plain: insert, upsert by key and delete by filter really change the stored rows */
+  const isPlainTable = table => table.startsWith("chat_");
+  const PLAIN_KEYS = { chat_exports: ["id"], chat_chunks: ["version", "idx"] };
+  const postJson = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
   function matches(row, filters) {
     return filters.every(([op, field, value]) => {
@@ -60,6 +64,10 @@
       },
 
       async insert(payload) {
+        if (isPlainTable(table)) {
+          await postJson(`${base}/rows`, { rows: Array.isArray(payload) ? payload : [payload] });
+          return { data: null, error: null };
+        }
         const res = await fetch(`${base}/games`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -81,6 +89,10 @@
 
       /* settings-style writes are only recorded so tests can inspect them */
       async upsert(payload) {
+        if (isPlainTable(table)) {
+          await postJson(`${base}/upsert`, { rows: Array.isArray(payload) ? payload : [payload], key: PLAIN_KEYS[table] || ["id"] });
+          return { data: null, error: null };
+        }
         (window.__mockUpserts = window.__mockUpserts || []).push({ table, payload });
         return { data: null, error: null };
       },
@@ -97,6 +109,10 @@
             });
             const data = await res.json();
             return { data, error: null };
+          }
+          if (pendingOp && pendingOp.type === "delete" && isPlainTable(table)) {
+            await postJson(`${base}/delete`, { filters });
+            return { data: null, error: null };
           }
           if (pendingOp && pendingOp.type === "delete") {
             await fetch(`${base}/games/${encodeURIComponent(idFilter())}`, { method: "DELETE" });

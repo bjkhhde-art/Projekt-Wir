@@ -8,6 +8,17 @@ const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 
+/* both tests start from an empty cloud; every chat is sealed with a passphrase the first time */
+const BACKEND = "http://localhost:8991";
+for (const t of ["chat_exports", "chat_chunks"]) await fetch(`${BACKEND}/t/${t}/reset`, { method: "POST" });
+async function setPassphrase(page, phrase) {
+  await page.waitForSelector("#chatPassModal:not(.hidden)");
+  await page.fill("#passInput", phrase);
+  await page.fill("#passConfirm", phrase);
+  await page.click("#passSave");
+  await page.waitForFunction(() => document.getElementById("chatCloud").textContent.includes("Für euch beide gespeichert"));
+}
+
 /* an iPhone export: a zip with "_chat.txt" (compressed) next to a photo that must not be read as the chat */
 function zipOf(files) {
   const parts = []; const central = []; let offset = 0;
@@ -48,6 +59,7 @@ const zip = zipOf([
 await page.goto("http://localhost:9091/chat.html"); await page.waitForTimeout(400);
 await page.setInputFiles("#chatFileInput", { name: "WhatsApp Chat - Benji.zip", mimeType: "application/zip", buffer: zip });
 await page.waitForSelector("#chatApp:not(.hidden)");
+await setPassphrase(page, "Unser Geheimnis");
 const summary = await page.locator("#chatSummary").innerText();
 ok(summary.includes("60 Nachrichten"), `the zip is unpacked in the browser and the 60 real messages are counted, not the encryption notice (${summary.replace(/\n/g, " · ")})`);
 ok(summary.includes("Isi") && summary.includes("Benji") && !summary.includes("verschlüsselt"), "both writers are found and no third one appears");

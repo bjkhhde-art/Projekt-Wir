@@ -41,7 +41,19 @@
       <input id="chatFileInput" type="file" accept=".txt,.zip,text/plain,application/zip" class="cu-input">
 
       <p id="chatUploadStatus" class="cu-status" role="status" aria-live="polite"></p>
-      <p class="cu-privacy">🔒 Der Chat wird <strong>nicht hochgeladen</strong>. Er wird nur hier im Browser ausgewertet und bleibt auf diesem Gerät gespeichert &ndash; jeder von euch lädt ihn einmal selbst hoch.</p>
+      <p class="cu-privacy">🔒 Ausgewertet wird alles hier im Browser. Damit ihr beide den Chat seht, wird er <strong>verschlüsselt</strong> in der Cloud gespeichert &ndash; mit einem Chat-Passwort, das nur ihr kennt. Ohne das Passwort ist er in der Datenbank nicht lesbar.</p>
+    </section>
+
+    <section id="chatUnlock" class="card cu-card hidden">
+      <div class="cu-icon" aria-hidden="true">🔐</div>
+      <h2>Chat freischalten</h2>
+      <p id="chatUnlockText" class="cu-text"></p>
+      <form id="chatUnlockForm" class="cu-form" autocomplete="off">
+        <input id="chatUnlockInput" type="password" class="cu-field" placeholder="Chat-Passwort" aria-label="Chat-Passwort" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="btn btn-block" type="submit">Öffnen</button>
+      </form>
+      <p id="chatUnlockStatus" class="cu-status" role="status" aria-live="polite"></p>
+      <p class="cu-privacy">Das Passwort wird pro Handy nur einmal gefragt und dann gemerkt.</p>
     </section>
 
     <div id="chatApp" class="hidden">
@@ -52,6 +64,8 @@
           <button id="chatDeleteBtn" class="btn btn-ghost btn-sm" type="button">Löschen</button>
         </div>
       </div>
+
+      <div id="chatCloud" class="ca-cloud" role="status" aria-live="polite"></div>
 
       <div class="hub-tabs" role="tablist">
         <button class="hub-tab" data-tab="wrapped" role="tab">✨ Wrapped</button>
@@ -83,6 +97,26 @@
     </div>
   </main>
 
+  <div id="chatPassModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="passTitle">Chat-Passwort</h2>
+      <p id="passText" class="cu-text"></p>
+      <form id="passForm" autocomplete="off">
+        <label for="passInput">Chat-Passwort</label>
+        <input id="passInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div id="passConfirmWrap">
+          <label for="passConfirm">Noch einmal</label>
+          <input id="passConfirm" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <p id="passError" class="cu-status cu-error" role="alert"></p>
+        <div class="modal-buttons">
+          <button id="passSave" class="btn" type="submit">Weiter</button>
+          <button id="passCancel" class="btn btn-secondary" type="button">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
     <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
@@ -92,10 +126,12 @@
     <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
   </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
   <script src="hub-tabs.js"></script>
   <script src="chat-engine.js"></script>
   <script src="chat-zip.js"></script>
+  <script src="chat-crypto.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>

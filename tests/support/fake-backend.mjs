@@ -22,6 +22,16 @@ function readBody(req) {
   });
 }
 
+function matches(row, filters) {
+  return filters.every(([op, field, value]) => {
+    if (op === "eq") return row[field] === value;
+    if (op === "neq") return row[field] !== value;
+    if (op === "is") return value === null ? row[field] == null : row[field] === value;
+    if (op === "in") return value.includes(row[field]);
+    return true;
+  });
+}
+
 const newest = rows => rows.slice().sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id);
 
 async function handle(req, res, name, path, url) {
@@ -51,6 +61,31 @@ async function handle(req, res, name, path, url) {
   if (req.method === "POST" && path === "/seed") {
     const body = await readBody(req);
     tables[name] = { rows: body.rows || [], nextId: (body.rows || []).length + 1 };
+    send(res, 200, { ok: true });
+    return true;
+  }
+
+  /* plain tables (chat_*): rows are stored as they come, no game semantics */
+  if (req.method === "POST" && path === "/rows") {
+    const body = await readBody(req);
+    for (const row of body.rows || []) t.rows.push({ ...row });
+    send(res, 200, { ok: true });
+    return true;
+  }
+  if (req.method === "POST" && path === "/upsert") {
+    const body = await readBody(req);
+    for (const row of body.rows || []) {
+      const same = existing => body.key.every(field => existing[field] === row[field]);
+      const at = t.rows.findIndex(same);
+      if (at >= 0) t.rows[at] = { ...t.rows[at], ...row };
+      else t.rows.push({ ...row });
+    }
+    send(res, 200, { ok: true });
+    return true;
+  }
+  if (req.method === "POST" && path === "/delete") {
+    const body = await readBody(req);
+    t.rows = t.rows.filter(row => !matches(row, body.filters || []));
     send(res, 200, { ok: true });
     return true;
   }
