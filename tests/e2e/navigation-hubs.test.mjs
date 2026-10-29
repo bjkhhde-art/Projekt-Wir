@@ -46,17 +46,18 @@ ok(page.url().endsWith("questions.html") && (await page.locator("h1").textConten
 ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuestionBtn"), "the questions page has its four categories and the next button");
 ok(await activeNav() === "games.html", "the questions page highlights Spiele in the nav");
 
-/* Wir: Kuschelakku, Watchlist, Briefe (+ Nur für uns); old links forward */
+/* Wir: Kuschelakku, Watchlist, Briefe; old links forward */
 await page.goto(base + "wir.html"); await page.waitForTimeout(400);
 const wirTabs = await page.locator(".hub-tab").allTextContents();
-ok(JSON.stringify(wirTabs) === JSON.stringify(["🔋 Akku", "🎬 Watchlist", "💌 Briefe", "🔥 Nur für uns"]), `Wir has Kuschelakku, Watchlist, Briefe and 'Nur für uns' (${wirTabs.join(", ")})`);
+ok(JSON.stringify(wirTabs) === JSON.stringify(["🔋 Kuschelakku", "🎬 Watchlist", "💌 Briefe"]), `Wir has Kuschelakku, Watchlist and Briefe (${wirTabs.join(", ")})`);
+ok(await page.locator("#privateLinkList, #openPrivateLinkModal").count() === 0, "'Nur für uns' is gone");
 ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "watchlist", "Wir opens on the Watchlist, the Akku tab is a link");
 await page.setViewportSize({ width: 360, height: 740 });
-ok(await page.locator(".hub-tabs").evaluate(el => [...el.children].every(tab => tab.scrollWidth <= tab.clientWidth + 1) && el.scrollWidth <= el.clientWidth + 1), "the four Wir tabs fit on a 360 px phone");
+ok(await page.locator(".hub-tabs").evaluate(el => [...el.children].every(tab => tab.scrollWidth <= tab.clientWidth + 1) && el.scrollWidth <= el.clientWidth + 1), "the Wir tabs fit on a 360 px phone");
 await page.setViewportSize({ width: 390, height: 844 });
 await page.click('.hub-tab[href="batterien.html"]');
 await page.waitForURL(/batterien\.html$/); await page.waitForTimeout(400);
-ok(await page.locator(".hub-tab.active").textContent() === "🔋 Akku" && await activeNav() === "wir.html" && await page.locator(".battery-shell").count() === 2, "the Akku tab opens the batteries, Wir stays lit in the bar");
+ok(await page.locator(".hub-tab.active").textContent() === "🔋 Kuschelakku" && await activeNav() === "wir.html" && await page.locator(".battery-shell").count() === 2, "the Akku tab opens the batteries, Wir stays lit in the bar");
 await page.click('.hub-tab[href="wir.html?tab=briefe"]');
 await page.waitForURL(/wir\.html\?tab=briefe$/); await page.waitForTimeout(400);
 ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "briefe", "from the batteries the Briefe tab leads back into Wir");
@@ -77,6 +78,7 @@ await page.goto(base + "kpis.html"); await page.waitForTimeout(700);
 const kpiHeadings = await page.locator(".kpi-card h2").allTextContents();
 ok(JSON.stringify(kpiHeadings.slice(0, 2)) === JSON.stringify(["Tage zusammen", "Nächster Jahrestag"]) && kpiHeadings.includes("Erstes Treffen"), `KPIs start with Tage zusammen and the next anniversary (${kpiHeadings.join(", ")})`);
 ok(await page.locator("#kpiCountdowns .kpi-countdown-row").count() >= 1, "KPIs count down to what comes next");
+ok(await page.locator("main img").count() === 0, "the KPIs show no photos");
 await page.click("#kpiWrapped");
 await page.waitForURL(/chat\.html$/); await page.waitForTimeout(400);
 ok(await activeNav() === "kpis.html" && await page.locator('.page-back[href="kpis.html"]').count() === 1, "WhatsApp Wrapped opens from the KPIs and belongs to them");
@@ -95,8 +97,7 @@ for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "mono
 
 /* home page */
 await page.goto(base + "index.html"); await page.waitForTimeout(500);
-ok((await page.locator(".home-card", { hasText: "ToDos" }).textContent()).includes("Couple Quest"), "the ToDos card mentions the Couple Quest");
-ok((await page.locator(".home-card", { hasText: "Spiele" }).textContent()).includes("Fragen"), "the Spiele card mentions the questions");
+ok(await page.locator(".home-card").count() === 0 && !(await page.locator("main").textContent()).includes("Alle Bereiche"), "the 'Alle Bereiche' list is gone, the bar is the way around");
 ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator("main").textContent()).includes("Frage für uns"), "the 'Frage für uns' card is gone from the start page");
 
 /* every single game has a back arrow to the games overview */

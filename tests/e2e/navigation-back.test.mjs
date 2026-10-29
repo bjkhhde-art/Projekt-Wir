@@ -46,13 +46,9 @@ await wait(500);
 ok(await activeTab() === "watchlist", "Wir opens with the first tab");
 await page.click('.hub-tab[data-tab="briefe"]');
 await wait(200);
-await page.click('.hub-tab[data-tab="privat"]');
-await wait(200);
-ok(page.url().endsWith("wir.html?tab=privat"), "the address shows the open tab");
+ok(page.url().endsWith("wir.html?tab=briefe"), "the address shows the open tab");
 await back();
-ok(await activeTab() === "briefe" && page.url().endsWith("?tab=briefe"), "back: the previous tab (Briefe), not the start page");
-await back();
-ok(await activeTab() === "watchlist", "back again: the first tab");
+ok(await activeTab() === "watchlist" && !page.url().includes("tab=briefe"), "back: the previous tab (Watchlist), not the start page");
 await back();
 ok(page.url().endsWith("/index.html"), "only then back to the page before");
 
