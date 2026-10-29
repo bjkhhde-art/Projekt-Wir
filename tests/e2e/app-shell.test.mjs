@@ -24,14 +24,9 @@ for (const file of pages) {
   ok(html.includes('rel="manifest"') && html.includes('href="icons/apple-touch-icon.png"'), `${file} links manifest and home-screen icon`);
 }
 
-/* KPI pictures are small WebP files loaded lazily */
+/* the KPIs carry no photos any more */
 await page.goto(base + "kpis.html"); await page.waitForTimeout(400);
-const pictures = await page.locator(".flip-back img").evaluateAll(imgs => imgs.map(img => ({ src: img.getAttribute("src"), lazy: img.loading })));
-ok(pictures.length === 4 && pictures.every(p => p.src.endsWith(".webp") && p.lazy === "lazy"), "all four KPI pictures are lazy WebP files");
-for (const p of pictures) {
-  const res = await page.request.get(base + p.src);
-  ok(res.ok() && (await res.body()).length < 200 * 1024, `${p.src} loads and is under 200 KB`);
-}
+ok(await page.locator("main img").count() === 0, "the KPI page loads no pictures");
 
 /* uploads are shrunk before they leave the phone */
 const shrunk = await page.evaluate(async () => {

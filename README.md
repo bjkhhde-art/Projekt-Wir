@@ -18,7 +18,7 @@ Sechs Bereiche in der unteren Leiste:
 
 - 🏠 **Home** – Tage zusammen, wie lange Isi noch in Alicante ist, Status von Mochi, Kuschelbatterie vom anderen, Bild der letzten Reise
 - 📊 **KPIs** – Tage zusammen, nächster Jahrestag, wann wir uns kennengelernt haben, WhatsApp Wrapped (Chat-Wrapped) und „Wie lange noch bis …“
-- 💬 **Wir** – Kuschelakku, Watchlist, Briefe (und „Nur für uns“)
+- 💬 **Wir** – Kuschelakku, Watchlist, Briefe
 - ✅ **ToDos** – Couple Quest und Vision
 - ✈️ **Reisen** – Karte, „Kommt noch“ und „Vergangen“ (plus Alicante/Hamburg-Vergleich)
 - 🎮 **Spiele** – alle Spiele und Fragen

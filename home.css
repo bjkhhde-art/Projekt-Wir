@@ -134,57 +134,6 @@
   text-align: center;
 }
 
-.home-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.home-card {
-  text-decoration: none;
-  color: var(--text);
-  padding: 26px 20px;
-  min-height: 170px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.card-icon {
-  font-size: 42px;
-  margin-bottom: 10px;
-}
-
-.home-card h2 {
-  font-size: 22px;
-  margin: 0 0 8px;
-}
-
-.home-card p {
-  font-size: 14.5px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin: 0;
-}
-
-@media (min-width: 760px) {
-  .home-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .home-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .home-card {
-    min-height: 130px;
-    padding: 22px 18px;
-  }
-}
-
 /* ---------- dashboard: auf einen Blick ---------- */
 
 .section-heading {
