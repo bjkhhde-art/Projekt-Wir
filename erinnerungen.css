@@ -586,3 +586,16 @@
     justify-content: center;
   }
 }
+
+/* the map has a tab of its own on the Reisen page */
+.trips-map-tall {
+  height: min(62vh, 540px);
+  margin-bottom: 12px;
+}
+
+.map-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}

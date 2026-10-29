@@ -1,5 +1,6 @@
 (function () {
-  const tabs = document.querySelectorAll(".hub-tab");
+  /* link tabs (a sibling page like the Kuschelakku) have no data-tab and just navigate */
+  const tabs = document.querySelectorAll(".hub-tab[data-tab]");
   const panels = document.querySelectorAll(".hub-panel");
   const syncedElements = document.querySelectorAll("[data-show-for]");
 
@@ -7,10 +8,13 @@
 
   const storageKey = "pw_hub_tab_" + (document.body.dataset.hub || "default");
 
+  /* a panel or button can belong to several tabs: data-panel="kommend erinnerungen" */
+  const belongsTo = (list, name) => list.split(" ").includes(name);
+
   function activateTab(name) {
     tabs.forEach(tab => tab.classList.toggle("active", tab.dataset.tab === name));
-    panels.forEach(panel => { panel.hidden = panel.dataset.panel !== name; });
-    syncedElements.forEach(el => { el.style.display = el.dataset.showFor === name ? "" : "none"; });
+    panels.forEach(panel => { panel.hidden = !belongsTo(panel.dataset.panel, name); });
+    syncedElements.forEach(el => { el.style.display = belongsTo(el.dataset.showFor, name) ? "" : "none"; });
     localStorage.setItem(storageKey, name);
     document.dispatchEvent(new CustomEvent("pw:hub-tab-shown", { detail: { tab: name } }));
   }

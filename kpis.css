@@ -44,27 +44,15 @@
   font-family: var(--font-heading);
 }
 
-.kpi-countdown {
-  grid-column: span 3;
-}
-
 @media (max-width: 700px) {
   .kpi-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .kpi-countdown {
-    grid-column: span 2;
   }
 }
 
 @media (max-width: 480px) {
   .kpi-grid {
     grid-template-columns: 1fr;
-  }
-
-  .kpi-countdown {
-    grid-column: span 1;
   }
 }
 
@@ -104,4 +92,111 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* ---------- sections: Tage zusammen + Jahrestag, Kennenlernen, Wrapped, Countdowns ---------- */
+
+.kpi-grid-two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.kpi-heading {
+  margin: 34px 0 14px;
+}
+
+.kpi-wrapped {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  background: var(--gradient-brand);
+  color: white;
+}
+
+.kpi-wrapped-icon {
+  font-size: 38px;
+  flex-shrink: 0;
+}
+
+.kpi-wrapped-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-wrapped-text h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: white;
+}
+
+.kpi-wrapped-text p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.kpi-wrapped-cta {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.kpi-countdowns {
+  display: grid;
+  gap: 12px;
+}
+
+.kpi-countdown-skeleton {
+  height: 76px;
+}
+
+.kpi-countdown-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.kpi-countdown-icon {
+  font-size: 30px;
+  flex-shrink: 0;
+}
+
+.kpi-countdown-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kpi-countdown-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.kpi-countdown-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.kpi-countdown-days {
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 22px;
+  background: var(--gradient-warm);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (max-width: 480px) {
+  .kpi-grid-two {
+    grid-template-columns: 1fr;
+  }
 }

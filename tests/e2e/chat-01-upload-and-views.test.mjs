@@ -36,8 +36,8 @@ for (let d = 0; d < 60; d++) {
 }
 const file = { name: "WhatsApp Chat.txt", mimeType: "text/plain", buffer: Buffer.from(lines.join("\n"), "utf8") };
 
-await page.goto(base + "games.html"); await page.waitForTimeout(300);
-ok(await page.locator('a[href="chat.html"]').count() === 1, "the Games page links to Chat-Wrapped");
+await page.goto(base + "kpis.html"); await page.waitForTimeout(300);
+ok(await page.locator('a[href="chat.html"]').count() === 1, "the KPIs page links to WhatsApp Wrapped");
 
 await page.goto(base + "chat.html"); await page.waitForTimeout(400);
 ok(await page.locator("#chatUpload").isVisible() && await page.locator("#chatApp").isHidden(), "without an export the upload card is shown");

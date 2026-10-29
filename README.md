@@ -12,6 +12,19 @@ Gemeinsame Couple-App mit:
 - ☁️ Supabase Realtime Sync (Datenbank & Storage)
 - 📱 Mobile-first mit Bottom-Navigation, Dark Mode & sanften Animationen
 
+## Navigation
+
+Sechs Bereiche in der unteren Leiste:
+
+- 🏠 **Home** – Tage zusammen, wie lange Isi noch in Alicante ist, Status von Mochi, Kuschelbatterie vom anderen, Bild der letzten Reise
+- 📊 **KPIs** – Tage zusammen, nächster Jahrestag, wann wir uns kennengelernt haben, WhatsApp Wrapped (Chat-Wrapped) und „Wie lange noch bis …“
+- 💬 **Wir** – Kuschelakku, Watchlist, Briefe (und „Nur für uns“)
+- ✅ **ToDos** – Couple Quest und Vision
+- ✈️ **Reisen** – Karte, „Kommt noch“ und „Vergangen“ (plus Alicante/Hamburg-Vergleich)
+- 🎮 **Spiele** – alle Spiele und Fragen
+
+Mochi erreicht man über die Mochi-Kachel auf Home.
+
 ## Struktur
 
 Statisches Vanilla HTML/CSS/JS ohne Build-Schritt. `shared.css` und `shared.js`

@@ -56,7 +56,7 @@ ok(await activeTab() === "watchlist", "back again: the first tab");
 await back();
 ok(page.url().endsWith("/index.html"), "only then back to the page before");
 
-/* ---------- Reise: tab, trip, overview ---------- */
+/* ---------- Reisen: tab, trip, overview ---------- */
 await page.goto("http://localhost:9091/reise.html");
 await wait(600);
 await page.click('.hub-tab[data-tab="erinnerungen"]');
@@ -66,14 +66,14 @@ await wait(500);
 ok(!(await page.locator("#galleryView").evaluate(el => el.classList.contains("hidden"))), "a trip is open");
 await back();
 ok(await page.locator("#galleryView").evaluate(el => el.classList.contains("hidden")) && !(await page.locator("#memoryOverview").evaluate(el => el.classList.contains("hidden"))), "back closes the trip and shows the overview");
-ok(await activeTab() === "erinnerungen", "still on Erinnerungen");
+ok(await activeTab() === "erinnerungen", "still on Vergangen");
 await page.locator(".memory-card", { hasText: "Alicante" }).click();
 await wait(500);
 await page.click("#backToMemories");
 await wait(500);
 ok(await page.locator("#galleryView").evaluate(el => el.classList.contains("hidden")), "the on-page back button closes the trip as well");
 await back();
-ok(await activeTab() === "vergleich", "and the next back goes to the previous tab – the trip is not reopened");
+ok(await activeTab() === "karte", "and the next back goes to the previous tab (Karte) – the trip is not reopened");
 
 /* ---------- questions: talk → other → Versus ---------- */
 await page.goto("http://localhost:9091/questions.html");
