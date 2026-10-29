@@ -96,6 +96,9 @@ async function openEnvelope(page) {
 }
 
 async function longPress(page) {
+  /* earlier steps leave the page scrolled differently; a press above the viewport would hit the sticky tab bar */
+  await page.evaluate(() => document.getElementById("petCreature").scrollIntoView({ block: "center" }));
+  await wait(150);
   const b = await page.locator("#petCreature").boundingBox();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height * 0.6);
   await page.mouse.down();

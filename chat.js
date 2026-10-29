@@ -62,7 +62,7 @@
     if (!file) return;
     setStatus("Lese den Chat …");
     try {
-      const text = await window.ChatZip.readChatText(await file.arrayBuffer());
+      const text = await window.ChatZip.readChatText(file);
       const messages = E.parseChat(text);
       if (messages.length < 10) throw new Error("Ich habe kaum Nachrichten gefunden. Ist das wirklich ein WhatsApp-Export?");
       const prepared = E.prepare(messages);
