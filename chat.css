@@ -424,3 +424,9 @@ body[data-hub="chat"] .hub-tab { padding: 10px 2px; font-size: 12.5px; }
 }
 
 .ca-cloud:empty { display: none; }
+
+.cu-merge { margin: 14px 0 0; }
+.cu-merge .cu-text { margin-bottom: 8px; }
+.cu-check { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px; color: var(--text-muted); cursor: pointer; }
+.cu-check input { width: 18px; height: 18px; accent-color: var(--pink); }
+.ca-note { flex-basis: 100%; font-size: 12.5px; color: var(--text-faint); }

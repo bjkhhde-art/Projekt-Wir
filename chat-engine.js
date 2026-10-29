@@ -429,6 +429,96 @@
     return null;
   }
 
+  /* ---------- merging a second export into the first ---------- */
+
+  const minuteOf = t => Math.floor(t / 60000);
+  /* the same message in two exports: same minute (one export may have seconds, the other not), same kind, same text */
+  const contentKey = m => minuteOf(m.t) + "|" + m.k + "|" + String(m.x || "").replace(/\s+/g, " ").trim();
+
+  /* which of the new export's two people is which of the old chat's: by name, otherwise by the messages that
+     occur in both (the two phones often call the same person differently: "Isi" and "Isi ❤️") */
+  function mapAuthors(base, incoming) {
+    const byName = incoming.names.map(name => base.names.indexOf(name));
+    if (byName.every(i => i >= 0) && new Set(byName).size === 2) return byName;
+
+    const seen = new Map();
+    for (const m of base.msgs) {
+      const key = contentKey(m);
+      if (!seen.has(key)) seen.set(key, []);
+      seen.get(key).push(m.a);
+    }
+    const votes = [[0, 0], [0, 0]];
+    for (const m of incoming.msgs) {
+      const owners = seen.get(contentKey(m));
+      if (owners) for (const owner of new Set(owners)) votes[m.a][owner]++;
+    }
+    const same = votes[0][0] + votes[1][1];
+    const swapped = votes[0][1] + votes[1][0];
+    if (Math.max(same, swapped) < 5 || Math.max(same, swapped) < 3 * Math.min(same, swapped)) return null;
+    return same > swapped ? [0, 1] : [1, 0];
+  }
+
+  /* Puts the new export into the old chat: whatever is in both stays once, whatever is only in the new one is
+     added – wherever it belongs in time, also in the middle. Identical messages in the same minute are counted
+     (two "ok" stay two). { ok, data, added, matched, middle, older, newer } or { ok: false, reason } */
+  function mergeChats(base, incoming) {
+    const map = mapAuthors(base, incoming);
+    if (!map) {
+      return { ok: false, reason: "Die Namen im neuen Export passen nicht zum gespeicherten Chat, und ich finde zu wenige gleiche Nachrichten, um zu erkennen, wer wer ist. Am besten den Export vom selben Handy oder aus demselben Zeitraum nehmen." };
+    }
+    const mapped = incoming.msgs.map(m => ({ ...m, a: map[m.a] }));
+
+    const available = new Map();
+    for (const m of base.msgs) {
+      const key = m.a + "|" + contentKey(m);
+      available.set(key, (available.get(key) || 0) + 1);
+    }
+    const fresh = [];
+    let matched = 0;
+    for (const m of mapped) {
+      const key = m.a + "|" + contentKey(m);
+      const left = available.get(key) || 0;
+      if (left > 0) { available.set(key, left - 1); matched++; } else fresh.push(m);
+    }
+
+    /* a message deleted on one phone shows as "deleted" there but as text in the other export: keep one, the text */
+    const leftover = new Map();
+    for (const m of base.msgs) {
+      const key = m.a + "|" + contentKey(m);
+      if ((available.get(key) || 0) > 0) {
+        available.set(key, available.get(key) - 1);
+        const slot = m.a + "|" + minuteOf(m.t);
+        if (!leftover.has(slot)) leftover.set(slot, []);
+        leftover.get(slot).push(m);
+      }
+    }
+    const dropped = new Set();
+    const added = [];
+    for (const m of fresh) {
+      const slot = m.a + "|" + minuteOf(m.t);
+      const unmatchedOld = leftover.get(slot) || [];
+      if (m.k === "deleted" && unmatchedOld.some(o => o.k !== "deleted")) continue;
+      if (m.k !== "deleted") {
+        const marker = unmatchedOld.find(o => o.k === "deleted" && !dropped.has(o));
+        if (marker) dropped.add(marker);
+      }
+      added.push(m);
+    }
+
+    const first = base.msgs.length ? base.msgs[0].t : Infinity;
+    const last = base.msgs.length ? base.msgs[base.msgs.length - 1].t : -Infinity;
+    const msgs = base.msgs.filter(m => !dropped.has(m)).concat(added).sort((x, y) => x.t - y.t);
+    return {
+      ok: true,
+      data: { names: base.names, msgs },
+      added: added.length,
+      matched,
+      older: added.filter(m => m.t < first).length,
+      newer: added.filter(m => m.t > last).length,
+      middle: added.filter(m => m.t >= first && m.t <= last).length
+    };
+  }
+
   /* ---------- formatting ---------- */
 
   function formatDay(t) {
@@ -445,7 +535,7 @@
   }
 
   const api = {
-    parseChat, prepare, computeStats, computeWords, awards,
+    parseChat, prepare, mergeChats, computeStats, computeWords, awards,
     quotePools, quoteOfDay, randomFrom, context, quizPool, quizRound,
     dayKey, formatDay, formatMinutes, MONTHS_LONG, WEEKDAYS, CONVERSATION_GAP
   };

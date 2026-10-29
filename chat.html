@@ -40,6 +40,11 @@
       </label>
       <input id="chatFileInput" type="file" accept=".txt,.zip,text/plain,application/zip" class="cu-input">
 
+      <div id="chatReplaceWrap" class="cu-merge hidden">
+        <p class="cu-text">Ein neuer Export wird mit dem vorhandenen Chat <strong>abgeglichen</strong>: Was schon da ist, bleibt, nur Neues kommt dazu &ndash; auch mitten im Verlauf.</p>
+        <label class="cu-check"><input id="chatReplaceMode" type="checkbox"> Stattdessen den alten Chat komplett ersetzen</label>
+      </div>
+
       <p id="chatUploadStatus" class="cu-status" role="status" aria-live="polite"></p>
       <p class="cu-privacy">🔒 Ausgewertet wird alles hier im Browser. Damit ihr beide den Chat seht, wird er <strong>verschlüsselt</strong> in der Cloud gespeichert &ndash; mit einem Chat-Passwort, das nur ihr kennt. Ohne das Passwort ist er in der Datenbank nicht lesbar.</p>
     </section>

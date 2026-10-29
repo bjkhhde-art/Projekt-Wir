@@ -73,7 +73,9 @@ ok(await isi.locator("#chatUnlock").isHidden() && (await isi.locator("#chatSumma
 await isi.click('.hub-tab[data-tab="quotes"]');
 ok((await isi.locator("#quoteStage").innerText()).length > 20, "the quotes work on Isi's phone too");
 
-/* Benji uploads a newer, smaller chat: Isi gets it by itself at the next visit */
+/* Benji replaces the chat with a newer, smaller one (replace ticked): Isi gets it by itself at the next visit */
+await benji.click("#chatReplaceBtn");
+await benji.check("#chatReplaceMode");
 await benji.setInputFiles("#chatFileInput", chatOf(20, "B"));
 await benji.waitForFunction(() => document.getElementById("chatSummary").textContent.includes("120 Nachrichten"));
 for (let tries = 0; tries < 100; tries++) {

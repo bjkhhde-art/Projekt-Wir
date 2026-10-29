@@ -162,7 +162,7 @@
     }
   }
 
-  function setCloud(state, info) {
+  function setCloud(state, info, note) {
     const el = $("chatCloud");
     const who = info && info.uploaded_by ? esc(info.uploaded_by) : "";
     const day = info && info.updated_at ? esc(new Date(info.updated_at).toLocaleDateString("de-DE")) : "";
@@ -174,14 +174,14 @@
       offline: `<span>📵 Die Cloud ist gerade nicht erreichbar. Hier siehst du die Kopie auf diesem Gerät.</span>`,
       error: `<span>⚠️ Das Speichern in der Cloud hat nicht geklappt.</span><button id="chatCloudAction" class="btn btn-sm" type="button" data-action="share">Nochmal versuchen</button>`
     };
-    el.innerHTML = states[state] || "";
+    el.innerHTML = (states[state] || "") + (note ? `<span class="ca-note">${esc(note)}</span>` : "");
     cloudInfo = info || null;
   }
 
   let cloudInfo = null;
 
   /* saves what is on this phone for both of them */
-  async function shareToCloud(prepared) {
+  async function shareToCloud(prepared, note) {
     $("chatCloud").innerHTML = "<span>☁️ Wird für euch beide gespeichert …</span>";
     let remote;
     try { remote = await fetchRemote(); } catch (error) { setCloud("error"); return false; }
@@ -194,7 +194,7 @@
       prepared.version = row.version;
       prepared.cloud = { by: row.uploaded_by, at: row.updated_at };
       try { await saveData(prepared); } catch (error) { /* the copy on this phone is only a convenience */ }
-      setCloud("synced", row);
+      setCloud("synced", row, note);
       return true;
     } catch (error) {
       setCloud("error");
@@ -254,13 +254,48 @@
       setStatus(error && error.message ? error.message : "Das hat nicht geklappt.", true);
       return;
     }
+    let note = "";
+    let merged = null;
+    let base = data;
+    if (base && !$("chatReplaceMode").checked) {
+      /* the other phone may have put a newer chat into the cloud: merge into that one */
+      try {
+        const remote = await fetchRemote();
+        if (remote && remote.version !== base.version) {
+          const key = await obtainKey(remote);
+          if (!key) { setStatus("Ohne das Chat-Passwort kann ich den neuen Export nicht mit dem gemeinsamen Chat abgleichen.", true); return; }
+          base = await pullRemote(remote, key);
+        }
+      } catch (error) { /* offline: compare with the copy on this phone */ }
+
+      merged = E.mergeChats(base, prepared);
+      if (!merged.ok) { setStatus(merged.reason, true); return; }
+      if (merged.added === 0) {
+        base.savedAt = Date.now();
+        try { await saveData(base); } catch (error) { /* only a convenience */ }
+        show(base);
+        setStatus("");
+        if (base.version) setCloud("synced", { uploaded_by: base.cloud && base.cloud.by, updated_at: base.cloud && base.cloud.at }, `Nichts Neues: alle ${num(merged.matched)} Nachrichten waren schon im Chat.`);
+        window.showToast("Nichts Neues – alles war schon da 💗", "success");
+        if (!base.version) await shareToCloud(base);
+        return;
+      }
+      const parts = [];
+      if (merged.middle) parts.push(`${num(merged.middle)} mitten im Verlauf`);
+      if (merged.older) parts.push(`${num(merged.older)} älter`);
+      if (merged.newer) parts.push(`${num(merged.newer)} neuer`);
+      note = `Abgeglichen: ${num(merged.added)} neue Nachrichten (${parts.join(", ")}), ${num(merged.matched)} waren schon da.`;
+      prepared = merged.data;
+    }
     prepared.savedAt = Date.now();
+    delete prepared.version;
+    delete prepared.cloud;
     let kept = true;
     try { await saveData(prepared); } catch (error) { kept = false; }
     show(prepared);
     setStatus("");
-    const shared = await shareToCloud(prepared);
-    if (shared) window.showToast("Chat gespeichert – ihr beide seht ihn 💗", "success");
+    const shared = await shareToCloud(prepared, note);
+    if (shared) window.showToast(merged ? `${num(merged.added)} neue Nachrichten dazugekommen 💗` : "Chat gespeichert – ihr beide seht ihn 💗", "success");
     else if (kept) window.showToast("Chat geladen, aber noch nur auf diesem Gerät.");
     else window.showToast("Chat geladen, lässt sich hier aber nicht speichern – nach dem Schließen muss er neu hochgeladen werden.");
   }
@@ -274,6 +309,8 @@
     drop.addEventListener("drop", event => importFile(event.dataTransfer.files[0]));
 
     $("chatReplaceBtn").addEventListener("click", () => {
+      $("chatReplaceMode").checked = false;
+      $("chatReplaceWrap").classList.remove("hidden");
       $("chatUpload").classList.remove("hidden");
       $("chatUpload").scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -329,6 +366,8 @@
     data = null;
     $("chatApp").classList.add("hidden");
     $("chatUnlock").classList.add("hidden");
+    $("chatReplaceWrap").classList.add("hidden");
+    $("chatReplaceMode").checked = false;
     $("chatUpload").classList.remove("hidden");
   }
 
