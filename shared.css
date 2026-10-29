@@ -866,6 +866,19 @@ a.hub-tab {
   text-decoration: none;
 }
 
+/* four tabs (Wir, Reisen) still fit on a small phone */
+@media (max-width: 440px) {
+  .hub-tabs-many {
+    gap: 2px;
+  }
+
+  .hub-tabs-many .hub-tab {
+    padding: 9px 4px;
+    font-size: 12px;
+    letter-spacing: -0.1px;
+  }
+}
+
 .hub-tab.active {
   background: var(--gradient-brand);
   color: white;

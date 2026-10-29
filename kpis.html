@@ -23,8 +23,35 @@
 <body>
 
   <main class="page">
-    <h1 class="page-title">Unsere KPIs 💗</h1>
-    <p class="page-subtitle">Wir tippen auf eine Karte für ein Foto · Zahlen, die zählen</p>
+    <h1 class="page-title">Unsere KPIs 📊</h1>
+    <p class="page-subtitle">Zahlen, die zählen · wir tippen auf eine Karte für ein Foto</p>
+
+    <div class="kpi-grid kpi-grid-two">
+
+      <div class="flip-card">
+        <div class="flip-inner">
+          <div class="kpi-card flip-front highlight card">
+            <span class="icon">⏳</span>
+            <h2>Tage zusammen</h2>
+            <p id="daysTogether" class="big-number"></p>
+          </div>
+
+          <div class="kpi-card flip-back card">
+            <img src="images/tage-zusammen.webp" alt="Tage zusammen" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card highlight card">
+        <span class="icon">🎂</span>
+        <h2>Nächster Jahrestag</h2>
+        <p id="nextAnniversaryCountdown" class="big-number"></p>
+        <p class="kpi-place" id="nextAnniversaryDate"></p>
+      </div>
+
+    </div>
+
+    <h2 class="section-heading kpi-heading">Wann wir uns kennengelernt haben</h2>
 
     <div class="kpi-grid">
 
@@ -73,39 +100,36 @@
         </div>
       </div>
 
-      <div class="flip-card">
-        <div class="flip-inner">
-          <div class="kpi-card flip-front highlight card">
-            <span class="icon">⏳</span>
-            <h2>Tage zusammen</h2>
-            <p id="daysTogether" class="big-number"></p>
-          </div>
+    </div>
 
-          <div class="kpi-card flip-back card">
-            <img src="images/tage-zusammen.webp" alt="Tage zusammen" loading="lazy" decoding="async">
-          </div>
-        </div>
+    <h2 class="section-heading kpi-heading">WhatsApp Wrapped</h2>
+
+    <a href="chat.html" id="kpiWrapped" class="card card-hover kpi-wrapped">
+      <span class="kpi-wrapped-icon" aria-hidden="true">💬</span>
+      <div class="kpi-wrapped-text">
+        <h3>Unser Chat in Zahlen</h3>
+        <p>Wie viele Nachrichten, über den Tag und nach Uhrzeit verteilt, welche Emojis wir am meisten schicken und mehr</p>
       </div>
+      <span class="kpi-wrapped-cta" aria-hidden="true">→</span>
+    </a>
 
-      <div class="kpi-card highlight card kpi-countdown">
-        <span class="icon">🎂</span>
-        <h2>Nächster Jahrestag</h2>
-        <p id="nextAnniversaryCountdown" class="big-number"></p>
-        <p class="kpi-place" id="nextAnniversaryDate"></p>
-      </div>
+    <h2 class="section-heading kpi-heading">Wie lange noch bis …</h2>
 
+    <div id="kpiCountdowns" class="kpi-countdowns">
+      <div class="skeleton kpi-countdown-skeleton"></div>
     </div>
   </main>
 
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
-    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
     <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
-    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
-    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
-    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">ToDos</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reisen</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Spiele</span></a>
   </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
   <script src="kpis.js"></script>
 </body>

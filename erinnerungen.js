@@ -63,8 +63,15 @@ let editingTripId = null;
 let pendingFiles = [];
 let tripsMapInstance = null;
 let tripMarkersLayer = null;
+let tripMapPoints = [];
 let sheetImage = null;
 let countdownTimer = null;
+
+/* the trip list sits under two tabs: "kommend" (still ahead) and "erinnerungen" (already happened).
+   hub-tabs.js picks the first tab before this file runs, so we read it from the page. */
+const TRIP_LIST_TABS = ["kommend", "erinnerungen"];
+const initialTab = document.querySelector(".hub-tab.active");
+let listTab = initialTab && TRIP_LIST_TABS.includes(initialTab.dataset.tab) ? initialTab.dataset.tab : "erinnerungen";
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
@@ -131,13 +138,6 @@ function buildMemoryCard(memory) {
   return card;
 }
 
-function buildMemorySectionHeading(text) {
-  const heading = document.createElement("h2");
-  heading.className = "section-heading";
-  heading.textContent = text;
-  return heading;
-}
-
 function buildMemorySubgrid(list) {
   const grid = document.createElement("div");
   grid.className = "memory-subgrid";
@@ -159,20 +159,23 @@ function renderMemories() {
     return;
   }
 
-  const upcoming = memories.filter(memory => isFutureMemory(memory.start_date));
+  /* soonest trip first under "Kommt noch", latest first under "Vergangen" */
+  const upcoming = memories.filter(memory => isFutureMemory(memory.start_date)).reverse();
   const past = memories.filter(memory => !isFutureMemory(memory.start_date));
+  const list = listTab === "kommend" ? upcoming : past;
 
-  if (upcoming.length > 0) {
-    memoryGrid.appendChild(buildMemorySectionHeading("Kommt noch ✈️"));
-    memoryGrid.appendChild(buildMemorySubgrid(upcoming));
+  if (list.length === 0) {
+    memoryGrid.innerHTML = listTab === "kommend"
+      ? `<div class="empty-state"><span class="empty-icon">✈️</span><p>Gerade ist keine Reise geplant.<br>Wir tippen unten rechts auf + und planen die nächste.</p></div>`
+      : `<div class="empty-state"><span class="empty-icon">📸</span><p>Noch keine vergangenen Reisen.<br>Bald gibt es hier die ersten Erinnerungen.</p></div>`;
+    return;
   }
 
-  if (past.length > 0) {
-    if (upcoming.length > 0) {
-      memoryGrid.appendChild(buildMemorySectionHeading("Erinnerungen"));
-    }
-    memoryGrid.appendChild(buildMemorySubgrid(past));
-  }
+  memoryGrid.appendChild(buildMemorySubgrid(list));
+}
+
+function tabForTrip(memory) {
+  return isFutureMemory(memory.start_date) ? "kommend" : "erinnerungen";
 }
 
 /* ---------- world map ---------- */
@@ -217,16 +220,24 @@ function renderMapMarkers() {
       });
 
       const marker = L.marker([point.lat, point.lng], { icon });
-      marker.on("click", () => openTrip(memory));
+      marker.on("click", () => {
+        /* the trip opens in its list tab: a step of its own, so "back" returns to the map */
+        const tabButton = document.querySelector(`.hub-tab[data-tab="${tabForTrip(memory)}"]`);
+        if (tabButton) tabButton.click();
+        openTrip(memory);
+      });
       marker.addTo(tripMarkersLayer);
       allPoints.push([point.lat, point.lng]);
     });
   });
 
-  if (allPoints.length > 0) {
-    const bounds = L.latLngBounds(allPoints);
-    tripsMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
-  }
+  tripMapPoints = allPoints;
+  fitMapToTrips();
+}
+
+function fitMapToTrips() {
+  if (!tripsMapInstance || tripMapPoints.length === 0) return;
+  tripsMapInstance.fitBounds(L.latLngBounds(tripMapPoints), { padding: [40, 40], maxZoom: 8 });
 }
 
 function parseCoordsList(text) {
@@ -1035,7 +1046,19 @@ supabaseClient
   .subscribe();
 
 document.addEventListener("pw:hub-tab-shown", event => {
-  if (event.detail.tab === "erinnerungen" && tripsMapInstance) {
-    setTimeout(() => tripsMapInstance.invalidateSize(), 50);
+  const tab = event.detail.tab;
+
+  /* the map was laid out while its tab was hidden: measure again, then frame the pins */
+  if (tab === "karte" && tripsMapInstance) {
+    setTimeout(() => {
+      tripsMapInstance.invalidateSize();
+      fitMapToTrips();
+    }, 50);
+  }
+
+  if (TRIP_LIST_TABS.includes(tab) && tab !== listTab) {
+    listTab = tab;
+    if (currentMemory) closeGallery();
+    else renderMemories();
   }
 });

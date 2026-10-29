@@ -47,10 +47,16 @@ page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:9091/reise.html?tab=erinnerungen");
 await page.waitForTimeout(800);
 
-/* countdown chip in the overview */
+/* "Vergangen" lists only past trips, "Kommt noch" the upcoming ones with a countdown chip */
+ok(await page.locator(".memory-card", { hasText: "Alicante" }).count() === 1 && await page.locator(".memory-card", { hasText: "Hamburg" }).count() === 0, "Vergangen shows only the past trip");
+ok(await page.locator(".memory-card", { hasText: "Alicante" }).locator(".future-badge").count() === 0, "past trips have no countdown");
+await page.click('.hub-tab[data-tab="kommend"]');
+await wait(300);
+ok(await page.locator(".memory-card", { hasText: "Alicante" }).count() === 0, "Kommt noch hides the past trip");
 const chip = await page.locator(".memory-card", { hasText: "Hamburg" }).locator(".future-badge").textContent();
 ok(chip === "⏳ in 12 Tagen", `upcoming trips show a countdown chip (${chip})`);
-ok(await page.locator(".memory-card", { hasText: "Alicante" }).locator(".future-badge").count() === 0, "past trips have no countdown");
+await page.click('.hub-tab[data-tab="erinnerungen"]');
+await wait(300);
 ok(await page.locator("#openMemoryModal").getAttribute("aria-label") === "Neue Erinnerung", "in the overview + creates a new trip");
 
 /* open the past trip */
@@ -71,6 +77,8 @@ ok(await page.locator("#imageSheet").evaluate(el => el.classList.contains("hidde
 await page.click("#closeLightbox");
 
 async function holdOn(locator, ms = 700) {
+  /* the mouse only reaches what is on screen: the third photo sits below the fold on a phone */
+  await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
   await page.mouse.down();
@@ -139,6 +147,8 @@ ok((await page.evaluate(() => window.__mockUploads || [])).length === 1, "the fi
 await page.click("#backToMemories");
 await wait(300);
 ok(await page.locator("#openMemoryModal").getAttribute("aria-label") === "Neue Erinnerung", "back in the overview + creates trips again");
+await page.click('.hub-tab[data-tab="kommend"]');
+await wait(300);
 await page.locator(".memory-card", { hasText: "Hamburg" }).click();
 await wait(400);
 ok(!(await page.locator("#tripCountdown").evaluate(el => el.classList.contains("hidden"))), "an upcoming trip shows a live countdown");

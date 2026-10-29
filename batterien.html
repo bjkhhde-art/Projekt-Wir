@@ -20,15 +20,17 @@
   <script src="theme.js"></script>
   <script src="pin-lock.js"></script>
 </head>
-<body data-nav="mochi.html">
+<body data-nav="wir.html">
 
   <main class="page page-fill">
     <h1 class="page-title">Kuschelbatterien 🔋</h1>
     <p class="page-subtitle">Wir wischen eine Batterie hoch oder runter, um unseren Kuschelakku zu laden</p>
 
-    <nav class="hub-tabs" aria-label="Mochi und Kuschelakku">
-      <a class="hub-tab" href="mochi.html">🎂 Mochi</a>
-      <a class="hub-tab active" href="batterien.html" aria-current="page">🔋 Kuschelakku</a>
+    <nav class="hub-tabs hub-tabs-many" aria-label="Wir">
+      <a class="hub-tab active" href="batterien.html" aria-current="page">🔋 Akku</a>
+      <a class="hub-tab" href="wir.html?tab=watchlist">🎬 Watchlist</a>
+      <a class="hub-tab" href="wir.html?tab=briefe">💌 Briefe</a>
+      <a class="hub-tab" href="wir.html?tab=privat">🔥 Nur für uns</a>
     </nav>
 
     <div class="battery-row">
@@ -80,11 +82,11 @@
 
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
-    <a href="mochi.html" class="nav-item"><span class="nav-icon">🎂</span><span class="nav-label">Mochi</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
     <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
-    <a href="ziele.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Ziele</span></a>
-    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reise</span></a>
-    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">ToDos</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reisen</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Spiele</span></a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
