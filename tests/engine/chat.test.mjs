@@ -171,4 +171,62 @@ ok(await Z.readChatText(new Blob([sample])) === sample, "a plain .txt given as a
 await assert.rejects(Z.readChatText(Buffer.from("PK\u0003\u0004 kaputt, nur Müll hier drin, nichts weiter")), /ZIP/);
 assertions++; console.log("PASS: a broken zip gives a readable error");
 
+/* ---------- merging a second export ---------- */
+const MIN = 60000;
+const T0 = new Date(2026, 0, 1, 9, 0).getTime();
+const mk = (minute, a, x, k = "text", seconds = 0) => ({ t: T0 + minute * MIN + seconds * 1000, a, x, k });
+const chatOf = (names, msgs) => ({ names, msgs: msgs.slice().sort((p, q) => p.t - q.t) });
+const lineOf = i => mk(i * 3, i % 2, `Nachricht Nummer ${i} von heute mit etwas Text`);
+const all = Array.from({ length: 60 }, (_, i) => lineOf(i));
+const texts = d => d.msgs.map(m => m.x);
+
+const same = E.mergeChats(chatOf(["Isi", "Benji"], all), chatOf(["Isi", "Benji"], all));
+ok(same.ok && same.added === 0 && same.matched === 60 && same.data.msgs.length === 60, "the same export twice adds nothing");
+
+const early = chatOf(["Isi", "Benji"], all.slice(0, 40));
+const late = chatOf(["Isi", "Benji"], all.slice(25));
+const overlap = E.mergeChats(early, late);
+ok(overlap.ok && overlap.data.msgs.length === 60 && overlap.added === 20 && overlap.matched === 15 && overlap.newer === 20 && overlap.middle === 0, "a later export overlapping the first one adds only the 20 newer messages");
+ok(JSON.stringify(texts(overlap.data)) === JSON.stringify(texts(chatOf([], all))), "and the result is the whole chat in the right order, nothing doubled");
+
+const older = E.mergeChats(late, early);
+ok(older.ok && older.data.msgs.length === 60 && older.older === 25 && older.added === 25, "an older export is added in front of the newer one");
+
+/* differences in the middle: the second phone has messages the first one lacks */
+const holes = chatOf(["Isi", "Benji"], all.filter((_, i) => i % 7 !== 3));
+const middle = E.mergeChats(holes, chatOf(["Isi", "Benji"], all));
+ok(middle.ok && middle.data.msgs.length === 60 && middle.added === all.filter((_, i) => i % 7 === 3).length && middle.middle === middle.added - 1 && middle.newer === 1, `messages missing in the middle are filled in (${middle.middle} in the middle, the 9th is behind the last one)`);
+ok(JSON.stringify(texts(middle.data)) === JSON.stringify(texts(chatOf([], all))), "at their proper place in time");
+const both = E.mergeChats(chatOf(["Isi", "Benji"], all.filter((_, i) => i % 2 === 0)), chatOf(["Isi", "Benji"], all.filter((_, i) => i % 2 === 1)));
+ok(both.ok && both.data.msgs.length === 60 && both.matched === 0, "two exports with nothing in common but the same people are interleaved completely");
+
+/* the other phone calls people differently and writes in a different order */
+const renamed = chatOf(["Benji 💗", "Isi ❤️"], all.slice(10).map(m => ({ ...m, a: 1 - m.a })));
+const byVotes = E.mergeChats(chatOf(["Isi", "Benji"], all.slice(0, 40)), renamed);
+ok(byVotes.ok && byVotes.data.msgs.length === 60 && byVotes.data.names[0] === "Isi" && byVotes.added === 20, "other names are recognised by the messages both exports contain (the old names stay)");
+ok(byVotes.data.msgs.every((m, i) => m.a === all[i].a), "and every message stays with the right person");
+
+const unknown = E.mergeChats(chatOf(["Isi", "Benji"], all.slice(0, 20)), chatOf(["Anna", "Tom"], all.slice(40).map(m => ({ ...m, x: "ganz anders " + m.x }))));
+ok(!unknown.ok && unknown.reason.includes("Namen"), "an export of other people is refused with an explanation, nothing is merged");
+
+/* an export with seconds (iPhone) and one without (Android) are the same message */
+const secs = E.mergeChats(chatOf(["Isi", "Benji"], all.map(m => ({ ...m, t: m.t + 25000 }))), chatOf(["Isi", "Benji"], all));
+ok(secs.ok && secs.added === 0 && secs.matched === 60, "seconds do not matter, the minute decides");
+
+/* the same short message twice in a minute is two messages, not one and not three */
+const ok2 = [mk(500, 0, "ok sehr gut so"), mk(500, 0, "ok sehr gut so"), mk(501, 1, "alles klar dann")];
+const dup1 = E.mergeChats(chatOf(["Isi", "Benji"], all.concat(ok2.slice(0, 1))), chatOf(["Isi", "Benji"], all.concat(ok2)));
+ok(dup1.ok && dup1.added === 2 && dup1.data.msgs.filter(m => m.x === "ok sehr gut so").length === 2, "a message sent twice in one minute stays twice (not tripled, not merged)");
+const dup2 = E.mergeChats(chatOf(["Isi", "Benji"], all.concat(ok2)), chatOf(["Isi", "Benji"], all.concat(ok2)));
+ok(dup2.added === 0 && dup2.data.msgs.length === 63, "the same export again does not double them either");
+
+/* deleted on one phone, still text in the other export: one message, the text */
+const withText = chatOf(["Isi", "Benji"], all.concat([mk(700, 0, "das wollte ich nie sagen ehrlich")]));
+const withMarker = chatOf(["Isi", "Benji"], all.concat([mk(700, 0, "", "deleted")]));
+const del1 = E.mergeChats(withText, withMarker);
+ok(del1.ok && del1.added === 0 && del1.data.msgs.length === 61 && del1.data.msgs.some(m => m.x.startsWith("das wollte")), "a deleted-marker does not duplicate the message when the other export has its text");
+const del2 = E.mergeChats(withMarker, withText);
+ok(del2.ok && del2.data.msgs.length === 61 && del2.data.msgs.some(m => m.x.startsWith("das wollte")) && !del2.data.msgs.some(m => m.k === "deleted"), "and the other way round the text replaces the marker");
+ok(E.computeStats(overlap.data).total === 60, "the merged chat can be analysed like any other");
+
 console.log(`\n${assertions} assertions passed`);
