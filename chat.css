@@ -392,3 +392,35 @@
 
 /* four tabs have to fit a small phone */
 body[data-hub="chat"] .hub-tab { padding: 10px 2px; font-size: 12.5px; }
+
+/* ---------- cloud ---------- */
+
+.cu-form { display: flex; flex-direction: column; gap: 10px; }
+
+.cu-field {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: 500 16px var(--font-body);
+}
+
+.ca-cloud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.ca-cloud:empty { display: none; }

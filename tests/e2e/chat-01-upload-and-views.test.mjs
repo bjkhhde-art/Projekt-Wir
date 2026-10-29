@@ -8,6 +8,17 @@ page.on("pageerror", e => errors.push(e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 const base = "http://localhost:9091/";
 
+/* both tests start from an empty cloud; every chat is sealed with a passphrase the first time */
+const BACKEND = "http://localhost:8991";
+for (const t of ["chat_exports", "chat_chunks"]) await fetch(`${BACKEND}/t/${t}/reset`, { method: "POST" });
+async function setPassphrase(page, phrase) {
+  await page.waitForSelector("#chatPassModal:not(.hidden)");
+  await page.fill("#passInput", phrase);
+  await page.fill("#passConfirm", phrase);
+  await page.click("#passSave");
+  await page.waitForFunction(() => document.getElementById("chatCloud").textContent.includes("Für euch beide gespeichert"));
+}
+
 /* a small made-up chat in the Android export style */
 const pad = v => String(v).padStart(2, "0");
 const lines = ["27.11.25, 21:34 - Nachrichten und Anrufe sind Ende-zu-Ende-verschlüsselt."];
@@ -30,7 +41,7 @@ ok(await page.locator('a[href="chat.html"]').count() === 1, "the Games page link
 
 await page.goto(base + "chat.html"); await page.waitForTimeout(400);
 ok(await page.locator("#chatUpload").isVisible() && await page.locator("#chatApp").isHidden(), "without an export the upload card is shown");
-ok((await page.locator(".cu-privacy").innerText()).includes("nicht hochgeladen"), "it says the chat is not uploaded");
+ok((await page.locator("#chatUpload .cu-privacy").innerText()).includes("verschlüsselt"), "it says the chat is stored encrypted");
 
 /* nonsense is refused with a readable message */
 await page.setInputFiles("#chatFileInput", { name: "foto.txt", mimeType: "text/plain", buffer: Buffer.from("das ist kein chat") });
@@ -39,6 +50,7 @@ ok((await page.locator("#chatUploadStatus").innerText()).includes("WhatsApp-Expo
 
 await page.setInputFiles("#chatFileInput", file);
 await page.waitForSelector("#chatApp:not(.hidden)");
+await setPassphrase(page, "Unser Geheimnis");
 ok(await page.locator("#chatUpload").isHidden(), "after the upload the card gives way to the results");
 ok((await page.locator("#chatSummary").innerText()).includes("360 Nachrichten"), "the summary counts 360 messages");
 

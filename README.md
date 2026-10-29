@@ -8,7 +8,7 @@ Gemeinsame Couple-App mit:
 - 📸 Erinnerungen – Trips anlegen/bearbeiten, Bilder per Drag & Drop hochladen
 - 💬 Questions – Gesprächsthemen nach Kategorie
 - 💌 Liebesbriefe – Kurznachrichten als Umschläge, zum Öffnen antippen & hochwischen
-- 📊 Chat-Wrapped – WhatsApp-Export hochladen (bleibt auf dem Gerät): Statistiken, Awards, Wortwolke, Zitate, „Wer hat's geschrieben?“
+- 📊 Chat-Wrapped – WhatsApp-Export hochladen: Statistiken, Awards, Wortwolke, Zitate, „Wer hat's geschrieben?“. Der Chat liegt für beide in Supabase, aber nur **verschlüsselt** (AES-GCM im Browser, eigenes Chat-Passwort, nicht lesbar ohne es)
 - ☁️ Supabase Realtime Sync (Datenbank & Storage)
 - 📱 Mobile-first mit Bottom-Navigation, Dark Mode & sanften Animationen
 

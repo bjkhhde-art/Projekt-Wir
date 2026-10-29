@@ -1,10 +1,14 @@
-/* Chat-Wrapped page: upload, local storage (IndexedDB), wrapped cards, quiz, quotes, awards.
-   The chat is read and stored in this browser only – nothing is sent anywhere. */
+/* Chat-Wrapped page: upload, storage, wrapped cards, quiz, quotes, awards.
+   The chat is read in this browser. A copy stays on the phone (IndexedDB); so that both of them see it, it is
+   also kept in Supabase – but only encrypted with the chat passphrase (chat-crypto.js), never as text. */
 (function () {
   const E = window.ChatEngine;
   const esc = window.escapeHtml;
   const DB_NAME = "pw-chat";
   const KEY = "export";
+  const PASSPHRASE_KEY = "passphrase-key";
+  const supabaseClient = supabase.createClient("https://lrzgcqoqcwicpuuuhaoj.supabase.co", "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK");
+  const Crypto = window.ChatCrypto;
   const QUIZ_ROUNDS = 10;
 
   const $ = id => document.getElementById(id);
@@ -36,6 +40,184 @@
   const saveData = data => dbRun("readwrite", store => store.put(data, KEY));
   const loadData = () => dbRun("readonly", store => store.get(KEY)).catch(() => null);
   const clearData = () => dbRun("readwrite", store => store.delete(KEY));
+  /* the derived key (not the passphrase) is kept per phone; it cannot be read out of the browser again */
+  const saveKey = key => dbRun("readwrite", store => store.put(key, PASSPHRASE_KEY));
+  const loadKey = () => dbRun("readonly", store => store.get(PASSPHRASE_KEY)).catch(() => null);
+  const clearKey = () => dbRun("readwrite", store => store.delete(PASSPHRASE_KEY)).catch(() => null);
+
+  /* ---------- cloud (encrypted) ---------- */
+
+  const me = () => localStorage.getItem("pw_person") || "";
+  const partner = () => ({ Isi: "Benji", Benji: "Isi" })[me()] || "";
+
+  async function fetchRemote() {
+    const { data: row, error } = await supabaseClient.from("chat_exports").select("*").eq("id", "shared").maybeSingle();
+    if (error) throw error;
+    return row;
+  }
+
+  /* downloads and decrypts the shared chat; a wrong key throws an error with code BAD_KEY */
+  async function pullRemote(remote, key) {
+    const { data: rows, error } = await supabaseClient.from("chat_chunks").select("idx, data").eq("version", remote.version).order("idx", { ascending: true });
+    if (error) throw error;
+    if (!rows || rows.length !== remote.chunk_count) throw new Error("Der gespeicherte Chat ist unvollständig.");
+    const opened = await Crypto.open(rows.map(row => row.data), key);
+    opened.version = remote.version;
+    opened.cloud = { by: remote.uploaded_by, at: remote.updated_at };
+    opened.savedAt = Date.now();
+    return opened;
+  }
+
+  /* the pieces go first, then one row switches to the new version – so nobody ever sees half a chat */
+  async function pushRemote(prepared, key) {
+    const sealed = await Crypto.seal(prepared, key);
+    const version = crypto.randomUUID();
+    try {
+      for (let i = 0; i < sealed.chunks.length; i++) {
+        const { error } = await supabaseClient.from("chat_chunks").insert([{ version, idx: i, data: sealed.chunks[i] }]);
+        if (error) throw error;
+      }
+      const row = { id: "shared", version, uploaded_by: me() || null, message_count: prepared.msgs.length, chunk_count: sealed.chunks.length, size_bytes: sealed.size, updated_at: new Date().toISOString() };
+      const { error } = await supabaseClient.from("chat_exports").upsert(row);
+      if (error) throw error;
+      /* the older version's pieces are no longer needed (best effort) */
+      await supabaseClient.from("chat_chunks").delete().neq("version", version);
+      return row;
+    } catch (error) {
+      await supabaseClient.from("chat_chunks").delete().eq("version", version).then(() => null, () => null);
+      throw error;
+    }
+  }
+
+  async function deleteRemote() {
+    const first = await supabaseClient.from("chat_exports").delete().eq("id", "shared");
+    if (first.error) throw first.error;
+    await supabaseClient.from("chat_chunks").delete().neq("version", "");
+  }
+
+  let cryptoKey = null;
+  let passResolve = null;
+  let passNeedsConfirm = false;
+
+  /* resolves with the typed passphrase, or null when cancelled */
+  function askPassphrase({ title, text, confirm, error }) {
+    passNeedsConfirm = !!confirm;
+    $("passTitle").textContent = title;
+    $("passText").textContent = text;
+    $("passConfirmWrap").classList.toggle("hidden", !confirm);
+    $("passInput").value = "";
+    $("passConfirm").value = "";
+    $("passError").textContent = error || "";
+    $("chatPassModal").classList.remove("hidden");
+    $("passInput").focus();
+    return new Promise(resolve => { passResolve = resolve; });
+  }
+
+  function finishPassphrase(value) {
+    $("chatPassModal").classList.add("hidden");
+    $("passInput").value = "";
+    $("passConfirm").value = "";
+    const resolve = passResolve;
+    passResolve = null;
+    if (resolve) resolve(value);
+  }
+
+  function wirePassphrase() {
+    $("passForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const value = $("passInput").value.trim();
+      if (passNeedsConfirm && value.length < 6) { $("passError").textContent = "Bitte mindestens 6 Zeichen."; return; }
+      if (!value) { $("passError").textContent = "Bitte das Passwort eingeben."; return; }
+      if (passNeedsConfirm && value !== $("passConfirm").value.trim()) { $("passError").textContent = "Die beiden Eingaben sind nicht gleich."; return; }
+      finishPassphrase(value);
+    });
+    $("passCancel").addEventListener("click", () => finishPassphrase(null));
+  }
+
+  /* a key for sealing and opening: the one kept on this phone, or a new one the user types (checked against
+     the stored chat when there is one, so a typo can never lock them out) */
+  async function obtainKey(remote) {
+    if (cryptoKey) return cryptoKey;
+    let error = "";
+    for (;;) {
+      const phrase = await askPassphrase(remote
+        ? { title: "Chat-Passwort", text: `Gib das Chat-Passwort ein, das ${remote.uploaded_by || "ihr"} festgelegt habt.`, confirm: false, error }
+        : {
+          title: "Chat-Passwort festlegen",
+          text: "Dein Chat wird verschlüsselt in der Cloud gespeichert, damit ihr beide ihn seht. Wähle ein Passwort, das nur ihr beide kennt, und sag es dem anderen. Nimm nicht das App-Passwort, das ist im Code öffentlich lesbar.",
+          confirm: true,
+          error
+        });
+      if (phrase === null) return null;
+      const key = await Crypto.deriveKey(phrase);
+      if (remote) {
+        try { await pullRemote(remote, key); } catch (problem) {
+          if (problem && problem.code === "BAD_KEY") { error = "Das ist nicht das richtige Chat-Passwort."; continue; }
+          throw problem;
+        }
+      }
+      cryptoKey = key;
+      try { await saveKey(key); } catch (problem) { /* kept in memory only */ }
+      return key;
+    }
+  }
+
+  function setCloud(state, info) {
+    const el = $("chatCloud");
+    const who = info && info.uploaded_by ? esc(info.uploaded_by) : "";
+    const day = info && info.updated_at ? esc(new Date(info.updated_at).toLocaleDateString("de-DE")) : "";
+    const other = partner();
+    const states = {
+      synced: `<span>☁️ Für euch beide gespeichert${who ? ` &middot; von ${who}, ${day}` : ""}</span>`,
+      local: `<span>📱 Nur auf diesem Gerät${other ? ` &ndash; ${esc(other)} sieht den Chat noch nicht` : ""}</span><button id="chatCloudAction" class="btn btn-sm" type="button" data-action="share">☁️ ${other ? `Für ${esc(other)} speichern` : "In der Cloud speichern"}</button>`,
+      newer: `<span>☁️ ${who || "Ihr"} habt einen Chat in der Cloud${day ? ` (${day})` : ""}.</span><button id="chatCloudAction" class="btn btn-sm" type="button" data-action="unlock">🔓 Öffnen</button>`,
+      offline: `<span>📵 Die Cloud ist gerade nicht erreichbar. Hier siehst du die Kopie auf diesem Gerät.</span>`,
+      error: `<span>⚠️ Das Speichern in der Cloud hat nicht geklappt.</span><button id="chatCloudAction" class="btn btn-sm" type="button" data-action="share">Nochmal versuchen</button>`
+    };
+    el.innerHTML = states[state] || "";
+    cloudInfo = info || null;
+  }
+
+  let cloudInfo = null;
+
+  /* saves what is on this phone for both of them */
+  async function shareToCloud(prepared) {
+    $("chatCloud").innerHTML = "<span>☁️ Wird für euch beide gespeichert …</span>";
+    let remote;
+    try { remote = await fetchRemote(); } catch (error) { setCloud("error"); return false; }
+    let key;
+    try { key = await obtainKey(remote); } catch (error) { setCloud("error"); return false; }
+    if (!key) { setCloud("local"); return false; }
+    $("chatCloud").innerHTML = "<span>☁️ Wird verschlüsselt und gespeichert …</span>";
+    try {
+      const row = await pushRemote(prepared, key);
+      prepared.version = row.version;
+      prepared.cloud = { by: row.uploaded_by, at: row.updated_at };
+      try { await saveData(prepared); } catch (error) { /* the copy on this phone is only a convenience */ }
+      setCloud("synced", row);
+      return true;
+    } catch (error) {
+      setCloud("error");
+      return false;
+    }
+  }
+
+  /* opens the chat another phone put into the cloud */
+  async function unlockRemote(remote, statusEl) {
+    const key = await obtainKey(remote);
+    if (!key) return false;
+    try {
+      const next = await pullRemote(remote, key);
+      try { await saveData(next); } catch (error) { /* see above */ }
+      show(next);
+      setCloud("synced", remote);
+      return true;
+    } catch (error) {
+      if (statusEl) { statusEl.textContent = error && error.message ? error.message : "Das hat nicht geklappt."; statusEl.classList.add("cu-error"); }
+      setCloud("error");
+      return false;
+    }
+  }
 
   /* ---------- state ---------- */
 
@@ -61,22 +243,26 @@
   async function importFile(file) {
     if (!file) return;
     setStatus("Lese den Chat …");
+    let prepared;
     try {
       const text = await window.ChatZip.readChatText(file);
       const messages = E.parseChat(text);
       if (messages.length < 10) throw new Error("Ich habe kaum Nachrichten gefunden. Ist das wirklich ein WhatsApp-Export?");
-      const prepared = E.prepare(messages);
+      prepared = E.prepare(messages);
       if (!prepared) throw new Error("Im Chat schreiben keine zwei verschiedenen Personen.");
-      prepared.savedAt = Date.now();
-      let kept = true;
-      try { await saveData(prepared); } catch (error) { kept = false; }
-      show(prepared);
-      setStatus("");
-      if (kept) window.showToast("Chat geladen – bleibt nur auf diesem Gerät 💗", "success");
-      else window.showToast("Chat geladen, lässt sich hier aber nicht speichern – nach dem Schließen muss er neu hochgeladen werden.");
     } catch (error) {
       setStatus(error && error.message ? error.message : "Das hat nicht geklappt.", true);
+      return;
     }
+    prepared.savedAt = Date.now();
+    let kept = true;
+    try { await saveData(prepared); } catch (error) { kept = false; }
+    show(prepared);
+    setStatus("");
+    const shared = await shareToCloud(prepared);
+    if (shared) window.showToast("Chat gespeichert – ihr beide seht ihn 💗", "success");
+    else if (kept) window.showToast("Chat geladen, aber noch nur auf diesem Gerät.");
+    else window.showToast("Chat geladen, lässt sich hier aber nicht speichern – nach dem Schließen muss er neu hochgeladen werden.");
   }
 
   function wireUpload() {
@@ -92,13 +278,58 @@
       $("chatUpload").scrollIntoView({ behavior: "smooth", block: "start" });
     });
     $("chatDeleteBtn").addEventListener("click", async () => {
-      if (!confirm("Den gespeicherten Chat von diesem Gerät löschen?")) return;
+      const other = partner();
+      if (!confirm(`Den Chat für euch beide löschen?${other ? ` Er verschwindet dann auch bei ${other}.` : ""}`)) return;
+      try { await deleteRemote(); } catch (error) {
+        window.showToast("Aus der Cloud ließ er sich nicht löschen – nichts wurde gelöscht.", "error");
+        return;
+      }
       try { await clearData(); } catch (error) { /* nothing stored */ }
-      data = null;
-      $("chatApp").classList.add("hidden");
-      $("chatUpload").classList.remove("hidden");
+      resetToUpload();
       window.showToast("Chat gelöscht");
     });
+
+    $("chatCloud").addEventListener("click", async event => {
+      const button = event.target.closest("#chatCloudAction");
+      if (!button) return;
+      button.disabled = true;
+      if (button.dataset.action === "share" && data) await shareToCloud(data);
+      else if (button.dataset.action === "unlock" && cloudInfo) await unlockRemote(cloudInfo);
+      button.disabled = false;
+    });
+
+    $("chatUnlockForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const status = $("chatUnlockStatus");
+      const phrase = $("chatUnlockInput").value.trim();
+      if (!phrase) return;
+      status.classList.remove("cu-error");
+      status.textContent = "Öffne den Chat …";
+      try {
+        const remote = await fetchRemote();
+        if (!remote) { status.textContent = "Der Chat ist nicht mehr in der Cloud."; status.classList.add("cu-error"); return; }
+        const key = await Crypto.deriveKey(phrase);
+        const next = await pullRemote(remote, key);
+        cryptoKey = key;
+        try { await saveKey(key); } catch (error) { /* kept in memory only */ }
+        try { await saveData(next); } catch (error) { /* see above */ }
+        $("chatUnlockInput").value = "";
+        status.textContent = "";
+        show(next);
+        setCloud("synced", remote);
+      } catch (error) {
+        status.classList.add("cu-error");
+        status.textContent = error && error.code === "BAD_KEY" ? "Das ist nicht das richtige Chat-Passwort." : (error && error.message) || "Das hat nicht geklappt.";
+      }
+    });
+  }
+
+  /* back to the empty start page */
+  function resetToUpload() {
+    data = null;
+    $("chatApp").classList.add("hidden");
+    $("chatUnlock").classList.add("hidden");
+    $("chatUpload").classList.remove("hidden");
   }
 
   /* ---------- show everything ---------- */
@@ -113,6 +344,7 @@
     quiz = null;
 
     $("chatUpload").classList.add("hidden");
+    $("chatUnlock").classList.add("hidden");
     $("chatApp").classList.remove("hidden");
     $("chatSummary").innerHTML = `<strong>${esc(data.names[0])} &amp; ${esc(data.names[1])}</strong><span>${num(stats.total)} Nachrichten &middot; ${esc(E.formatDay(stats.first))} bis ${esc(E.formatDay(stats.last))}</span>`;
 
@@ -423,9 +655,54 @@
 
   /* ---------- start ---------- */
 
+  /* what is on this phone is shown at once; then the cloud decides whether there is something newer */
+  async function start() {
+    cryptoKey = await loadKey();
+    const local = await loadData();
+    const hasLocal = !!(local && local.msgs && local.msgs.length);
+    if (hasLocal) show(local);
+
+    let remote;
+    try { remote = await fetchRemote(); } catch (error) {
+      if (hasLocal) setCloud("offline");
+      return;
+    }
+    if (!remote) {
+      /* a copy that came from the cloud, but the cloud has none any more: the other one deleted it */
+      if (hasLocal && local.version) {
+        try { await clearData(); } catch (error) { /* nothing stored */ }
+        resetToUpload();
+        window.showToast("Der Chat wurde gelöscht.");
+      } else if (hasLocal) setCloud("local");
+      return;
+    }
+    if (hasLocal && local.version === remote.version) { setCloud("synced", remote); return; }
+
+    if (cryptoKey) {
+      try {
+        const next = await pullRemote(remote, cryptoKey);
+        try { await saveData(next); } catch (error) { /* only a convenience */ }
+        show(next);
+        setCloud("synced", remote);
+        if (hasLocal) window.showToast(`Neuer Chat von ${remote.uploaded_by || "euch"} geladen 💗`, "success");
+        return;
+      } catch (error) {
+        if (!error || error.code !== "BAD_KEY") { if (hasLocal) setCloud("error"); return; }
+        /* somebody sealed a new chat with a different passphrase: ask again */
+        cryptoKey = null;
+        await clearKey();
+      }
+    }
+
+    if (hasLocal) { setCloud("newer", remote); return; }
+    $("chatUnlockText").textContent = `${remote.uploaded_by || "Jemand"} hat den Chat am ${new Date(remote.updated_at).toLocaleDateString("de-DE")} hochgeladen (${num(remote.message_count)} Nachrichten). Gib das Chat-Passwort ein, um ihn zu öffnen.`;
+    $("chatUpload").classList.add("hidden");
+    $("chatUnlock").classList.remove("hidden");
+    cloudInfo = remote;
+  }
+
   wireUpload();
+  wirePassphrase();
   wireWrapped();
-  loadData().then(saved => {
-    if (saved && saved.msgs && saved.msgs.length) show(saved);
-  });
+  start();
 })();
