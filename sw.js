@@ -52,7 +52,9 @@ const NETWORK_TIMEOUT_MS = 4000;
 function fetchWithTimeout(request, cachedFallback) {
   return new Promise((resolve, reject) => {
     const timer = cachedFallback && setTimeout(() => cachedFallback.then(hit => hit && resolve(hit)), NETWORK_TIMEOUT_MS);
-    fetch(request).then(
+    /* "no-cache": always ask the server (cheap 304 when unchanged), so an update shows up at once
+       instead of the browser's own copy being reused for up to 10 minutes */
+    fetch(request, { cache: "no-cache" }).then(
       response => { clearTimeout(timer); resolve(response); },
       error => { clearTimeout(timer); reject(error); }
     );
