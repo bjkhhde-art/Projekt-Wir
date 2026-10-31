@@ -22,6 +22,9 @@ const GameRoom = (() => {
   const BOT_BACKUP_MS = 5000;
   const NAME_MAX = 20;
   const REACTIONS = ["😂", "😭", "😍", "😘", "🫂", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
+  /* emojis that are shown as our own sticker instead of the system emoji */
+  const STICKERS = { "😂": "icons/lach-emoji.png" };
+  const reactionFace = emoji => STICKERS[emoji] ? `<img src="${STICKERS[emoji]}" alt="${emoji}" class="gr-sticker">` : emoji;
   const REACTION_GAP_MS = 700;
   const REACTION_SHOW_MS = 2600;
 
@@ -463,7 +466,7 @@ const GameRoom = (() => {
       wrap.className = "gr-react hidden";
       wrap.innerHTML = `
         <div class="gr-react-tray hidden" id="grReactTray" role="group" aria-label="Emoji schicken">
-          ${REACTIONS.map(e => `<button type="button" class="gr-react-emoji" data-emoji="${e}" aria-label="${e} schicken">${e}</button>`).join("")}
+          ${REACTIONS.map(e => `<button type="button" class="gr-react-emoji" data-emoji="${e}" aria-label="${e} schicken">${reactionFace(e)}</button>`).join("")}
         </div>
         <button type="button" class="gr-react-toggle" id="grReactBtn" aria-label="Emoji schicken" aria-expanded="false">😊</button>
       `;
@@ -518,7 +521,7 @@ const GameRoom = (() => {
       const bubble = document.createElement("div");
       bubble.className = "gr-reaction";
       bubble.style.left = `${12 + Math.random() * 64}%`;
-      bubble.innerHTML = `<span class="gr-reaction-emoji">${payload.emoji}</span><span class="gr-reaction-name">${escapeHtml(from === person ? "Du" : from)}</span>`;
+      bubble.innerHTML = `<span class="gr-reaction-emoji">${reactionFace(payload.emoji)}</span><span class="gr-reaction-name">${escapeHtml(from === person ? "Du" : from)}</span>`;
       reactionUi.layer.appendChild(bubble);
       if (from !== person && navigator.vibrate) navigator.vibrate(12);
       setTimeout(() => bubble.remove(), REACTION_SHOW_MS);
