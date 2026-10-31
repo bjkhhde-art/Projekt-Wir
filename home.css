@@ -63,12 +63,6 @@
   color: var(--text-muted);
 }
 
-.hero-emoji {
-  height: 2.4em;
-  width: auto;
-  vertical-align: middle;
-}
-
 .hero-stat {
   display: inline-flex;
   flex-direction: column;

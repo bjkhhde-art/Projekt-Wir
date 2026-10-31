@@ -378,6 +378,13 @@
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
 }
 
+.gr-sticker {
+  display: block;
+  height: 1.15em;
+  width: auto;
+  margin: 0 auto;
+}
+
 .gr-reaction-name {
   padding: 2px 10px;
   border-radius: var(--radius-pill);
