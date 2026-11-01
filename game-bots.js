@@ -1,4 +1,4 @@
-/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7 and Monopoly.
+/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7, Monopoly and Gipfelsturm.
 
    Both play by the same rules; each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
    play() only uses what a careful human at the table could know: in Cabo the bot keeps its own
@@ -7,7 +7,7 @@
 
 const GameBots = (() => {
 
-const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js", MonopolyEngine: "./monopoly-engine.js" };
+const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js", MonopolyEngine: "./monopoly-engine.js", GipfelEngine: "./gipfel-engine.js" };
 /* each page only loads its own engine – look it up when needed */
 function lib(name) {
   if (typeof window !== "undefined" && window[name]) return window[name];
@@ -474,7 +474,89 @@ const monopoly = {
   }
 };
 
-return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7, monopoly };
+/* ---------- Gipfelsturm ---------- */
+
+/* how much a card helps towards the current Etappe, given the rest of the hand */
+function gipfelKeep(G, etappe, hand, card) {
+  if (G.isJoker(card)) return 100;
+  if (G.isStone(card)) return -10;
+  const kinds = G.ETAPPEN[etappe].groups.map(need => need.kind);
+  const others = hand.filter(c => c !== card && G.isNatural(c));
+  const v = G.valueOf(card);
+  const colour = G.colourOf(card);
+  let keep = 0;
+  if (kinds.includes("set")) keep += 3 * others.filter(c => G.valueOf(c) === v).length;
+  if (kinds.includes("run") || kinds.includes("crun")) {
+    const near = new Set(others.filter(c => (kinds.includes("run") || G.colourOf(c) === colour) && Math.abs(G.valueOf(c) - v) <= 2 && G.valueOf(c) !== v).map(G.valueOf));
+    keep += 2 * near.size;
+    /* a second copy of the same number does nothing for a row */
+    if (!kinds.includes("set") && others.some(c => G.valueOf(c) === v)) keep -= 2;
+  }
+  if (kinds.includes("color") || kinds.includes("crun")) keep += others.filter(c => G.colourOf(c) === colour).length;
+  return keep;
+}
+
+function gipfelDiscardChoice(G, state, bot) {
+  const hand = state.hands[bot];
+  const stone = hand.find(G.isStone);
+  if (stone) return stone;
+  const candidates = hand.filter(c => !G.isJoker(c));
+  if (candidates.length === 0) return hand[0];
+  if (state.laid[bot]) return candidates.slice().sort((a, b) => G.pointsOf(b) - G.pointsOf(a))[0];
+  const etappe = state.etappe[bot];
+  return candidates.slice().sort((a, b) =>
+    gipfelKeep(G, etappe, hand, a) - gipfelKeep(G, etappe, hand, b) || G.pointsOf(b) - G.pointsOf(a))[0];
+}
+
+function gipfelPlay(state, bot) {
+  const G = lib("GipfelEngine");
+  if (!state.players.includes(bot) || state.phase !== "play" || state.turnPerson !== bot) return null;
+  const hand = state.hands[bot];
+
+  if (state.step === "draw") {
+    const top = state.discard[state.discard.length - 1];
+    if (top && !G.isStone(top)) {
+      const wanted = G.isJoker(top)
+        || (state.laid[bot] ? G.fittingGroups(state, top).length > 0
+          : Boolean(G.findLaydown(state.etappe[bot], [...hand, top]))
+            || (gipfelKeep(G, state.etappe[bot], [...hand, top], top) >= 3
+              /* never pick up the card it would throw away again at once – two bots would pass it back and forth */
+              && gipfelDiscardChoice(G, { ...state, hands: { ...state.hands, [bot]: [...hand, top] } }, bot) !== top));
+      if (wanted) return G.drawDiscard(state, bot);
+    }
+    return G.drawDeck(state, bot);
+  }
+
+  if (!state.laid[bot]) {
+    const lay = G.findLaydown(state.etappe[bot], hand);
+    if (lay) return G.layDown(state, bot, lay);
+  } else {
+    /* add whatever fits – numbers before stars, so a star is kept for later as long as possible */
+    const order = hand.filter(c => !G.isStone(c)).sort((a, b) => G.isJoker(a) - G.isJoker(b));
+    for (const card of order) {
+      const groups = G.fittingGroups(state, card);
+      if (groups.length) return G.addToGroup(state, bot, card, groups[0]);
+    }
+  }
+  return G.discard(state, bot, gipfelDiscardChoice(G, state, bot));
+}
+
+const gipfel = {
+  play: gipfelPlay,
+  delay(state) {
+    const events = state.lastMove && state.lastMove.events ? state.lastMove.events.length : 0;
+    return Math.min(5200, jitter(900, 500) + Math.min(events, 10) * 120);
+  },
+  reaction(before, after, bot) {
+    const events = (after.lastMove && after.lastMove.events) || [];
+    if (after.phase === "finished" && after.result && after.result.winners.includes(bot)) return "😏";
+    if (events.some(e => e.type === "lay" && e.person === bot)) return "🔥";
+    if (events.some(e => e.type === "stone" && e.person === bot)) return "😏";
+    return null;
+  }
+};
+
+return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7, monopoly, gipfel };
 
 })();
 
