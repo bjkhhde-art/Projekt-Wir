@@ -284,7 +284,7 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand) {
 function createInitialState(playersOrHost, guestPerson, rand = Math.random) {
   if (typeof guestPerson === "function") { rand = guestPerson; guestPerson = null; }
   const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, guestPerson].filter(Boolean);
-  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Phasenjagd braucht 2 bis 4 Personen.");
+  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Das Spiel braucht 2 bis 4 Personen.");
   return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand);
 }
 
