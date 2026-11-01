@@ -80,11 +80,11 @@ await fetch(`${API}/games/${game.id}`, {
   body: JSON.stringify({ state: s, version: (game.version || 0) + 1 })
 });
 /* the open Lila 3 only exists in the stacked state – the real deal may also have given Isi the S-0 */
-await until(async () => await isi.locator("#gsDrawDeck").count() === 1 && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1 && await isi.locator('#gsDiscard [data-card="v3-1"]').count() === 1, 5000, "stacked state on Isi's phone");
+await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw") && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1 && await isi.locator('#gsDiscard [data-card="v3-1"]').count() === 1, 5000, "stacked state on Isi's phone");
 await until(async () => (await benji.locator("#gsStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#gsStatus").textContent()).includes("Du bist dran"), "Isi is asked to draw");
-ok((await isi.locator("#gsDrawDiscard").textContent()).includes("Lila 3"), "the open card can be taken too");
-ok((await isi.locator(".gs-goal").textContent()).includes("Drei Paare"), "Isi sees her Phase: Drei Paare");
+ok((await isi.locator("#gsDiscard").getAttribute("class")).includes("can-draw") && await isi.locator("#gsActions button").count() === 0, "drawing is a tap on the deck or the open card – no buttons");
+ok((await isi.locator("#gsOwn .gs-seat-etappe").textContent()).includes("Drei Paare"), "Isi sees her Phase: Drei Paare");
 
 /* draw from the deck: the card flies over on both phones */
 await isi.click("#gsDeck");
@@ -94,42 +94,31 @@ ok(true, "the drawn card flies to Isi on Benji's phone too");
 await until(async () => await isi.locator('#gsOwn [data-card="m9-1"]:not(.anim-hidden)').count() === 1, 4000, "landed");
 ok(await benji.locator("#gsOpps .gs-opp-hand .gs-back").count() === 10, "Benji sees Isi with ten cards");
 
-/* no hints: Isi builds her Phase herself, card by card, in one field per group */
+/* no hints: Isi chooses the cards herself and taps her laying area */
 ok(await isi.locator("#gsHint").count() === 0, "the game gives no hints");
 ok(await isi.locator('#gsOwn .gs-card.fresh[data-card="m9-1"]').count() === 1, "the card Isi just drew is marked as new");
-ok((await isi.locator(".gs-steps li.done").textContent()).includes("Ziehen") && (await isi.locator(".gs-steps li.now").first().textContent()).includes("Auslegen"), "the steps show: drawn, now lay out or discard");
-ok(await isi.locator("#gsOwn .gs-field").count() === 3 && (await isi.locator("#gsOwn .gs-field-title").allTextContents()).join() === "Paar,Paar,Paar", "three empty fields for Drei Paare");
-ok(await isi.locator("#gsLay[disabled]").count() === 1, "nothing in the fields yet");
-const field = i => isi.locator(`#gsOwn .gs-field[data-field="${i}"]`);
-await isi.locator('#gsOwn .gs-hand [data-card="r1-0"]').click();
-await isi.locator('#gsOwn .gs-hand [data-card="v1-0"]').click();
-ok(await isi.locator("#gsOwn .gs-field.open").count() === 3, "with cards chosen, the fields can be tapped");
-await field(0).click();
-ok(await field(0).locator(".gs-card").count() === 2 && (await field(0).getAttribute("class")).includes("done"), "the two 1s lie in the first field – a valid Paar ✓");
-ok(await isi.locator('#gsOwn .gs-hand [data-card="r1-0"]').count() === 0, "and left the hand");
-await isi.locator('#gsOwn .gs-hand [data-card="r4-0"]').click();
-await isi.locator('#gsOwn .gs-hand [data-card="m10-0"]').click();
-await field(1).click();
-ok(!(await field(1).getAttribute("class")).includes("done"), "4 and 10 are no Paar – the field shows no ✓");
-await isi.locator('#gsOwn .gs-hand [data-card="m9-0"]').click();
-await isi.locator('#gsOwn .gs-hand [data-card="m9-1"]').click();
-await field(2).click();
-await isi.click("#gsLay");
+const zone = isi.locator("#gsLayZone");
+ok((await zone.textContent()).includes("Paar + Paar + Paar") && !(await zone.getAttribute("class")).includes("open"), "the laying area shows what the Phase needs");
+for (const c of ["r1-0", "v1-0", "r4-0", "m10-0", "m9-0", "m9-1"]) await isi.locator(`#gsOwn .gs-hand [data-card="${c}"]`).click();
+ok((await zone.getAttribute("class")).includes("open") && (await zone.textContent()).includes("6 Karten"), "with cards chosen, the laying area can be tapped");
+await zone.click();
 await wait(800);
-ok(!(await latest()).state.laid.Isi, "a wrong field: the Phase is not laid out");
-await field(1).locator('[data-card="m10-0"]').click();
-ok(await isi.locator('#gsOwn .gs-hand [data-card="m10-0"]').count() === 1, "a tap on a card in a field puts it back on the hand");
+ok(!(await latest()).state.laid.Isi && await isi.locator(".toast").filter({ hasText: "klappt" }).count() >= 1, "4 and 10 are no Paar: the Phase is not laid out, Isi is told so");
+await isi.locator("#gsDiscard").click();
+await wait(500);
+ok((await latest()).state.hands.Isi.length === 10 && await isi.locator(".toast").filter({ hasText: "genau eine Karte" }).count() >= 1, "nothing is thrown away with several cards chosen");
+/* the choice stays after the failed try: Isi only swaps the 10 for the second 4 */
+ok(await isi.locator("#gsOwn .gs-hand .gs-card.selected").count() === 6, "the chosen cards stay chosen after a failed try");
+await isi.locator('#gsOwn .gs-hand [data-card="m10-0"]').click();
 await isi.locator('#gsOwn .gs-hand [data-card="g4-0"]').click();
-await field(1).click();
-ok((await field(1).getAttribute("class")).includes("done"), "now two 4s ✓");
-await isi.click("#gsLay");
+await zone.click();
 await until(async () => (await latest()).state.laid.Isi, 4000, "laid");
 await until(async () => await benji.locator("#gsOpps .gs-group").count() === 3, 4000, "Benji sees the groups");
 ok((await benji.locator("#gsEvent").textContent()).includes("Isi legt Phase 1 aus"), "Benji is told Isi laid out her Phase");
 await until(async () => await isi.locator(".anim-hidden").count() === 0 && await isi.locator(".ga-ghost").count() === 0, 5000, "lay animation done");
 ok(await isi.locator("#gsOwn .gs-group").count() === 3 && await isi.locator("#gsOwn .gs-hand .gs-card").count() === 4, "three Paare in front of Isi, four cards left");
 
-/* adding: every group can be tapped, only the tap checks whether the card fits */
+/* adding: choose a card, tap a group – only the tap checks whether the card fits */
 await isi.locator('#gsOwn .gs-hand [data-card="J-0"]').click();
 ok(await isi.locator("#gsOwn .gs-group.target").count() === 3, "with a card chosen, all groups can be tapped");
 await isi.locator("#gsOwn .gs-group.target").first().click();
@@ -137,13 +126,13 @@ await until(async () => (await latest()).state.hands.Isi.length === 3, 4000, "ad
 await until(async () => (await benji.locator("#gsEvent").textContent()).includes("legt Stern bei sich an"), 4000, "Benji told");
 ok(true, "Benji sees the Stern being added");
 
-/* a Steinschlag fits nowhere: the tap is refused, then Isi throws it – Benji sits out, Isi plays again */
+/* a Steinschlag fits nowhere: the tap is refused, then Isi throws it on the discard – Benji sits out, Isi plays again */
 await isi.locator('#gsOwn .gs-hand [data-card="S-0"]').click();
 await isi.locator("#gsOwn .gs-group.target").first().click();
 await wait(600);
 ok((await latest()).state.hands.Isi.length === 3 && await isi.locator(".toast").filter({ hasText: "passt nicht" }).count() >= 1, "the Steinschlag does not fit – Isi is told so");
-ok((await isi.locator("#gsDrop").textContent()).includes("Steinschlag abwerfen"), "the button names the card to be thrown away");
-await isi.click("#gsDrop");
+ok((await isi.locator("#gsDiscard").getAttribute("class")).includes("can-drop"), "the discard pile waits for the chosen card");
+await isi.locator("#gsDiscard").click();
 await until(async () => (await latest()).state.lastMove.events.some(e => e.type === "skip"), 4000, "stone");
 await until(async () => (await benji.locator("#gsEvent").textContent()).includes("Du setzt einmal aus"), 4000, "Benji told");
 ok((await latest()).state.turnPerson === "Isi", "Benji is skipped – Isi again");
@@ -175,7 +164,7 @@ await benji.locator(".gs-summary .gr-ready-btn").click();
 await until(async () => (await latest()).state.round === 2, 4000, "round 2");
 const r2 = (await latest()).state;
 ok(r2.dealer === 0 && G.countCards(r2) === 90 && r2.groups.length === 0 && r2.etappe.Isi === 1, "round 2: the deal moves on, all cards anew, Isi on Phase 2");
-await until(async () => await isi.locator(".gs-summary").count() === 0 && (await isi.locator(".gs-goal").textContent()).includes("Drilling + Dreierreihe"), 5000, "summary gone");
+await until(async () => await isi.locator(".gs-summary").count() === 0 && (await isi.locator("#gsOwn .gs-seat-etappe").textContent()).includes("Drilling + Dreierreihe"), 5000, "summary gone");
 ok(true, "Isi now climbs Phase 2: Drilling + Dreierreihe");
 
 /* leaving ends it for both */
@@ -196,13 +185,13 @@ await isi.click("#grBeginBtn");
 await until(async () => (await latest()).status === "active", 4000, "started with Udiou");
 const start = (await latest()).state;
 if (start.turnPerson === "Isi") {
-  await until(async () => await isi.locator("#gsDrawDeck").count() === 1, 8000, "Isi's turn");
-  await isi.click("#gsDrawDeck");
+  await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw"), 8000, "Isi's turn");
+  await isi.click("#gsDeck");
   await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 10, 4000, "Isi may act");
   /* a number card – a Steinschlag would make Udiou sit out */
   const card = await isi.locator("#gsOwn .gs-hand .gs-card:not(.gs-stone):not(.gs-joker)").first().getAttribute("data-card");
   await isi.locator(`#gsOwn .gs-hand [data-card="${card}"]`).click();
-  await isi.click("#gsDrop");
+  await isi.click("#gsDiscard");
 }
 await until(async () => {
   const st = (await latest()).state;
