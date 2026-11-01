@@ -23,6 +23,9 @@ let lastAnimatedMove = { gameId: null, seq: null };
 let currentState = null;
 let cheeredGame = null;
 const selected = new Set();
+/* my own Phase, put together card by card in its fields before laying it out (only on this phone) */
+let staged = [];
+let stagedFor = null;
 let sortBy = readSort();
 const seatEls = new Map();
 
@@ -124,27 +127,71 @@ function canAct(state) {
   return myTurn(state) && state.step === "act";
 }
 
+/* cards can be picked and sorted into the Phase fields at any time of the round – also while others play */
+function canPick(state) {
+  return state.phase === "play" && seated(state);
+}
+
+const stagedCards = () => staged.flat();
+
+/* keeps selection and fields in line with the hand; a new round or a new Phase empties the fields */
 function pruneSelection(state) {
-  if (!seated(state) || !canAct(state)) {
+  if (!canPick(state)) {
     selected.clear();
+    staged = [];
+    stagedFor = null;
     return;
   }
   const hand = state.hands[me()];
-  [...selected].forEach(card => { if (!hand.includes(card)) selected.delete(card); });
+  const key = `${state.gameNo}:${state.round}:${state.etappe[me()]}`;
+  if (stagedFor !== key || state.laid[me()]) {
+    staged = G.ETAPPEN[Math.min(state.etappe[me()], G.ETAPPEN.length - 1)].groups.map(() => []);
+    stagedFor = key;
+  }
+  staged = staged.map(field => field.filter(card => hand.includes(card)));
+  [...selected].forEach(card => { if (!hand.includes(card) || stagedCards().includes(card)) selected.delete(card); });
 }
 
 function toggleCard(card) {
-  if (!currentState || !canAct(currentState)) return;
+  if (!currentState || !canPick(currentState)) return;
   if (selected.has(card)) selected.delete(card);
   else selected.add(card);
+  renderLocal();
+}
+
+/* the chosen cards go into one field of my Phase */
+function putIntoField(index) {
+  if (!selected.size) return;
+  staged = staged.map(field => field.filter(card => !selected.has(card)));
+  staged[index] = [...staged[index], ...selected];
+  selected.clear();
+  renderLocal();
+}
+
+/* a card in a field goes back to the hand */
+function takeFromField(card) {
+  staged = staged.map(field => field.filter(c => c !== card));
+  renderLocal();
+}
+
+function clearSelection() {
+  selected.clear();
   renderLocal();
 }
 
 /* a tap that only changes the selection: redraw without any animation */
 function renderLocal() {
   if (!currentState) return;
+  renderPiles(currentState);
   renderSeats(currentState);
   renderControls(currentState);
+}
+
+/* the card I just drew is marked in my hand until my turn is over */
+function freshCard(state) {
+  if (!canAct(state) || !state.lastMove) return null;
+  const draw = (state.lastMove.events || []).find(e => e.type === "draw" && e.person === me());
+  return draw ? draw.card : null;
 }
 
 /* ---------- board ---------- */
@@ -244,13 +291,18 @@ function groupsEl(state, person, small) {
     const box = document.createElement("div");
     box.className = "gs-group";
     box.dataset.group = group.id;
-    const fits = pick && G.extendGroup(group, pick);
-    if (fits) {
-      box.classList.add("fits");
+    /* every group can be tapped – whether the card fits is only checked then, the game gives no hints */
+    if (pick) {
+      box.classList.add("target");
       box.setAttribute("role", "button");
       box.tabIndex = 0;
       box.setAttribute("aria-label", `${G.cardLabel(pick)} an ${groupTitle(group)} anlegen`);
       const add = () => {
+        if (!G.extendGroup(group, pick)) {
+          showToast(`${G.cardLabel(pick)} passt nicht an ${groupTitle(group)}.`, "error");
+          GameAnim.shake(box);
+          return;
+        }
         selected.clear();
         room.dispatch(G.addToGroup, pick, group.id);
       };
@@ -335,14 +387,18 @@ function fillOwn(state) {
   });
   const groups = groupsEl(state, person, false);
   if (groups.children.length) ownEl.appendChild(groups);
+  if (!laid && state.phase === "play") ownEl.appendChild(fieldsEl(etappe));
 
   const handEl = document.createElement("div");
   handEl.className = "gs-hand";
   handEl.dataset.zone = `hand-${person}`;
-  const active = canAct(state);
-  sortedHand(state.hands[person]).forEach(card => {
+  const active = canPick(state);
+  const fresh = freshCard(state);
+  const inFields = stagedCards();
+  sortedHand(state.hands[person]).filter(card => !inFields.includes(card)).forEach(card => {
     const el = cardEl(card);
     GameAnim.tag(el, cardKey(card));
+    if (card === fresh) el.classList.add("fresh");
     if (active) {
       el.classList.add("pickable");
       el.setAttribute("role", "button");
@@ -356,6 +412,48 @@ function fillOwn(state) {
   });
   if (!handEl.children.length) handEl.innerHTML = `<span class="gs-empty">keine Karten mehr 🏁</span>`;
   ownEl.appendChild(handEl);
+}
+
+/* one field per group of my Phase: chosen cards are tapped into a field, a tap on a card in it takes it back */
+function fieldsEl(etappe) {
+  const wrap = document.createElement("div");
+  wrap.className = "gs-fields";
+  etappe.groups.forEach((need, index) => {
+    const cards = staged[index] || [];
+    const done = cards.length > 0 && Boolean(G.makeGroup(need.kind, cards, need.size));
+    const field = document.createElement("div");
+    field.className = `gs-field${done ? " done" : ""}${selected.size ? " open" : ""}`;
+    field.dataset.field = index;
+    const head = document.createElement("span");
+    head.className = "gs-field-title";
+    head.textContent = `${G.groupLabel(need)}${done ? " ✓" : ""}`;
+    const row = document.createElement("div");
+    row.className = "gs-field-cards";
+    cards.forEach(card => {
+      const el = cardEl(card, 32);
+      GameAnim.tag(el, cardKey(card));
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-label", `${G.cardLabel(card)} zurück auf die Hand`);
+      /* with cards chosen, a tap anywhere on the field adds them; otherwise a tap on a card takes it back */
+      el.addEventListener("click", event => {
+        if (selected.size) return;
+        event.stopPropagation();
+        takeFromField(card);
+      });
+      row.appendChild(el);
+    });
+    if (!cards.length) row.innerHTML = `<span class="gs-field-empty">${selected.size ? "hierhin tippen" : "leer"}</span>`;
+    field.append(head, row);
+    if (selected.size) {
+      field.setAttribute("role", "button");
+      field.tabIndex = 0;
+      field.setAttribute("aria-label", `Gewählte Karten in ${G.groupLabel(need)} legen`);
+      field.addEventListener("click", () => putIntoField(index));
+      field.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); putIntoField(index); } });
+    }
+    wrap.appendChild(field);
+  });
+  return wrap;
 }
 
 function renderSeats(state) {
@@ -437,13 +535,22 @@ function renderControls(state) {
   }
   const turn = state.turnPerson;
   if (turn !== me()) {
-    statusEl.textContent = seated(state) && state.skip[me()] ? `${turn} ist dran – du setzt danach einmal aus 🪨` : `${turn} ist dran …`;
+    const n = state.players.length;
+    const nextUp = state.players[(state.players.indexOf(turn) + 1) % n] === me();
+    statusEl.textContent = seated(state) && state.skip[me()]
+      ? `${turn} ist dran – du setzt danach einmal aus 🪨`
+      : nextUp ? `${turn} ist dran – danach du.` : `${turn} ist dran …`;
+    if (seated(state) && !state.laid[me()] && selected.size) {
+      statusEl.textContent += " Tippe auf ein Feld deiner Phase, um die Karten schon mal hineinzulegen.";
+    }
     return;
   }
 
+  actionsEl.appendChild(stepsEl(state));
+
   if (state.step === "draw") {
     const top = state.discard[state.discard.length - 1];
-    statusEl.textContent = "Du bist dran: Zieh vom Stapel oder nimm die offene Karte.";
+    statusEl.textContent = "Du bist dran! Tippe auf den Stapel oder nimm die offene Karte.";
     actionsEl.append(
       button("gsDrawDeck", "Vom Stapel 🃏", () => room.dispatch(G.drawDeck)),
       button("gsDrawDiscard", top && !G.isStone(top) ? `${G.cardLabel(top)} nehmen` : "Offene nehmen", () => room.dispatch(G.drawDiscard), { secondary: true, disabled: !top || G.isStone(top) })
@@ -453,33 +560,41 @@ function renderControls(state) {
 
   const laid = state.laid[me()];
   const count = selected.size;
+  const pick = count === 1 ? [...selected][0] : null;
   if (!laid) {
-    statusEl.textContent = count ? `${count} ${count === 1 ? "Karte" : "Karten"} gewählt` : "Wähle Karten für deine Phase – oder wirf eine ab.";
-    actionsEl.append(
-      button("gsLay", "Phase auslegen 🎯", () => {
-        const cards = [...selected];
-        selected.clear();
-        room.dispatch(G.layDown, cards);
-      }, { disabled: count === 0 }),
-      button("gsHint", "💡 Vorschlag", () => {
-        const found = G.findLaydown(state.etappe[me()], state.hands[me()]);
-        if (!found) {
-          showToast("Die Phase ist noch nicht auf deiner Hand.", "error");
-          return;
-        }
-        selected.clear();
-        found.forEach(card => selected.add(card));
-        renderLocal();
-      }, { secondary: true })
-    );
+    const filled = staged.reduce((sum, field) => sum + field.length, 0);
+    statusEl.textContent = count
+      ? "Tippe auf ein Feld deiner Phase – oder wirf eine einzelne Karte ab."
+      : filled ? "Alle Felder voll? Dann leg die Phase aus – sonst wirf eine Karte ab." : "Wähle Karten und leg sie in die Felder deiner Phase – oder wirf eine Karte ab.";
+    actionsEl.append(button("gsLay", "Phase auslegen 🎯", () => {
+      const cards = stagedCards();
+      if (staged.some(field => field.length === 0)) {
+        showToast("Leg zuerst Karten in jedes Feld deiner Phase.", "error");
+        return;
+      }
+      room.dispatch(G.layDown, cards);
+    }, { disabled: filled === 0 }));
   } else {
-    const pick = count === 1 ? [...selected][0] : null;
-    const fits = pick ? G.fittingGroups(state, pick).length : 0;
-    statusEl.textContent = !pick
-      ? "Tippe eine Karte an: anlegen oder abwerfen."
-      : fits ? "Tippe auf eine leuchtende Gruppe zum Anlegen – oder wirf sie ab." : `${G.cardLabel(pick)} passt nirgends – abwerfen?`;
+    statusEl.textContent = pick
+      ? "Tippe auf eine Gruppe zum Anlegen – oder wirf die Karte ab."
+      : "Wähle eine Karte: an eine Gruppe anlegen oder abwerfen.";
   }
-  actionsEl.append(button("gsDrop", "Abwerfen ✋", dropSelected, { secondary: !laid, disabled: count !== 1 }));
+  actionsEl.append(button("gsDrop", pick ? `${G.cardLabel(pick)} abwerfen ✋` : "Abwerfen ✋", dropSelected, { secondary: !laid, disabled: !pick }));
+  if (count) actionsEl.append(button("gsClear", "Auswahl aufheben", clearSelection, { secondary: true }));
+}
+
+/* where I am in my turn: draw → lay out / add → discard */
+function stepsEl(state) {
+  const list = document.createElement("ol");
+  list.className = "gs-steps";
+  const now = state.step === "draw" ? 0 : 1;
+  ["Ziehen", state.laid[me()] ? "Anlegen" : "Auslegen", "Abwerfen"].forEach((label, i) => {
+    const item = document.createElement("li");
+    item.className = i < now ? "done" : i === now || (now === 1 && i === 2) ? "now" : "";
+    item.textContent = label;
+    list.appendChild(item);
+  });
+  return list;
 }
 
 function renderSummary(state) {

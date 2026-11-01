@@ -4,8 +4,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const G = require("../../gipfel-engine.js");
 
-/* Phasenjagd on two phones: lobby, the deal with flying cards, drawing, laying out an Phase with
-   the hint, adding to a group, a Steinschlag, going out, the round summary and the next round */
+/* Phasenjagd on two phones: lobby, the deal with flying cards, drawing, laying out a Phase field by
+   field, adding to a group, a Steinschlag, going out, the round summary and the next round */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991/t/gipfel_games";
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -82,7 +82,7 @@ await fetch(`${API}/games/${game.id}`, {
 /* the open Lila 3 only exists in the stacked state – the real deal may also have given Isi the S-0 */
 await until(async () => await isi.locator("#gsDrawDeck").count() === 1 && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1 && await isi.locator('#gsDiscard [data-card="v3-1"]').count() === 1, 5000, "stacked state on Isi's phone");
 await until(async () => (await benji.locator("#gsStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
-ok((await isi.locator("#gsStatus").textContent()).includes("Zieh vom Stapel"), "Isi is asked to draw");
+ok((await isi.locator("#gsStatus").textContent()).includes("Du bist dran"), "Isi is asked to draw");
 ok((await isi.locator("#gsDrawDiscard").textContent()).includes("Lila 3"), "the open card can be taken too");
 ok((await isi.locator(".gs-goal").textContent()).includes("Drei Paare"), "Isi sees her Phase: Drei Paare");
 
@@ -94,12 +94,34 @@ ok(true, "the drawn card flies to Isi on Benji's phone too");
 await until(async () => await isi.locator('#gsOwn [data-card="m9-1"]:not(.anim-hidden)').count() === 1, 4000, "landed");
 ok(await benji.locator("#gsOpps .gs-opp-hand .gs-back").count() === 10, "Benji sees Isi with ten cards");
 
-/* the hint picks a valid Phase; laying it out */
-ok(await isi.locator("#gsLay[disabled]").count() === 1, "nothing chosen yet");
-await isi.click("#gsHint");
-const picked = await isi.locator("#gsOwn .gs-hand .gs-card.selected").count();
-ok(picked === 6, `the hint picks six cards for Drei Paare (${picked})`);
-ok(await isi.locator('#gsOwn .gs-card.selected[data-card="J-0"]').count() === 0, "without spending the Stern");
+/* no hints: Isi builds her Phase herself, card by card, in one field per group */
+ok(await isi.locator("#gsHint").count() === 0, "the game gives no hints");
+ok(await isi.locator('#gsOwn .gs-card.fresh[data-card="m9-1"]').count() === 1, "the card Isi just drew is marked as new");
+ok((await isi.locator(".gs-steps li.done").textContent()).includes("Ziehen") && (await isi.locator(".gs-steps li.now").first().textContent()).includes("Auslegen"), "the steps show: drawn, now lay out or discard");
+ok(await isi.locator("#gsOwn .gs-field").count() === 3 && (await isi.locator("#gsOwn .gs-field-title").allTextContents()).join() === "Paar,Paar,Paar", "three empty fields for Drei Paare");
+ok(await isi.locator("#gsLay[disabled]").count() === 1, "nothing in the fields yet");
+const field = i => isi.locator(`#gsOwn .gs-field[data-field="${i}"]`);
+await isi.locator('#gsOwn .gs-hand [data-card="r1-0"]').click();
+await isi.locator('#gsOwn .gs-hand [data-card="v1-0"]').click();
+ok(await isi.locator("#gsOwn .gs-field.open").count() === 3, "with cards chosen, the fields can be tapped");
+await field(0).click();
+ok(await field(0).locator(".gs-card").count() === 2 && (await field(0).getAttribute("class")).includes("done"), "the two 1s lie in the first field – a valid Paar ✓");
+ok(await isi.locator('#gsOwn .gs-hand [data-card="r1-0"]').count() === 0, "and left the hand");
+await isi.locator('#gsOwn .gs-hand [data-card="r4-0"]').click();
+await isi.locator('#gsOwn .gs-hand [data-card="m10-0"]').click();
+await field(1).click();
+ok(!(await field(1).getAttribute("class")).includes("done"), "4 and 10 are no Paar – the field shows no ✓");
+await isi.locator('#gsOwn .gs-hand [data-card="m9-0"]').click();
+await isi.locator('#gsOwn .gs-hand [data-card="m9-1"]').click();
+await field(2).click();
+await isi.click("#gsLay");
+await wait(800);
+ok(!(await latest()).state.laid.Isi, "a wrong field: the Phase is not laid out");
+await field(1).locator('[data-card="m10-0"]').click();
+ok(await isi.locator('#gsOwn .gs-hand [data-card="m10-0"]').count() === 1, "a tap on a card in a field puts it back on the hand");
+await isi.locator('#gsOwn .gs-hand [data-card="g4-0"]').click();
+await field(1).click();
+ok((await field(1).getAttribute("class")).includes("done"), "now two 4s ✓");
 await isi.click("#gsLay");
 await until(async () => (await latest()).state.laid.Isi, 4000, "laid");
 await until(async () => await benji.locator("#gsOpps .gs-group").count() === 3, 4000, "Benji sees the groups");
@@ -107,17 +129,20 @@ ok((await benji.locator("#gsEvent").textContent()).includes("Isi legt Phase 1 au
 await until(async () => await isi.locator(".anim-hidden").count() === 0 && await isi.locator(".ga-ghost").count() === 0, 5000, "lay animation done");
 ok(await isi.locator("#gsOwn .gs-group").count() === 3 && await isi.locator("#gsOwn .gs-hand .gs-card").count() === 4, "three Paare in front of Isi, four cards left");
 
-/* add the Stern to a Paar: the fitting groups light up */
+/* adding: every group can be tapped, only the tap checks whether the card fits */
 await isi.locator('#gsOwn .gs-hand [data-card="J-0"]').click();
-ok(await isi.locator("#gsOwn .gs-group.fits").count() === 3, "a Stern fits every group");
-await isi.locator("#gsOwn .gs-group.fits").first().click();
+ok(await isi.locator("#gsOwn .gs-group.target").count() === 3, "with a card chosen, all groups can be tapped");
+await isi.locator("#gsOwn .gs-group.target").first().click();
 await until(async () => (await latest()).state.hands.Isi.length === 3, 4000, "added");
 await until(async () => (await benji.locator("#gsEvent").textContent()).includes("legt Stern bei sich an"), 4000, "Benji told");
 ok(true, "Benji sees the Stern being added");
 
-/* a Steinschlag: Benji sits out, Isi plays again */
+/* a Steinschlag fits nowhere: the tap is refused, then Isi throws it – Benji sits out, Isi plays again */
 await isi.locator('#gsOwn .gs-hand [data-card="S-0"]').click();
-ok(await isi.locator("#gsOwn .gs-group.fits").count() === 0, "a Steinschlag fits nowhere");
+await isi.locator("#gsOwn .gs-group.target").first().click();
+await wait(600);
+ok((await latest()).state.hands.Isi.length === 3 && await isi.locator(".toast").filter({ hasText: "passt nicht" }).count() >= 1, "the Steinschlag does not fit – Isi is told so");
+ok((await isi.locator("#gsDrop").textContent()).includes("Steinschlag abwerfen"), "the button names the card to be thrown away");
 await isi.click("#gsDrop");
 await until(async () => (await latest()).state.lastMove.events.some(e => e.type === "skip"), 4000, "stone");
 await until(async () => (await benji.locator("#gsEvent").textContent()).includes("Du setzt einmal aus"), 4000, "Benji told");
@@ -133,8 +158,7 @@ now.state.lastMove = { type: "setup", events: [], seq: now.state.moveSeq };
 await fetch(`${API}/games/${now.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ state: now.state, version: (now.version || 0) + 1 }) });
 await until(async () => await isi.locator('#gsOwn .gs-hand [data-card="v9-1"]').count() === 1 && await isi.locator("#gsOwn .gs-hand .gs-card").count() === 1, 4000, "one card left");
 await isi.locator('#gsOwn .gs-hand [data-card="v9-1"]').click();
-ok(await isi.locator("#gsOwn .gs-group.fits").count() === 1, "the Lila 9 only fits the 9er Paar");
-await isi.locator('#gsOwn .gs-group.fits').click();
+await isi.locator("#gsOwn .gs-group.target").filter({ hasText: "× 9" }).click();
 await until(async () => (await latest()).state.phase === "round-over", 4000, "round over");
 const over = (await latest()).state;
 ok(over.etappe.Isi === 1 && over.etappe.Benji === 0 && over.lastRound.points.Benji === 44 && over.scores.Isi === 0, "Isi climbs, Benji counts 44 points");
