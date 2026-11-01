@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const G = require("../../gipfel-engine.js");
 
-/* Gipfelsturm on two phones: lobby, the deal with flying cards, drawing, laying out an Etappe with
+/* Phasenjagd on two phones: lobby, the deal with flying cards, drawing, laying out an Phase with
    the hint, adding to a group, a Steinschlag, going out, the round summary and the next round */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991/t/gipfel_games";
@@ -36,8 +36,8 @@ const isi = await phone("Isi");
 const benji = await phone("Benji");
 
 /* lobby, like Cabo: up to four, friends by link, computer players */
-ok(await isi.locator("#grStartBtn").count() === 1, "Gipfelsturm starts with a lobby");
-ok(await isi.locator("#gsRulesList li").count() === 8, "the rules list all eight Etappen");
+ok(await isi.locator("#grStartBtn").count() === 1, "Phasenjagd starts with a lobby");
+ok(await isi.locator("#gsRulesList li").count() === 8, "the rules list all eight Phasen");
 await isi.click("#grStartBtn");
 await until(async () => await benji.locator("#grJoinBtn").count() === 1, 4000, "invite");
 ok(await isi.locator("#grInviteLink").count() === 1 && await isi.locator(".gr-bot-btn").count() === 2, "friends by link, Udiou and Klausi can join");
@@ -83,7 +83,7 @@ await until(async () => await isi.locator("#gsDrawDeck").count() === 1 && await 
 await until(async () => (await benji.locator("#gsStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#gsStatus").textContent()).includes("Zieh vom Stapel"), "Isi is asked to draw");
 ok((await isi.locator("#gsDrawDiscard").textContent()).includes("Lila 3"), "the open card can be taken too");
-ok((await isi.locator(".gs-goal").textContent()).includes("Drei Paare"), "Isi sees her Etappe: Drei Paare");
+ok((await isi.locator(".gs-goal").textContent()).includes("Drei Paare"), "Isi sees her Phase: Drei Paare");
 
 /* draw from the deck: the card flies over on both phones */
 await isi.click("#gsDeck");
@@ -93,7 +93,7 @@ ok(true, "the drawn card flies to Isi on Benji's phone too");
 await until(async () => await isi.locator('#gsOwn [data-card="m9-1"]:not(.anim-hidden)').count() === 1, 4000, "landed");
 ok(await benji.locator("#gsOpps .gs-opp-hand .gs-back").count() === 10, "Benji sees Isi with ten cards");
 
-/* the hint picks a valid Etappe; laying it out */
+/* the hint picks a valid Phase; laying it out */
 ok(await isi.locator("#gsLay[disabled]").count() === 1, "nothing chosen yet");
 await isi.click("#gsHint");
 const picked = await isi.locator("#gsOwn .gs-hand .gs-card.selected").count();
@@ -102,7 +102,7 @@ ok(await isi.locator('#gsOwn .gs-card.selected[data-card="J-0"]').count() === 0,
 await isi.click("#gsLay");
 await until(async () => (await latest()).state.laid.Isi, 4000, "laid");
 await until(async () => await benji.locator("#gsOpps .gs-group").count() === 3, 4000, "Benji sees the groups");
-ok((await benji.locator("#gsEvent").textContent()).includes("Isi legt Etappe 1 aus"), "Benji is told Isi laid out her Etappe");
+ok((await benji.locator("#gsEvent").textContent()).includes("Isi legt Phase 1 aus"), "Benji is told Isi laid out her Phase");
 await until(async () => await isi.locator(".anim-hidden").count() === 0 && await isi.locator(".ga-ghost").count() === 0, 5000, "lay animation done");
 ok(await isi.locator("#gsOwn .gs-group").count() === 3 && await isi.locator("#gsOwn .gs-hand .gs-card").count() === 4, "three Paare in front of Isi, four cards left");
 
@@ -149,9 +149,9 @@ ok((await latest()).state.phase === "round-over", "the next round waits for both
 await benji.locator(".gs-summary .gr-ready-btn").click();
 await until(async () => (await latest()).state.round === 2, 4000, "round 2");
 const r2 = (await latest()).state;
-ok(r2.dealer === 0 && G.countCards(r2) === 90 && r2.groups.length === 0 && r2.etappe.Isi === 1, "round 2: the deal moves on, all cards anew, Isi on Etappe 2");
+ok(r2.dealer === 0 && G.countCards(r2) === 90 && r2.groups.length === 0 && r2.etappe.Isi === 1, "round 2: the deal moves on, all cards anew, Isi on Phase 2");
 await until(async () => await isi.locator(".gs-summary").count() === 0 && (await isi.locator(".gs-goal").textContent()).includes("Drilling + Dreierreihe"), 5000, "summary gone");
-ok(true, "Isi now climbs Etappe 2: Drilling + Dreierreihe");
+ok(true, "Isi now climbs Phase 2: Drilling + Dreierreihe");
 
 /* leaving ends it for both */
 await isi.click("#gsLeaveBtn");
@@ -174,13 +174,14 @@ if (start.turnPerson === "Isi") {
   await until(async () => await isi.locator("#gsDrawDeck").count() === 1, 8000, "Isi's turn");
   await isi.click("#gsDrawDeck");
   await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 10, 4000, "Isi may act");
-  const card = await isi.locator("#gsOwn .gs-hand .gs-card").last().getAttribute("data-card");
+  /* a number card – a Steinschlag would make Udiou sit out */
+  const card = await isi.locator("#gsOwn .gs-hand .gs-card:not(.gs-stone):not(.gs-joker)").first().getAttribute("data-card");
   await isi.locator(`#gsOwn .gs-hand [data-card="${card}"]`).click();
   await isi.click("#gsDrop");
 }
 await until(async () => {
   const st = (await latest()).state;
-  return st.turnPerson === "Isi" && st.step === "draw" && st.moveSeq >= start.moveSeq + 2;
+  return st.turnPerson === "Isi" && st.step === "draw" && st.lastMove.person === "Udiou";
 }, 15000, "Udiou plays");
 const afterBot = (await latest()).state;
 ok(afterBot.lastMove.person === "Udiou" && afterBot.hands.Udiou.length <= 9, "Udiou drew and discarded on his own – Isi's turn again");

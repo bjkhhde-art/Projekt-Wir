@@ -1,4 +1,4 @@
-/* Gipfelsturm – board, seats, groups and the cards (drawn in CSS) */
+/* Phasenjagd – board, seats, groups and the cards (drawn in CSS) */
 
 .gs-board {
   max-width: 560px;
@@ -39,7 +39,7 @@
 }
 
 .gs-chip.lead strong::before {
-  content: "⛰️ ";
+  content: "🎯 ";
 }
 
 /* ---------- cards ---------- */
@@ -536,7 +536,7 @@ body:has(#gsBoard.gs-crowd:not(.hidden)) .page-subtitle {
   justify-content: flex-start;
 }
 
-/* opponents: one line with name and Etappe, their hand and groups side by side below */
+/* opponents: one line with name and Phase, their hand and groups side by side below */
 .gs-crowd .gs-opps .gs-seat {
   display: flex;
   flex-wrap: wrap;
