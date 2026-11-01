@@ -484,7 +484,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gs-event .big.pop,
-  .gs-field.open {
+  .gs-lay-zone.open {
     animation: none;
   }
   .gs-card {
@@ -567,103 +567,6 @@ body:has(#gsBoard.gs-crowd:not(.hidden)) .page-subtitle {
   padding: 3px 4px 4px;
 }
 
-/* ---------- my turn: the three steps ---------- */
-
-.gs-steps {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  margin: 0 0 4px;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-faint);
-}
-
-.gs-steps li {
-  white-space: nowrap;
-  counter-increment: step;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-}
-
-.gs-steps li::before {
-  content: counter(step) ". ";
-}
-
-.gs-steps li.now {
-  color: #fff;
-  background: var(--pink);
-  border-color: var(--pink);
-}
-
-.gs-steps li.done {
-  color: #1f7a4f;
-  text-decoration: line-through;
-}
-
-/* ---------- my Phase: one field per group ---------- */
-
-.gs-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.gs-field {
-  flex: 1 1 130px;
-  display: grid;
-  gap: 4px;
-  min-height: 68px;
-  padding: 6px 8px;
-  border-radius: 12px;
-  border: 2px dashed var(--surface-border);
-  background: var(--surface-solid);
-}
-
-.gs-field.open {
-  cursor: pointer;
-  border-color: var(--pink);
-  animation: gs-glow 1.1s ease infinite;
-}
-
-.gs-field.done {
-  border-style: solid;
-  border-color: #3aa771;
-}
-
-.gs-field-title {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--text-muted);
-}
-
-.gs-field.done .gs-field-title {
-  color: #1f7a4f;
-}
-
-.gs-field-cards {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-}
-
-.gs-field-cards .gs-card {
-  cursor: pointer;
-}
-
-.gs-field-empty {
-  font-size: 12px;
-  color: var(--text-faint);
-}
-
 /* the card I just drew */
 .gs-card.fresh::after {
   content: "neu";
@@ -680,8 +583,218 @@ body:has(#gsBoard.gs-crowd:not(.hidden)) .page-subtitle {
   line-height: 1.3;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gs-field.open {
-    animation: none;
-  }
+/* ---------- the whole table on one phone screen ---------- */
+
+body:has(#gsBoard:not(.hidden)) .page-title,
+body:has(#gsBoard:not(.hidden)) .page-subtitle {
+  display: none;
+}
+
+.gs-board .gs-score {
+  padding-left: 52px;
+  justify-content: flex-start;
+  gap: 4px 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.gs-board .gs-chip {
+  padding: 3px 8px;
+}
+
+.gs-board .gs-opps {
+  gap: 6px;
+}
+
+.gs-board .gs-seat {
+  padding: 7px 10px;
+}
+
+.gs-board .gs-seat-head {
+  gap: 4px 6px;
+  margin-bottom: 4px;
+}
+
+.gs-board .gs-seat-name {
+  font-size: 14px;
+}
+
+.gs-board .gs-badge {
+  padding: 2px 7px;
+  font-size: 10.5px;
+}
+
+.gs-board .gs-seat-etappe {
+  font-size: 11.5px;
+}
+
+/* opponents: their hand (small backs) and their groups side by side */
+.gs-opp-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.gs-opp .gs-opp-hand {
+  flex-wrap: nowrap;
+  min-height: 0;
+  gap: 0;
+}
+
+.gs-opp .gs-opp-hand .gs-card + .gs-card {
+  margin-left: -12px;
+}
+
+.gs-opp .gs-opp-hand .gs-card:not(.gs-back) + .gs-card:not(.gs-back) {
+  margin-left: 1px;
+}
+
+.gs-opp .gs-hand-count {
+  margin-left: 5px;
+  font-size: 11.5px;
+}
+
+.gs-opp .gs-groups {
+  margin-top: 0;
+  gap: 4px;
+}
+
+.gs-board .gs-group {
+  padding: 3px 4px 4px;
+}
+
+.gs-opp .gs-group-title {
+  font-size: 9.5px;
+}
+
+/* deck, discard and what is going on, in one row */
+.gs-board .gs-table {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.gs-board .gs-pile {
+  width: 50px;
+  height: 70px;
+}
+
+.gs-board .gs-pile .gs-card {
+  --w: 50px;
+}
+
+.gs-board .gs-pile-count {
+  font-size: 10.5px;
+}
+
+.gs-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gs-board .gs-event {
+  justify-items: start;
+  text-align: left;
+  margin: 0 0 3px;
+  font-size: 12px;
+}
+
+.gs-board .gs-event .big {
+  font-size: 14.5px;
+}
+
+.gs-board .gs-status {
+  text-align: left;
+  font-size: 13.5px;
+  margin: 0;
+  min-height: 0;
+}
+
+/* my laying area */
+.gs-lay-zone {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 2px dashed var(--surface-border);
+  background: var(--surface-solid);
+  align-content: center;
+}
+
+.gs-lay-zone.open {
+  cursor: pointer;
+  border-color: var(--pink);
+  animation: gs-glow 1.1s ease infinite;
+}
+
+.gs-lay-zone.laid {
+  border-style: solid;
+  border-color: transparent;
+  background: none;
+  padding: 0;
+}
+
+.gs-lay-zone .gs-groups {
+  margin-top: 0;
+}
+
+.gs-lay-need {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.gs-lay-need em {
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.gs-lay-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.gs-lay-zone.open .gs-lay-hint {
+  color: var(--pink-deep);
+  font-weight: 800;
+}
+
+/* my hand: one row, the cards overlap a little */
+.gs-board .gs-hand {
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.gs-board .gs-own .gs-hand .gs-card {
+  --w: var(--hand-w, 40px);
+}
+
+.gs-own .gs-hand .gs-card + .gs-card {
+  margin-left: calc(var(--hand-w, 40px) * -0.16);
+}
+
+.gs-board .gs-sort {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.gs-board .gs-own .gs-sort {
+  margin-left: 0;
+}
+
+.gs-board .gs-own .gs-seat-etappe {
+  margin-left: auto;
+}
+
+/* room for the back arrow next to the round chip */
+.gs-board .gs-score {
+  min-height: 44px;
+  align-items: center;
 }
