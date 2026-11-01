@@ -144,7 +144,7 @@ s = G.drawDeck(s, "Isi", seeded(2));
 ok(s.discard.join() === "m3-0" && s.hands.Isi.length === 2 && s.lastMove.events[0].type === "reshuffle", "the deck runs out: all but the open card are shuffled anew");
 s = table({ Isi: ["r1-0"], Benji: ["g2-0"] }, { discard: ["S-1"] });
 s.step = "draw";
-throwsWith(() => G.drawDiscard(s, "Isi"), /Steinschlag/, "a Steinschlag cannot be picked up");
+throwsWith(() => G.drawDiscard(s, "Isi"), /Aussetzen/, "an Aussetzen card cannot be picked up");
 
 /* ---------- whole games with the computer players ---------- */
 for (const players of [["Udiou", "Klausi"], ["Isi", "Udiou", "Klausi"], ["Isi", "Benji", "Udiou", "Klausi"]]) {

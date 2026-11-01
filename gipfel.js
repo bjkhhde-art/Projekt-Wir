@@ -69,8 +69,8 @@ const CARD_DIR = "phase-cards";
 const COLOUR_FILES = { r: "rot", v: "blau", m: "gruen", g: "gelb" };
 
 function cardImage(card) {
-  if (G.isJoker(card)) return `${CARD_DIR}/stern.png`;
-  if (G.isStone(card)) return `${CARD_DIR}/steinschlag.png`;
+  if (G.isJoker(card)) return `${CARD_DIR}/joker.png`;
+  if (G.isStone(card)) return `${CARD_DIR}/aussetzen.png`;
   return `${CARD_DIR}/${COLOUR_FILES[G.colourOf(card)]}-${G.valueOf(card)}.png`;
 }
 
@@ -251,7 +251,7 @@ function badgeFor(state, person) {
     return state.lastRound && state.lastRound.climbed[person] ? ["laid", "geschafft ✓"] : ["", "bleibt"];
   }
   if (state.turnPerson === person) return ["turn", "am Zug"];
-  if (state.skip[person]) return ["skip", "setzt aus 🪨"];
+  if (state.skip[person]) return ["skip", "setzt aus ⛔"];
   if (state.laid[person]) return ["laid", "liegt aus ✓"];
   return ["", ""];
 }
@@ -259,7 +259,7 @@ function badgeFor(state, person) {
 function groupsEl(state, person, small) {
   const row = document.createElement("div");
   row.className = "gs-groups";
-  const pick = canAct(state) && state.laid[me()] && selected.size === 1 ? [...selected][0] : null;
+  const pick = canAct(state) && selected.size === 1 ? [...selected][0] : null;
   state.groups.filter(group => group.owner === person).forEach(group => {
     const box = document.createElement("div");
     box.className = "gs-group";
@@ -271,6 +271,11 @@ function groupsEl(state, person, small) {
       box.tabIndex = 0;
       box.setAttribute("aria-label", `${G.cardLabel(pick)} an ${groupTitle(group)} anlegen`);
       const add = () => {
+        if (!state.laid[me()]) {
+          showToast("Anlegen geht erst, wenn deine eigene Phase ausliegt.", "error");
+          GameAnim.shake(box);
+          return;
+        }
         if (!G.extendGroup(group, pick)) {
           showToast(`${G.cardLabel(pick)} passt nicht an ${groupTitle(group)}.`, "error");
           GameAnim.shake(box);
@@ -459,9 +464,9 @@ function describe(e, state) {
     case "discard":
       return `${mine ? "Du wirfst" : `${who} wirft`} ${label(e.card)} ab.`;
     case "stone":
-      return `🪨 Steinschlag! ${e.target === me() ? "Du setzt" : `${e.target} setzt`} einmal aus.`;
+      return `⛔ Aussetzen! ${e.target === me() ? "Du setzt" : `${e.target} setzt`} einmal aus.`;
     case "skip":
-      return mine ? "🪨 Du setzt diese Runde aus." : `🪨 ${who} setzt aus.`;
+      return mine ? "⛔ Du setzt diese Runde aus." : `⛔ ${who} setzt aus.`;
     case "reshuffle":
       return "Der Ablagestapel wird neu gemischt.";
     case "out":
@@ -492,7 +497,7 @@ function renderControls(state) {
     const n = state.players.length;
     const nextUp = state.players[(state.players.indexOf(turn) + 1) % n] === me();
     statusEl.textContent = seated(state) && state.skip[me()]
-      ? `${turn} ist dran – du setzt danach aus 🪨`
+      ? `${turn} ist dran – du setzt danach aus ⛔`
       : nextUp ? `${turn} ist dran – danach du.` : `${turn} ist dran …`;
     return;
   }

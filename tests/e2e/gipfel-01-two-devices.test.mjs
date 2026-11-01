@@ -123,7 +123,7 @@ await isi.locator('#gsOwn .gs-hand [data-card="J-0"]').click();
 ok(await isi.locator("#gsOwn .gs-group.target").count() === 3, "with a card chosen, all groups can be tapped");
 await isi.locator("#gsOwn .gs-group.target").first().click();
 await until(async () => (await latest()).state.hands.Isi.length === 3, 4000, "added");
-await until(async () => (await benji.locator("#gsEvent").textContent()).includes("legt Stern bei sich an"), 4000, "Benji told");
+await until(async () => (await benji.locator("#gsEvent").textContent()).includes("legt Joker bei sich an"), 4000, "Benji told");
 ok(true, "Benji sees the Stern being added");
 
 /* a Steinschlag fits nowhere: the tap is refused, then Isi throws it on the discard – Benji sits out, Isi plays again */
