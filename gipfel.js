@@ -48,7 +48,7 @@ document.getElementById("gsRulesList").innerHTML = G.ETAPPEN.map(e =>
 const room = GameRoom.create({
   table: "gipfel_games",
   bot: GameBots.gipfel,
-  title: "Phasenjagd",
+  title: "Phase 10",
   icon: "🎯",
   url: "gipfel.html",
   lobbyEl: document.getElementById("gsLobby"),
