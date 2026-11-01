@@ -1,0 +1,568 @@
+/* Gipfelsturm – board, seats, groups and the cards (drawn in CSS) */
+
+.gs-board {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.gs-score {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0 auto 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.gs-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.gs-chip strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+.gs-chip small {
+  font-size: 11px;
+}
+
+.gs-chip.me {
+  border-color: var(--pink);
+}
+
+.gs-chip.lead strong::before {
+  content: "⛰️ ";
+}
+
+/* ---------- cards ---------- */
+
+.gs-card {
+  --w: 44px;
+  --ink: #3a3a4a;
+  position: relative;
+  flex: none;
+  width: var(--w);
+  height: calc(var(--w) * 1.4);
+  border-radius: calc(var(--w) * 0.16);
+  border: 2px solid var(--ink);
+  background: linear-gradient(165deg, #ffffff, #f4eefa);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(30, 20, 60, 0.18);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gs-card .gs-v {
+  font-size: calc(var(--w) * 0.56);
+}
+
+.gs-card .gs-mark {
+  position: absolute;
+  top: calc(var(--w) * 0.06);
+  left: calc(var(--w) * 0.1);
+  font-size: calc(var(--w) * 0.24);
+  line-height: 1;
+}
+
+.gs-c-r { --ink: #d63a72; background: linear-gradient(165deg, #fff, #ffe3ee); }
+.gs-c-v { --ink: #7c45cc; background: linear-gradient(165deg, #fff, #ece2fb); }
+.gs-c-m { --ink: #138f73; background: linear-gradient(165deg, #fff, #dcf5ec); }
+.gs-c-g { --ink: #b47a00; background: linear-gradient(165deg, #fff, #fbefcc); }
+
+.gs-joker {
+  --ink: #8a5a00;
+  background: conic-gradient(from 30deg, #ff8fb3, #b991ff, #6fe0c2, #ffd36b, #ff8fb3);
+}
+
+.gs-joker .gs-v,
+.gs-stone .gs-v,
+.gs-back .gs-v {
+  font-size: calc(var(--w) * 0.5);
+}
+
+.gs-stone {
+  --ink: #55565f;
+  background: linear-gradient(160deg, #d9d9df, #9c9da8);
+}
+
+.gs-back {
+  --ink: #3b2a6b;
+  background:
+    linear-gradient(160deg, transparent 55%, rgba(255, 255, 255, 0.85) 55% 60%, transparent 60%),
+    linear-gradient(20deg, #6c4fd1 0 45%, #ff6b98 45% 100%);
+}
+
+.gs-card.pickable {
+  cursor: pointer;
+}
+
+.gs-card.selected {
+  transform: translateY(-9px);
+  box-shadow: 0 0 0 3px var(--pink), 0 8px 14px rgba(255, 92, 138, 0.3);
+}
+
+/* ---------- deck and discard ---------- */
+
+.gs-table {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  margin: 14px 0 10px;
+}
+
+.gs-pile-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.gs-pile {
+  position: relative;
+  width: 62px;
+  height: 87px;
+  padding: 0;
+  border-radius: 10px;
+  border: 2px dashed var(--surface-border);
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: default;
+}
+
+.gs-pile .gs-card {
+  --w: 62px;
+}
+
+.gs-pile.has-cards::before {
+  content: "";
+  position: absolute;
+  inset: 4px -4px -4px 4px;
+  border-radius: 10px;
+  background: #6c4fd1;
+  opacity: 0.35;
+}
+
+.gs-pile.can-draw,
+.gs-pile.can-drop {
+  cursor: pointer;
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+  border-radius: 12px;
+}
+
+.gs-pile-count {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ---------- seats ---------- */
+
+.gs-opps {
+  display: grid;
+  gap: 8px;
+}
+
+.gs-seat {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gs-seat.turn {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+}
+
+.gs-seat-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.gs-seat-name {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.gs-seat-etappe {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.gs-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--surface-solid);
+  color: var(--text-muted);
+}
+
+.gs-badge.turn { background: var(--pink); color: #fff; }
+.gs-badge.laid { background: #d9f4e6; color: #1f7a4f; }
+.gs-badge.skip { background: #e6e6ec; color: #4b4c57; }
+.gs-badge.out { background: #fff2b3; color: #8a6400; }
+
+.gs-opp-hand {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 31px;
+}
+
+.gs-opp-hand .gs-back + .gs-back {
+  margin-left: -12px;
+}
+
+.gs-hand-count {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.gs-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gs-group {
+  display: grid;
+  gap: 3px;
+  padding: 5px 6px 6px;
+  border-radius: 10px;
+  background: var(--surface-solid);
+  border: 1.5px solid transparent;
+}
+
+.gs-group.fits {
+  cursor: pointer;
+  border-color: var(--pink);
+  animation: gs-glow 1.1s ease infinite;
+}
+
+.gs-group-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.gs-group-cards {
+  display: flex;
+  gap: 2px;
+}
+
+.gs-goal {
+  margin: -2px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gs-goal span {
+  display: block;
+  margin-top: 3px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.gs-goal em {
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+}
+
+.gs-goal.done {
+  color: #1f7a4f;
+}
+
+.gs-sort {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gs-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 5px;
+  margin-top: 12px;
+  padding-top: 6px;
+}
+
+.gs-own .gs-hand .gs-card {
+  --w: 44px;
+}
+
+.gs-empty {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ---------- messages and actions ---------- */
+
+.gs-event {
+  display: grid;
+  gap: 3px;
+  margin: 0 auto 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
+.gs-event:empty {
+  display: none;
+}
+
+.gs-event .big {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.gs-status {
+  text-align: center;
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 2px 0 10px;
+  min-height: 20px;
+}
+
+.gs-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gs-actions:empty {
+  display: none;
+}
+
+.gs-btn {
+  min-width: 120px;
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.gs-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- round summary ---------- */
+
+.gs-summary {
+  width: 100%;
+  max-width: 440px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+}
+
+.gs-summary h3 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.gs-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.gs-summary th {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.gs-summary th:nth-child(2) {
+  text-align: left;
+}
+
+.gs-summary td {
+  padding: 5px 4px;
+  border-top: 1px solid var(--surface-border);
+}
+
+.gs-summary td:nth-child(3),
+.gs-summary td:last-child {
+  text-align: right;
+  font-family: var(--font-heading);
+  font-weight: 800;
+}
+
+.gs-summary .plus { color: #1f7a4f; font-weight: 700; }
+.gs-summary .zero { color: var(--text-muted); }
+
+.gs-summary .gr-ready {
+  margin-top: 12px;
+}
+
+/* ---------- rules ---------- */
+
+.gs-rules {
+  max-width: 560px;
+  margin: 16px auto 0;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.gs-rules summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.gs-rules p {
+  margin: 8px 0 0;
+}
+
+.gs-rules-list {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+.gs-rules-list span {
+  color: var(--text-muted);
+}
+
+/* ---------- moments ---------- */
+
+@keyframes gs-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.gs-event .big.pop {
+  animation: gs-pop 0.55s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+@keyframes gs-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 92, 138, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 92, 138, 0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-event .big.pop,
+  .gs-group.fits {
+    animation: none;
+  }
+  .gs-card {
+    transition: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .gs-own .gs-hand .gs-card {
+    --w: 40px;
+  }
+}
+
+/* ---------- three or four players: the whole table on one screen ---------- */
+
+body:has(#gsBoard.gs-crowd:not(.hidden)) .page-title,
+body:has(#gsBoard.gs-crowd:not(.hidden)) .page-subtitle {
+  display: none;
+}
+
+.gs-crowd .gs-score {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.gs-crowd .gs-chip {
+  padding: 3px 8px;
+}
+
+.gs-crowd .gs-opps {
+  gap: 6px;
+}
+
+.gs-crowd .gs-opps .gs-seat {
+  padding: 7px 10px;
+}
+
+.gs-crowd .gs-opps .gs-seat-head {
+  margin-bottom: 4px;
+}
+
+.gs-crowd .gs-table {
+  margin: 8px 0 6px;
+}
+
+/* the back arrow sits top left once the title is hidden */
+.gs-crowd .gs-score {
+  padding-left: 52px;
+  justify-content: flex-start;
+}
+
+/* opponents: one line with name and Etappe, their hand and groups side by side below */
+.gs-crowd .gs-opps .gs-seat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 8px;
+}
+
+.gs-crowd .gs-opps .gs-seat-head {
+  flex: 1 0 100%;
+  gap: 6px;
+}
+
+.gs-crowd .gs-opps .gs-seat-name {
+  font-size: 13.5px;
+}
+
+.gs-crowd .gs-opps .gs-badge {
+  padding: 2px 7px;
+  font-size: 10.5px;
+}
+
+.gs-crowd .gs-opps .gs-groups {
+  margin-top: 0;
+  gap: 4px;
+}
+
+.gs-crowd .gs-opps .gs-group {
+  padding: 3px 4px 4px;
+}

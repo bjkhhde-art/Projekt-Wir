@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>I + B | Gipfelsturm</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fdf5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191220" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Projekt Wir">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="game-anim.css">
+  <link rel="stylesheet" href="game-room.css">
+  <link rel="stylesheet" href="gipfel.css">
+  <script src="theme.js"></script>
+  <script src="pin-lock.js"></script>
+</head>
+<body data-nav="games.html">
+
+  <main class="page page-with-back">
+    <a href="games.html" class="page-back" aria-label="Zurück zu den Spielen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <h1 class="page-title">Gipfelsturm ⛰️</h1>
+    <p class="page-subtitle">Acht Etappen bis zum Gipfel – wer kommt zuerst oben an?</p>
+
+    <div id="gsLobby"></div>
+
+    <div id="gsBoard" class="gs-board hidden">
+
+      <div class="gs-score" id="gsScore"></div>
+
+      <div class="gs-opps" id="gsOpps"></div>
+
+      <div class="gs-table">
+        <div class="gs-pile-wrap">
+          <button type="button" class="gs-pile" id="gsDeck" title="Nachziehstapel" aria-label="Vom Stapel ziehen"></button>
+          <span class="gs-pile-count" id="gsDeckCount"></span>
+        </div>
+        <div class="gs-pile-wrap">
+          <button type="button" class="gs-pile gs-discard" id="gsDiscard" title="Ablagestapel" aria-label="Offene Karte"></button>
+          <span class="gs-pile-count">Ablage</span>
+        </div>
+      </div>
+
+      <div class="gs-event" id="gsEvent" aria-live="polite"></div>
+      <p class="gs-status" id="gsStatus"></p>
+      <div class="gs-actions" id="gsActions"></div>
+
+      <section class="gs-seat gs-own" id="gsOwn" aria-label="Deine Karten"></section>
+
+      <div class="gr-leave">
+        <button type="button" id="gsLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+      </div>
+    </div>
+
+    <details class="gs-rules card" id="gsRules">
+      <summary>So wird gespielt</summary>
+      <p>Jede Person hat 9 Karten und klettert durch acht Etappen. Wer dran ist, <strong>zieht</strong> eine Karte – vom Stapel oder die offene vom Ablagestapel –, darf dann die <strong>aktuelle Etappe auf einmal auslegen</strong>, danach einzelne Karten an beliebige Gruppen auf dem Tisch <strong>anlegen</strong> und <strong>wirft</strong> zum Schluss eine Karte ab.</p>
+      <p>⭐ Sterne ersetzen jede Zahl und jede Farbe. 🪨 Wer einen Steinschlag abwirft, lässt die nächste Person einmal aussetzen.</p>
+      <p>Hat jemand keine Karten mehr, ist die Runde vorbei: Wer die Etappe ausgelegt hat, steigt eine auf. Was noch auf der Hand ist, zählt als Punkte (Zahl = Wert, Stern 20, Steinschlag 15). Wer zuerst die achte Etappe schafft, steht auf dem Gipfel – schaffen es mehrere gleichzeitig, gewinnen die wenigsten Punkte.</p>
+      <ol class="gs-rules-list" id="gsRulesList"></ol>
+    </details>
+  </main>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wer welche Karten hat.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">ToDos</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reisen</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Spiele</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
+  <script src="gipfel-engine.js"></script>
+  <script src="game-anim.js"></script>
+  <script src="game-bots.js"></script>
+  <script src="bot-names.js"></script>
+  <script src="game-room.js"></script>
+  <script src="gipfel.js"></script>
+</body>
+</html>

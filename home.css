@@ -30,7 +30,10 @@
   margin: 20px auto 34px;
 }
 
+/* inline-block: only the emoji itself beats – as a full-width block the heartbeat scaled
+   the whole row and pushed it past the right edge of a phone (sideways scrolling) */
 .heart {
+  display: inline-block;
   font-size: 52px;
   margin-bottom: 8px;
   animation: heartbeat 1.8s ease-in-out infinite;
