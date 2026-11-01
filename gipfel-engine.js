@@ -2,13 +2,13 @@
    loaded as <script> in the browser, testable in Node via require.
 
    90 cards: the numbers 1–10 in four colours (Rot, Blau, Grün, Gelb), each twice, plus
-   6 Sterne (jokers) and 4 Steinschläge. Everybody gets 9 cards and climbs ten Etappen (Phasen on the screen),
+   6 Joker and 4 Aussetzen cards. Everybody gets 9 cards and climbs ten Etappen (Phasen on the screen),
    one after the other. On your turn you draw (deck or the open discard), may lay out your
    current Etappe in one go (all its groups at once), may then add single cards to any group
-   on the table, and end by discarding one card. A Steinschlag on the discard makes the next
+   on the table, and end by discarding one card. An Aussetzen on the discard makes the next
    player sit out one turn. The round ends as soon as somebody has no cards left: whoever laid
    out their Etappe climbs one up, everybody counts the cards still in hand as points (number =
-   its value, Stern 20, Steinschlag 15). Whoever finishes the tenth Etappe first is on the
+   its value, Joker 20, Aussetzen 15). Whoever finishes the tenth Etappe first is on the
    summit – if several make it in the same round, the fewest points win. */
 
 const GipfelEngine = (() => {
@@ -38,7 +38,7 @@ const ETAPPEN = [
   { name: "Siebenerreihe", groups: [g("run", 7)] }
 ];
 
-/* ---------- cards: "r7-1" (Rot 7, second copy), "J-3" (Stern), "S-0" (Steinschlag) ---------- */
+/* ---------- cards: "r7-1" (Rot 7, second copy), "J-3" (Joker), "S-0" (Aussetzen) ---------- */
 
 function createDeck() {
   const deck = [];
@@ -65,8 +65,8 @@ function pointsOf(card) {
 }
 
 function cardLabel(card) {
-  if (isJoker(card)) return "Stern";
-  if (isStone(card)) return "Steinschlag";
+  if (isJoker(card)) return "Joker";
+  if (isStone(card)) return "Aussetzen";
   return `${COLOUR_NAMES[colourOf(card)]} ${valueOf(card)}`;
 }
 
@@ -322,7 +322,7 @@ function drawDiscard(state, person) {
   assertTurn(state, person, "draw");
   const top = state.discard[state.discard.length - 1];
   if (!top) throw new Error("Der Ablagestapel ist leer.");
-  if (isStone(top)) throw new Error("Einen Steinschlag kann man nicht aufnehmen.");
+  if (isStone(top)) throw new Error("Eine Aussetzen-Karte kann man nicht aufnehmen.");
   const next = begin(state);
   next.discard.pop();
   next.hands[person].push(top);
@@ -372,7 +372,7 @@ function addToGroup(state, person, card, groupId) {
   return recordMove(next, { type: "add", person });
 }
 
-/* the next one at the table, sitting out whoever was hit by a Steinschlag */
+/* the next one at the table, sitting out whoever was hit by an Aussetzen card */
 function advanceTurn(state, from) {
   const n = state.players.length;
   let index = state.players.indexOf(from);
