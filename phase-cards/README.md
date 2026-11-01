@@ -3,7 +3,7 @@
 Jede Karte ist ein eigenes Bild. Zum Austauschen einfach eine Datei mit **genau
 demselben Namen** hochladen (überschreiben) – das Spiel zeigt sie sofort.
 
-- Zahlenkarten: `rosa-1.png` … `rosa-10.png`, `lila-…`, `mint-…`, `gold-…` (je 1–10)
+- Zahlenkarten: `rot-1.png` … `rot-10.png`, `blau-…`, `gruen-…`, `gelb-…` (je 1–10)
 - Joker: `stern.png`
 - Aussetzen: `steinschlag.png`
 - Rückseite: `rueckseite.png`

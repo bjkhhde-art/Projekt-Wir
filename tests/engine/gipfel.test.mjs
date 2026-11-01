@@ -52,8 +52,8 @@ ok(run && run.start === 3 && run.cards[1] === "J-1", "a Fünferreihe 3–7, the 
 ok(G.makeGroup("run", ["r3-0", "m3-1", "g4-0"], 3) === null, "a number twice breaks a row");
 ok(G.makeGroup("run", ["r9-0", "m10-1", "J-0"], 3).start === 8, "at the top end the Stern goes below: 8–10");
 ok(G.makeGroup("run", ["r1-0", "m5-1", "J-0"], 3) === null, "1 and 5 are too far apart for three cards");
-ok(G.makeGroup("color", ["m1-0", "m9-0", "m4-1", "J-2", "m2-0"], 5).colour === "m", "Fünf in Mint");
-ok(G.makeGroup("crun", ["v2-0", "v3-0", "J-0", "v5-1"], 4).start === 2, "a Farbreihe in Lila");
+ok(G.makeGroup("color", ["m1-0", "m9-0", "m4-1", "J-2", "m2-0"], 5).colour === "m", "Fünf in Grün");
+ok(G.makeGroup("crun", ["v2-0", "v3-0", "J-0", "v5-1"], 4).start === 2, "a Farbreihe in Blau");
 ok(G.makeGroup("crun", ["v2-0", "r3-0", "v4-0", "v5-1"], 4) === null, "a Farbreihe needs one colour");
 
 ok(G.extendGroup(run, "m8-0").cards.length === 6 && G.extendGroup(run, "r2-1").start === 2, "a row grows at both ends");
@@ -114,7 +114,7 @@ throwsWith(() => G.addToGroup(s, "Isi", "v6-0", pairOf9), /passt da nicht/, "a 6
 s = G.discard(s, "Isi", "S-0");
 ok(s.skip.Benji === false && s.turnPerson === "Isi" && s.lastMove.events.some(e => e.type === "stone" && e.target === "Benji") && s.lastMove.events.some(e => e.type === "skip" && e.person === "Benji"), "a Steinschlag: Benji sits out, Isi plays again");
 s = G.drawDeck(s, "Isi");
-ok(s.hands.Isi.includes("m9-1"), "Isi draws the Mint 9");
+ok(s.hands.Isi.includes("m9-1"), "Isi draws the Grün 9");
 s = G.addToGroup(s, "Isi", "m9-1", pairOf9);
 ok(s.groups.find(gr => gr.id === pairOf9).cards.length === 3, "and adds it to her 9er Paar");
 s.hands.Isi = ["v6-0"];

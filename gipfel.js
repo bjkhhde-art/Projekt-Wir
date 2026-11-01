@@ -66,7 +66,7 @@ const seated = state => state.players.includes(me());
 
 /* every card is a picture in phase-cards/ – replace a file there (same name) to change how a card looks */
 const CARD_DIR = "phase-cards";
-const COLOUR_FILES = { r: "rosa", v: "lila", m: "mint", g: "gold" };
+const COLOUR_FILES = { r: "rot", v: "blau", m: "gruen", g: "gelb" };
 
 function cardImage(card) {
   if (G.isJoker(card)) return `${CARD_DIR}/stern.png`;

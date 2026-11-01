@@ -79,7 +79,7 @@ await fetch(`${API}/games/${game.id}`, {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ state: s, version: (game.version || 0) + 1 })
 });
-/* the open Lila 3 only exists in the stacked state – the real deal may also have given Isi the S-0 */
+/* the open Blau 3 only exists in the stacked state – the real deal may also have given Isi the S-0 */
 await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw") && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1 && await isi.locator('#gsDiscard [data-card="v3-1"]').count() === 1, 5000, "stacked state on Isi's phone");
 await until(async () => (await benji.locator("#gsStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#gsStatus").textContent()).includes("Du bist dran"), "Isi is asked to draw");
