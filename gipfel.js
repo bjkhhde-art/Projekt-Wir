@@ -16,7 +16,6 @@ const actionsEl = document.getElementById("gsActions");
 const STEP_MS = 280;
 const DEAL_STEP_MS = 70;
 const FLY_MS = 460;
-const COLOUR_MARKS = { r: "♥", v: "◆", m: "●", g: "▲" };
 const SORT_KEY = "gs_sort";
 
 let lastAnimatedMove = { gameId: null, seq: null };
@@ -65,33 +64,38 @@ const seated = state => state.players.includes(me());
 
 /* ---------- cards ---------- */
 
-function cardEl(card, width) {
+/* every card is a picture in phase-cards/ – replace a file there (same name) to change how a card looks */
+const CARD_DIR = "phase-cards";
+const COLOUR_FILES = { r: "rosa", v: "lila", m: "mint", g: "gold" };
+
+function cardImage(card) {
+  if (G.isJoker(card)) return `${CARD_DIR}/stern.png`;
+  if (G.isStone(card)) return `${CARD_DIR}/steinschlag.png`;
+  return `${CARD_DIR}/${COLOUR_FILES[G.colourOf(card)]}-${G.valueOf(card)}.png`;
+}
+
+function pictureCard(className, src, label, width) {
   const el = document.createElement("div");
-  if (G.isJoker(card)) {
-    el.className = "gs-card gs-joker";
-    el.innerHTML = `<span class="gs-v">⭐</span>`;
-  } else if (G.isStone(card)) {
-    el.className = "gs-card gs-stone";
-    el.innerHTML = `<span class="gs-v">🪨</span>`;
-  } else {
-    const colour = G.colourOf(card);
-    const value = G.valueOf(card);
-    el.className = `gs-card gs-c-${colour}`;
-    el.innerHTML = `<span class="gs-v">${value}</span><span class="gs-mark" aria-hidden="true">${COLOUR_MARKS[colour]}</span>`;
-  }
-  el.setAttribute("aria-label", G.cardLabel(card));
-  el.dataset.card = card;
+  el.className = `gs-card gs-img ${className}`;
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = "";
+  img.draggable = false;
+  el.appendChild(img);
+  el.setAttribute("aria-label", label);
   if (width) el.style.setProperty("--w", `${width}px`);
   return el;
 }
 
-function backEl(width) {
-  const el = document.createElement("div");
-  el.className = "gs-card gs-back";
-  el.innerHTML = `<span class="gs-v">🎯</span>`;
-  el.setAttribute("aria-label", "Verdeckte Karte");
-  if (width) el.style.setProperty("--w", `${width}px`);
+function cardEl(card, width) {
+  const kind = G.isJoker(card) ? "gs-joker" : G.isStone(card) ? "gs-stone" : `gs-c-${G.colourOf(card)}`;
+  const el = pictureCard(kind, cardImage(card), G.cardLabel(card), width);
+  el.dataset.card = card;
   return el;
+}
+
+function backEl(width) {
+  return pictureCard("gs-back", `${CARD_DIR}/rueckseite.png`, "Verdeckte Karte", width);
 }
 
 /* every visible card has a key, so a flying copy can land exactly on it */
