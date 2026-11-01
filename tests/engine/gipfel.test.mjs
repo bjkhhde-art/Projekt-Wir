@@ -40,7 +40,7 @@ ok(deck.length === 90 && new Set(deck).size === 90, "90 different cards");
 ok(deck.filter(G.isNatural).length === 80 && deck.filter(G.isJoker).length === 6 && deck.filter(G.isStone).length === 4, "80 numbers, 6 Sterne, 4 Steinschläge");
 ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 20), "each colour: 1–10 twice");
 ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Stern 20, Steinschlag 15");
-ok(G.ETAPPEN.length === 8 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "eight Etappen, each fits into a hand of 9");
+ok(G.ETAPPEN.length === 8 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "eight Phasen, each fits into a hand of 9");
 
 /* ---------- groups ---------- */
 ok(G.makeGroup("set", ["r5-0", "v5-1", "J-0"], 3).value === 5, "a Drilling with a Stern");
@@ -100,12 +100,12 @@ s = table({
   Isi: ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0", "v6-0", "v7-0", "S-0", "m10-0"],
   Benji: ["g2-0", "g2-1", "r3-0", "m3-0", "v8-0", "v8-1", "g5-0", "g6-0", "g7-0"]
 });
-throwsWith(() => G.addToGroup(s, "Isi", "v6-0", 1), /erst, wenn deine Etappe/, "adding only after the own Etappe");
-throwsWith(() => G.layDown(s, "Isi", ["r1-0", "v1-0", "r4-0", "m9-0", "J-0", "g4-0", "v6-0"]), /klappt/, "every chosen card must fit into the Etappe");
+throwsWith(() => G.addToGroup(s, "Isi", "v6-0", 1), /erst, wenn deine Phase/, "adding only after the own Phase");
+throwsWith(() => G.layDown(s, "Isi", ["r1-0", "v1-0", "r4-0", "m9-0", "J-0", "g4-0", "v6-0"]), /klappt/, "every chosen card must fit into the Phase");
 s = G.layDown(s, "Isi", ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0"]);
 ok(s.laid.Isi && s.groups.length === 3 && s.groups.every(gr => gr.owner === "Isi") && s.hands.Isi.length === 4, "Drei Paare lie on the table");
 ok(s.lastMove.events[0].type === "lay" && s.lastMove.events[0].cards.length === 6, "the move tells which cards flew where");
-throwsWith(() => G.layDown(s, "Isi", ["v6-0", "v7-0"]), /schon aus/, "only one Etappe per round");
+throwsWith(() => G.layDown(s, "Isi", ["v6-0", "v7-0"]), /schon aus/, "only one Phase per round");
 const pairOf9 = s.groups.find(gr => gr.value === 9).id;
 throwsWith(() => G.addToGroup(s, "Isi", "v6-0", pairOf9), /passt da nicht/, "a 6 does not fit a 9er Paar");
 s = G.discard(s, "Isi", "S-0");
@@ -117,16 +117,16 @@ ok(s.groups.find(gr => gr.id === pairOf9).cards.length === 3, "and adds it to he
 s.hands.Isi = ["v6-0"];
 s = G.discard(s, "Isi", "v6-0");
 ok(s.phase === "round-over" && s.lastRound.out === "Isi", "no cards left: the round is over");
-ok(s.etappe.Isi === 1 && s.etappe.Benji === 0, "Isi climbs to Etappe 2, Benji stays");
+ok(s.etappe.Isi === 1 && s.etappe.Benji === 0, "Isi climbs to Phase 2, Benji stays");
 ok(s.lastRound.points.Benji === 2 + 2 + 3 + 3 + 8 + 8 + 5 + 6 + 7 && s.scores.Benji === 44 && s.scores.Isi === 0, "Benji counts his hand: 44 points");
 throwsWith(() => G.drawDeck(s, "Benji"), /vorbei/, "nothing more to play");
 const r2 = G.nextRound(s, "Isi", seeded(5));
-ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 90 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Etappen and points carry over");
+ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 90 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Phasen and points carry over");
 
 /* going out by laying everything at once */
 s = table({ Isi: ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"], Benji: ["g2-0"] }, { etappe: { Isi: 7, Benji: 7 } });
 s = G.layDown(s, "Isi", ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"]);
-ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.wins.Isi === 1, "the Siebenerreihe on the last Etappe: Isi reaches the summit");
+ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.wins.Isi === 1, "the Siebenerreihe on the last Phase: Isi wins");
 
 /* two on the summit in the same round: fewer points win */
 s = table({ Isi: ["r9-0"], Benji: ["g2-0"] }, { etappe: { Isi: 7, Benji: 7 }, scores: { Isi: 10, Benji: 30 } });
@@ -161,7 +161,7 @@ for (const players of [["Udiou", "Klausi"], ["Isi", "Udiou", "Klausi"], ["Isi", 
 }
 const bot = table({ Udiou: ["r5-0", "v5-0", "g5-0", "m1-0", "m2-0", "m3-0", "S-0", "v9-1", "g10-0", "r7-0"], Isi: ["g2-0"] }, { etappe: { Udiou: 1, Isi: 0 } });
 const laidByBot = Bots.gipfel.play(bot, "Udiou");
-ok(laidByBot.laid.Udiou && laidByBot.groups.length === 2, "a bot lays out its Etappe as soon as it can");
+ok(laidByBot.laid.Udiou && laidByBot.groups.length === 2, "a bot lays out its Phase as soon as it can");
 ok(Bots.gipfel.play(laidByBot, "Isi") === null, "and never plays for anybody else");
 const stoneThrow = Bots.gipfel.play({ ...laidByBot, hands: { ...laidByBot.hands, Udiou: ["S-0", "v9-1"] } }, "Udiou");
 ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"), "a bot throws a Steinschlag at the next one");

@@ -1,4 +1,4 @@
-/* Gipfelsturm for 2–4 players. Lobby, invites, bots, moves and live sync come from game-room.js,
+/* Phasenjagd for 2–4 players. Lobby, invites, bots, moves and live sync come from game-room.js,
    the flying cards from game-anim.js – the same animations as in Cabo and Flip 7. */
 const G = GipfelEngine;
 
@@ -48,8 +48,8 @@ document.getElementById("gsRulesList").innerHTML = G.ETAPPEN.map(e =>
 const room = GameRoom.create({
   table: "gipfel_games",
   bot: GameBots.gipfel,
-  title: "Gipfelsturm",
-  icon: "⛰️",
+  title: "Phasenjagd",
+  icon: "🎯",
   url: "gipfel.html",
   lobbyEl: document.getElementById("gsLobby"),
   boardEl,
@@ -88,7 +88,7 @@ function cardEl(card, width) {
 function backEl(width) {
   const el = document.createElement("div");
   el.className = "gs-card gs-back";
-  el.innerHTML = `<span class="gs-v">⛰️</span>`;
+  el.innerHTML = `<span class="gs-v">🎯</span>`;
   el.setAttribute("aria-label", "Verdeckte Karte");
   if (width) el.style.setProperty("--w", `${width}px`);
   return el;
@@ -175,7 +175,7 @@ function renderScore(state) {
       ${escapeHtml(nameFor(p))} <strong>${Math.min(state.etappe[p] + 1, G.ETAPPEN.length)}/${G.ETAPPEN.length}</strong> <small>${state.scores[p]} Pkt.</small>
     </span>`).join("");
   const wins = state.players.some(p => state.wins[p] > 0)
-    ? `<span class="gs-chip">Gipfel: ${state.players.map(p => `${escapeHtml(nameFor(p))} ${state.wins[p] || 0}`).join(" · ")}</span>`
+    ? `<span class="gs-chip">Siege: ${state.players.map(p => `${escapeHtml(nameFor(p))} ${state.wins[p] || 0}`).join(" · ")}</span>`
     : "";
   scoreEl.innerHTML = `${chips}<span class="gs-chip">Runde <strong>${state.round}</strong></span>${wins}`;
 }
@@ -222,7 +222,7 @@ function dropSelected() {
 
 function etappeText(state, person) {
   const index = Math.min(state.etappe[person], G.ETAPPEN.length - 1);
-  return `Etappe ${index + 1}: ${G.ETAPPEN[index].name}`;
+  return `Phase ${index + 1}: ${G.ETAPPEN[index].name}`;
 }
 
 function badgeFor(state, person) {
@@ -319,7 +319,7 @@ function fillOwn(state) {
   const etappe = G.ETAPPEN[index];
   const laid = state.laid[person];
   const goal = laid && state.phase === "play"
-    ? `<p class="gs-goal done">✓ Etappe ${index + 1} liegt aus – jetzt anlegen und Karten loswerden</p>`
+    ? `<p class="gs-goal done">✓ Phase ${index + 1} liegt aus – jetzt anlegen und Karten loswerden</p>`
     : `<p class="gs-goal">Deine ${escapeHtml(etappeText(state, person))} <span>${etappe.groups.map(g => `<em>${escapeHtml(G.groupLabel(g))}</em>`).join(" + ")}</span></p>`;
   ownEl.innerHTML = `
     <div class="gs-seat-head">
@@ -388,7 +388,7 @@ function describe(e, state) {
       if (e.from === "discard") return mine ? `Du nimmst die offene ${label(e.card)}.` : `${who} nimmt die offene ${label(e.card)}.`;
       return mine ? `Du ziehst ${label(e.card)}.` : `${who} zieht vom Stapel.`;
     case "lay":
-      return { big: true, text: mine ? `⛰️ Du legst Etappe ${e.etappe + 1} aus!` : `⛰️ ${who} legt Etappe ${e.etappe + 1} aus!` };
+      return { big: true, text: mine ? `🎯 Du legst Phase ${e.etappe + 1} aus!` : `🎯 ${who} legt Phase ${e.etappe + 1} aus!` };
     case "add": {
       const where = e.owner === e.person ? (mine ? "bei dir" : "bei sich") : e.owner === me() ? "bei dir" : `bei ${e.owner}`;
       return `${mine ? "Du legst" : `${who} legt`} ${label(e.card)} ${where} an.`;
@@ -445,7 +445,7 @@ function renderControls(state) {
     const top = state.discard[state.discard.length - 1];
     statusEl.textContent = "Du bist dran: Zieh vom Stapel oder nimm die offene Karte.";
     actionsEl.append(
-      button("gsDrawDeck", "Vom Stapel ⛰️", () => room.dispatch(G.drawDeck)),
+      button("gsDrawDeck", "Vom Stapel 🃏", () => room.dispatch(G.drawDeck)),
       button("gsDrawDiscard", top && !G.isStone(top) ? `${G.cardLabel(top)} nehmen` : "Offene nehmen", () => room.dispatch(G.drawDiscard), { secondary: true, disabled: !top || G.isStone(top) })
     );
     return;
@@ -454,9 +454,9 @@ function renderControls(state) {
   const laid = state.laid[me()];
   const count = selected.size;
   if (!laid) {
-    statusEl.textContent = count ? `${count} ${count === 1 ? "Karte" : "Karten"} gewählt` : "Wähle Karten für deine Etappe – oder wirf eine ab.";
+    statusEl.textContent = count ? `${count} ${count === 1 ? "Karte" : "Karten"} gewählt` : "Wähle Karten für deine Phase – oder wirf eine ab.";
     actionsEl.append(
-      button("gsLay", "Etappe auslegen ⛰️", () => {
+      button("gsLay", "Phase auslegen 🎯", () => {
         const cards = [...selected];
         selected.clear();
         room.dispatch(G.layDown, cards);
@@ -464,7 +464,7 @@ function renderControls(state) {
       button("gsHint", "💡 Vorschlag", () => {
         const found = G.findLaydown(state.etappe[me()], state.hands[me()]);
         if (!found) {
-          showToast("Die Etappe ist noch nicht auf deiner Hand.", "error");
+          showToast("Die Phase ist noch nicht auf deiner Hand.", "error");
           return;
         }
         selected.clear();
@@ -489,18 +489,18 @@ function renderSummary(state) {
   const order = state.players.slice().sort((a, b) => state.etappe[b] - state.etappe[a] || state.scores[a] - state.scores[b]);
   const rows = order.map(p => {
     const climbed = last.climbed[p];
-    const level = state.etappe[p] >= G.ETAPPEN.length ? "Gipfel 🏔️" : `Etappe ${state.etappe[p] + 1}`;
+    const level = state.etappe[p] >= G.ETAPPEN.length ? "alle geschafft 🏆" : `Phase ${state.etappe[p] + 1}`;
     return `<tr><td>${escapeHtml(nameFor(p))}</td><td class="${climbed ? "plus" : "zero"}">${climbed ? "▲" : "–"} ${level}</td><td>+${last.points[p] || 0}</td><td>${state.scores[p]}</td></tr>`;
   }).join("");
   const box = document.createElement("div");
   box.className = "gs-summary";
   box.innerHTML = `
-    <h3>${finished ? "Endstand 🏔️" : `Nach Runde ${last.round}`}</h3>
+    <h3>${finished ? "Endstand 🏆" : `Nach Runde ${last.round}`}</h3>
     <table><thead><tr><th></th><th>Weiter mit</th><th>Runde</th><th>Pkt.</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="gs-next"></div>`;
   actionsEl.appendChild(box);
   room.renderReady(box.querySelector(".gs-next"), state, finished
-    ? { label: "Neue Partie ⛰️", nextFn: G.newGame }
+    ? { label: "Neue Partie 🎯", nextFn: G.newGame }
     : { label: "Nächste Runde ▶", nextFn: G.nextRound });
   const cheerKey = `${state.gameNo}`;
   if (finished && state.result && state.result.winners.includes(me()) && cheeredGame !== cheerKey) {

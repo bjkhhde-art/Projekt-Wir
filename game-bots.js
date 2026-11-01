@@ -1,4 +1,4 @@
-/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7, Monopoly and Gipfelsturm.
+/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7, Monopoly and Phasenjagd.
 
    Both play by the same rules; each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
    play() only uses what a careful human at the table could know: in Cabo the bot keeps its own
@@ -474,9 +474,9 @@ const monopoly = {
   }
 };
 
-/* ---------- Gipfelsturm ---------- */
+/* ---------- Phasenjagd ---------- */
 
-/* how much a card helps towards the current Etappe, given the rest of the hand */
+/* how much a card helps towards the current Phase, given the rest of the hand */
 function gipfelKeep(G, etappe, hand, card) {
   if (G.isJoker(card)) return 100;
   if (G.isStone(card)) return -10;

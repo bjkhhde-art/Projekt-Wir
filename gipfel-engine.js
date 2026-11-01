@@ -1,4 +1,4 @@
-/* Gipfelsturm – our own phase rummy for 2–4 players. Pure rules, no DOM:
+/* Phasenjagd – our own phase rummy for 2–4 players. Pure rules, no DOM:
    loaded as <script> in the browser, testable in Node via require.
 
    90 cards: the numbers 1–10 in four colours (Rosa, Lila, Mint, Gold), each twice, plus
@@ -284,7 +284,7 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand) {
 function createInitialState(playersOrHost, guestPerson, rand = Math.random) {
   if (typeof guestPerson === "function") { rand = guestPerson; guestPerson = null; }
   const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, guestPerson].filter(Boolean);
-  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Gipfelsturm braucht 2 bis 4 Personen.");
+  if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Phasenjagd braucht 2 bis 4 Personen.");
   return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand);
 }
 
@@ -334,7 +334,7 @@ function drawDiscard(state, person) {
 /* lay out the current Etappe: the chosen cards must make up all its groups at once */
 function layDown(state, person, cards) {
   assertTurn(state, person, "act");
-  if (state.laid[person]) throw new Error("Deine Etappe liegt schon aus.");
+  if (state.laid[person]) throw new Error("Deine Phase liegt schon aus.");
   const chosen = Array.from(new Set(cards || []));
   chosen.forEach(card => { if (!state.hands[person].includes(card)) throw new Error("Diese Karte hast du nicht auf der Hand."); });
   const etappe = state.etappe[person];
@@ -356,7 +356,7 @@ function layDown(state, person, cards) {
 /* add one card to any group on the table – only once your own Etappe is out */
 function addToGroup(state, person, card, groupId) {
   assertTurn(state, person, "act");
-  if (!state.laid[person]) throw new Error("Anlegen geht erst, wenn deine Etappe ausliegt.");
+  if (!state.laid[person]) throw new Error("Anlegen geht erst, wenn deine Phase ausliegt.");
   if (!state.hands[person].includes(card)) throw new Error("Diese Karte hast du nicht auf der Hand.");
   const index = state.groups.findIndex(group => group.id === groupId);
   if (index === -1) throw new Error("Diese Gruppe gibt es nicht.");
