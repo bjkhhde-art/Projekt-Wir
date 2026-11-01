@@ -1,7 +1,7 @@
 /* Phasenjagd – our own phase rummy for 2–4 players. Pure rules, no DOM:
    loaded as <script> in the browser, testable in Node via require.
 
-   90 cards: the numbers 1–10 in four colours (Rosa, Lila, Mint, Gold), each twice, plus
+   90 cards: the numbers 1–10 in four colours (Rot, Blau, Grün, Gelb), each twice, plus
    6 Sterne (jokers) and 4 Steinschläge. Everybody gets 9 cards and climbs ten Etappen (Phasen on the screen),
    one after the other. On your turn you draw (deck or the open discard), may lay out your
    current Etappe in one go (all its groups at once), may then add single cards to any group
@@ -17,7 +17,7 @@ const MAX_PLAYERS = 4;
 const HAND_SIZE = 9;
 const MAX_VALUE = 10;
 const COLOURS = ["r", "v", "m", "g"];
-const COLOUR_NAMES = { r: "Rosa", v: "Lila", m: "Mint", g: "Gold" };
+const COLOUR_NAMES = { r: "Rot", v: "Blau", m: "Grün", g: "Gelb" };
 const JOKERS = 6;
 const STONES = 4;
 const JOKER_POINTS = 20;
@@ -38,7 +38,7 @@ const ETAPPEN = [
   { name: "Siebenerreihe", groups: [g("run", 7)] }
 ];
 
-/* ---------- cards: "r7-1" (Rosa 7, second copy), "J-3" (Stern), "S-0" (Steinschlag) ---------- */
+/* ---------- cards: "r7-1" (Rot 7, second copy), "J-3" (Stern), "S-0" (Steinschlag) ---------- */
 
 function createDeck() {
   const deck = [];
