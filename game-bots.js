@@ -508,6 +508,17 @@ function gipfelDiscardChoice(G, state, bot) {
     gipfelKeep(G, etappe, hand, a) - gipfelKeep(G, etappe, hand, b) || G.pointsOf(b) - G.pointsOf(a))[0];
 }
 
+const GIPFEL_OPEN_STREAK = 4;
+
+/* the open card is only worth it if it is clearly better than the card it would push out of the hand */
+function gipfelImproves(G, state, bot, top) {
+  const etappe = state.etappe[bot];
+  const more = [...state.hands[bot], top];
+  const out = gipfelDiscardChoice(G, { ...state, hands: { ...state.hands, [bot]: more } }, bot);
+  if (out === top) return false;
+  return gipfelKeep(G, etappe, more, top) >= 3 && gipfelKeep(G, etappe, more, top) > gipfelKeep(G, etappe, more, out);
+}
+
 function gipfelPlay(state, bot) {
   const G = lib("GipfelEngine");
   if (!state.players.includes(bot) || state.phase !== "play" || state.turnPerson !== bot) return null;
@@ -515,13 +526,13 @@ function gipfelPlay(state, bot) {
 
   if (state.step === "draw") {
     const top = state.discard[state.discard.length - 1];
-    if (top && !G.isStone(top)) {
+    /* after a few open cards in a row the bot draws blind again – two bots must never trade the same cards forever */
+    if (top && !G.isStone(top) && (state.openStreak || 0) < GIPFEL_OPEN_STREAK) {
+      const etappe = state.etappe[bot];
+      const more = [...hand, top];
       const wanted = G.isJoker(top)
         || (state.laid[bot] ? G.fittingGroups(state, top).length > 0
-          : Boolean(G.findLaydown(state.etappe[bot], [...hand, top]))
-            || (gipfelKeep(G, state.etappe[bot], [...hand, top], top) >= 3
-              /* never pick up the card it would throw away again at once – two bots would pass it back and forth */
-              && gipfelDiscardChoice(G, { ...state, hands: { ...state.hands, [bot]: [...hand, top] } }, bot) !== top));
+          : Boolean(G.findLaydown(etappe, more)) || gipfelImproves(G, state, bot, top));
       if (wanted) return G.drawDiscard(state, bot);
     }
     return G.drawDeck(state, bot);

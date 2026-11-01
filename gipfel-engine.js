@@ -247,6 +247,7 @@ function startRound(state, rand) {
   state.skip = perPlayer(state.players, () => false);
   state.groups = [];
   state.nextGroupId = 1;
+  state.openStreak = 0;
   state.readyNext = [];
   const n = state.players.length;
   for (let i = 0; i < HAND_SIZE; i++) {
@@ -310,6 +311,7 @@ function drawDeck(state, person, rand = Math.random) {
   const card = next.deck.pop();
   next.hands[person].push(card);
   next.step = "act";
+  next.openStreak = 0;
   event(next, { type: "draw", person, from: "deck", card });
   return recordMove(next, { type: "draw", person });
 }
@@ -323,6 +325,8 @@ function drawDiscard(state, person) {
   next.discard.pop();
   next.hands[person].push(top);
   next.step = "act";
+  /* how many open cards were taken in a row (the computer players use it not to trade cards forever) */
+  next.openStreak = (next.openStreak || 0) + 1;
   event(next, { type: "draw", person, from: "discard", card: top });
   return recordMove(next, { type: "draw", person });
 }
