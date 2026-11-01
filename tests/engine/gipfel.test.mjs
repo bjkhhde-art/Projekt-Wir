@@ -40,7 +40,7 @@ ok(deck.length === 90 && new Set(deck).size === 90, "90 different cards");
 ok(deck.filter(G.isNatural).length === 80 && deck.filter(G.isJoker).length === 6 && deck.filter(G.isStone).length === 4, "80 numbers, 6 Sterne, 4 Steinschläge");
 ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 20), "each colour: 1–10 twice");
 ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Stern 20, Steinschlag 15");
-ok(G.ETAPPEN.length === 8 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "eight Phasen, each fits into a hand of 9");
+ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 9");
 
 /* ---------- groups ---------- */
 ok(G.makeGroup("set", ["r5-0", "v5-1", "J-0"], 3).value === 5, "a Drilling with a Stern");
@@ -65,8 +65,11 @@ ok(G.extendGroup(G.makeGroup("crun", ["v2-0", "v3-0", "v4-0", "v5-1"], 4), "r6-0
 ok(G.partition(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0"]).length === 3, "Drei Paare, one with a Stern");
 ok(G.partition(1, ["r5-0", "v5-1", "g5-0", "m1-0", "m2-0", "r3-1"]) !== null, "Drilling + Dreierreihe in any order");
 ok(G.partition(1, ["r5-0", "v5-1", "g5-0", "m1-0", "m2-0"]) === null, "one card short");
-ok(G.findLaydown(2, ["r1-0", "r2-1", "J-0", "g4-0", "m5-0", "S-1", "v9-0", "r9-1", "g9-1"]).length === 5, "the hint finds the Fünferreihe");
-ok(G.findLaydown(2, ["r1-0", "r2-1", "g4-0", "m6-0", "S-1", "v9-0", "r9-1", "g9-1", "m10-0"]) === null, "and says when there is none");
+ok(G.partition(2, ["r1-0", "v2-0", "g3-1", "m7-0", "J-1", "r9-0"]) !== null, "Zwei Dreierreihen: 1–3 and 7–9 with a Stern");
+ok(G.partition(2, ["r1-0", "v2-0", "g3-1", "m7-0", "m7-1", "r9-0"]) === null, "a 7 twice is no row");
+ok(G.partition(8, ["r6-0", "v6-0", "g6-1", "J-2", "m2-0", "m3-0", "r4-1"]) !== null, "Vierling + Dreierreihe");
+ok(G.findLaydown(3, ["r1-0", "r2-1", "J-0", "g4-0", "m5-0", "S-1", "v9-0", "r9-1", "g9-1"]).length === 5, "the hint finds the Fünferreihe");
+ok(G.findLaydown(3, ["r1-0", "r2-1", "g4-0", "m6-0", "S-1", "v9-0", "r9-1", "g9-1", "m10-0"]) === null, "and says when there is none");
 ok(G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0", "m2-0"]).includes("J-0"), "the hint spends a Stern when it is needed");
 ok(!G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "g9-0", "J-0"]).includes("J-0"), "no Stern spent when three real Paare are there");
 
@@ -124,12 +127,12 @@ const r2 = G.nextRound(s, "Isi", seeded(5));
 ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 90 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Phasen and points carry over");
 
 /* going out by laying everything at once */
-s = table({ Isi: ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"], Benji: ["g2-0"] }, { etappe: { Isi: 7, Benji: 7 } });
+s = table({ Isi: ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"], Benji: ["g2-0"] }, { etappe: { Isi: 9, Benji: 9 } });
 s = G.layDown(s, "Isi", ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"]);
 ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.wins.Isi === 1, "the Siebenerreihe on the last Phase: Isi wins");
 
 /* two on the summit in the same round: fewer points win */
-s = table({ Isi: ["r9-0"], Benji: ["g2-0"] }, { etappe: { Isi: 7, Benji: 7 }, scores: { Isi: 10, Benji: 30 } });
+s = table({ Isi: ["r9-0"], Benji: ["g2-0"] }, { etappe: { Isi: 9, Benji: 9 }, scores: { Isi: 10, Benji: 30 } });
 s.laid = { Isi: true, Benji: true };
 s = G.discard(s, "Isi", "r9-0");
 ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.scores.Benji === 32, "both on the summit – Isi has fewer points");
@@ -155,7 +158,7 @@ for (const players of [["Udiou", "Klausi"], ["Isi", "Udiou", "Klausi"], ["Isi", 
       assert.ok(st && G.countCards(st) === 90, "every card stays somewhere");
     }
     rounds += st.round;
-    assert.ok(st.result.winners.every(p => st.etappe[p] === 8));
+    assert.ok(st.result.winners.every(p => st.etappe[p] === G.ETAPPEN.length));
   }
   ok(rounds / 25 >= 8, `${players.length} bots always reach the summit (${(rounds / 25).toFixed(1)} rounds on average)`);
 }

@@ -37,7 +37,7 @@ const benji = await phone("Benji");
 
 /* lobby, like Cabo: up to four, friends by link, computer players */
 ok(await isi.locator("#grStartBtn").count() === 1, "Phasenjagd starts with a lobby");
-ok(await isi.locator("#gsRulesList li").count() === 8, "the rules list all eight Phasen");
+ok(await isi.locator("#gsRulesList li").count() === 10, "the rules list all ten Phasen");
 await isi.click("#grStartBtn");
 await until(async () => await benji.locator("#grJoinBtn").count() === 1, 4000, "invite");
 ok(await isi.locator("#grInviteLink").count() === 1 && await isi.locator(".gr-bot-btn").count() === 2, "friends by link, Udiou and Klausi can join");
@@ -79,7 +79,8 @@ await fetch(`${API}/games/${game.id}`, {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ state: s, version: (game.version || 0) + 1 })
 });
-await until(async () => await isi.locator("#gsDrawDeck").count() === 1 && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1, 5000, "stacked state on Isi's phone");
+/* the open Lila 3 only exists in the stacked state – the real deal may also have given Isi the S-0 */
+await until(async () => await isi.locator("#gsDrawDeck").count() === 1 && await isi.locator('#gsOwn [data-card="S-0"]').count() === 1 && await isi.locator('#gsDiscard [data-card="v3-1"]').count() === 1, 5000, "stacked state on Isi's phone");
 await until(async () => (await benji.locator("#gsStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#gsStatus").textContent()).includes("Zieh vom Stapel"), "Isi is asked to draw");
 ok((await isi.locator("#gsDrawDiscard").textContent()).includes("Lila 3"), "the open card can be taken too");

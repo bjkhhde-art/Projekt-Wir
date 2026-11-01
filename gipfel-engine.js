@@ -2,13 +2,13 @@
    loaded as <script> in the browser, testable in Node via require.
 
    90 cards: the numbers 1–10 in four colours (Rosa, Lila, Mint, Gold), each twice, plus
-   6 Sterne (jokers) and 4 Steinschläge. Everybody gets 9 cards and climbs eight Etappen,
+   6 Sterne (jokers) and 4 Steinschläge. Everybody gets 9 cards and climbs ten Etappen (Phasen on the screen),
    one after the other. On your turn you draw (deck or the open discard), may lay out your
    current Etappe in one go (all its groups at once), may then add single cards to any group
    on the table, and end by discarding one card. A Steinschlag on the discard makes the next
    player sit out one turn. The round ends as soon as somebody has no cards left: whoever laid
    out their Etappe climbs one up, everybody counts the cards still in hand as points (number =
-   its value, Stern 20, Steinschlag 15). Whoever finishes the eighth Etappe first is on the
+   its value, Stern 20, Steinschlag 15). Whoever finishes the tenth Etappe first is on the
    summit – if several make it in the same round, the fewest points win. */
 
 const GipfelEngine = (() => {
@@ -28,11 +28,13 @@ const g = (kind, size) => ({ kind, size });
 const ETAPPEN = [
   { name: "Drei Paare", groups: [g("set", 2), g("set", 2), g("set", 2)] },
   { name: "Drilling + Dreierreihe", groups: [g("set", 3), g("run", 3)] },
+  { name: "Zwei Dreierreihen", groups: [g("run", 3), g("run", 3)] },
   { name: "Fünferreihe", groups: [g("run", 5)] },
   { name: "Zwei Paare + Drilling", groups: [g("set", 2), g("set", 2), g("set", 3)] },
   { name: "Fünf in einer Farbe", groups: [g("color", 5)] },
   { name: "Vierling + Paar", groups: [g("set", 4), g("set", 2)] },
   { name: "Farbreihe aus 4 + Paar", groups: [g("crun", 4), g("set", 2)] },
+  { name: "Vierling + Dreierreihe", groups: [g("set", 4), g("run", 3)] },
   { name: "Siebenerreihe", groups: [g("run", 7)] }
 ];
 
