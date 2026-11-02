@@ -477,10 +477,10 @@ const monopoly = {
 /* ---------- Phasenjagd ---------- */
 
 /* how much a card helps towards the current Phase, given the rest of the hand */
-function gipfelKeep(G, etappe, hand, card) {
+function gipfelKeep(G, needs, hand, card) {
   if (G.isJoker(card)) return 100;
   if (G.isStone(card)) return -10;
-  const kinds = G.ETAPPEN[etappe].groups.map(need => need.kind);
+  const kinds = needs.map(need => need.kind);
   const others = hand.filter(c => c !== card && G.isNatural(c));
   const v = G.valueOf(card);
   const colour = G.colourOf(card);
@@ -502,21 +502,28 @@ function gipfelDiscardChoice(G, state, bot) {
   if (stone) return stone;
   const candidates = hand.filter(c => !G.isJoker(c));
   if (candidates.length === 0) return hand[0];
-  if (state.laid[bot]) return candidates.slice().sort((a, b) => G.pointsOf(b) - G.pointsOf(a))[0];
-  const etappe = state.etappe[bot];
+  /* Phase out: everything left fits nowhere (it would have been added) – throw the most points away, a joker too */
+  if (state.laid[bot]) return hand.slice().sort((a, b) => G.pointsOf(b) - G.pointsOf(a))[0];
+  const needs = gipfelNeeds(G, state, bot);
   return candidates.slice().sort((a, b) =>
-    gipfelKeep(G, etappe, hand, a) - gipfelKeep(G, etappe, hand, b) || G.pointsOf(b) - G.pointsOf(a))[0];
+    gipfelKeep(G, needs, hand, a) - gipfelKeep(G, needs, hand, b) || G.pointsOf(b) - G.pointsOf(a))[0];
 }
 
 const GIPFEL_OPEN_STREAK = 4;
 
+/* the groups of the bot's current Phase in this game */
+function gipfelNeeds(G, state, bot) {
+  const list = G.etappenOf(state);
+  return list[Math.min(state.etappe[bot], list.length - 1)].groups;
+}
+
 /* the open card is only worth it if it is clearly better than the card it would push out of the hand */
 function gipfelImproves(G, state, bot, top) {
-  const etappe = state.etappe[bot];
+  const needs = gipfelNeeds(G, state, bot);
   const more = [...state.hands[bot], top];
   const out = gipfelDiscardChoice(G, { ...state, hands: { ...state.hands, [bot]: more } }, bot);
   if (out === top) return false;
-  return gipfelKeep(G, etappe, more, top) >= 3 && gipfelKeep(G, etappe, more, top) > gipfelKeep(G, etappe, more, out);
+  return gipfelKeep(G, needs, more, top) >= 3 && gipfelKeep(G, needs, more, top) > gipfelKeep(G, needs, more, out);
 }
 
 function gipfelPlay(state, bot) {
@@ -532,14 +539,14 @@ function gipfelPlay(state, bot) {
       const more = [...hand, top];
       const wanted = G.isJoker(top)
         || (state.laid[bot] ? G.fittingGroups(state, top).length > 0
-          : Boolean(G.findLaydown(etappe, more)) || gipfelImproves(G, state, bot, top));
+          : Boolean(G.findLaydown(etappe, more, G.etappenOf(state))) || gipfelImproves(G, state, bot, top));
       if (wanted) return G.drawDiscard(state, bot);
     }
     return G.drawDeck(state, bot);
   }
 
   if (!state.laid[bot]) {
-    const lay = G.findLaydown(state.etappe[bot], hand);
+    const lay = G.findLaydown(state.etappe[bot], hand, G.etappenOf(state));
     if (lay) return G.layDown(state, bot, lay);
   } else {
     /* add whatever fits – numbers before stars, so a star is kept for later as long as possible */

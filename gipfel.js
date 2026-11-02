@@ -41,8 +41,26 @@ function storeSort(value) {
   }
 }
 
-document.getElementById("gsRulesList").innerHTML = G.ETAPPEN.map(e =>
-  `<li><strong>${escapeHtml(e.name)}</strong> <span>${e.groups.map(g => escapeHtml(G.groupLabel(g))).join(" + ")}</span></li>`).join("");
+function showRulesList(etappen, handSize) {
+  document.getElementById("gsRulesHand").textContent = String(handSize);
+  document.getElementById("gsRulesCount").textContent = String(etappen.length);
+  document.getElementById("gsRulesList").innerHTML = etappen.map(e =>
+    `<li><strong>${escapeHtml(e.name)}</strong> <span>${e.groups.map(g => escapeHtml(G.groupLabel(g))).join(" + ")}</span></li>`).join("");
+}
+showRulesList(G.ETAPPEN, G.HAND_SIZE);
+
+/* the Phasen for new games come from phasen.json (editable on GitHub); if it is missing or broken, the defaults stay */
+fetch("phasen.json", { cache: "no-cache" })
+  .then(response => (response.ok ? response.json() : Promise.reject(new Error(`phasen.json: ${response.status}`))))
+  .then(json => {
+    const rules = G.parseRules(json);
+    G.useRules(rules);
+    if (!currentState) showRulesList(rules.etappen, rules.handSize);
+  })
+  .catch(error => {
+    console.warn("phasen.json wird nicht benutzt:", error.message);
+    if (error instanceof SyntaxError || !/^phasen\.json: /.test(error.message)) showToast(`phasen.json: ${error.message}`, "error");
+  });
 
 const room = GameRoom.create({
   table: "gipfel_games",
@@ -173,6 +191,7 @@ function renderBoard(game) {
   if (move) hideLandingCards(move, state);
 
   currentState = state;
+  showRulesList(G.etappenOf(state), G.handSizeOf(state));
   pruneSelection(state);
   boardEl.classList.toggle("gs-crowd", state.players.length >= 3);
   boardEl.classList.toggle("gs-over", state.phase !== "play");
@@ -241,8 +260,9 @@ discardEl.addEventListener("click", () => {
 });
 
 function etappeText(state, person) {
-  const index = Math.min(state.etappe[person], G.ETAPPEN.length - 1);
-  return `Phase ${index + 1}: ${G.ETAPPEN[index].name}`;
+  const list = G.etappenOf(state);
+  const index = Math.min(state.etappe[person], list.length - 1);
+  return `Phase ${index + 1}: ${list[index].name}`;
 }
 
 function badgeFor(state, person) {
@@ -344,8 +364,9 @@ function fillOwn(state) {
   const person = me();
   const [badgeClass, badgeText] = badgeFor(state, person);
   ownEl.className = `gs-seat gs-own${badgeClass === "turn" ? " turn" : ""}`;
-  const index = Math.min(state.etappe[person], G.ETAPPEN.length - 1);
-  const etappe = G.ETAPPEN[index];
+  const list = G.etappenOf(state);
+  const index = Math.min(state.etappe[person], list.length - 1);
+  const etappe = list[index];
   const laid = state.laid[person];
   ownEl.innerHTML = `
     <div class="gs-seat-head">
@@ -469,6 +490,8 @@ function describe(e, state) {
       return mine ? "⛔ Du setzt diese Runde aus." : `⛔ ${who} setzt aus.`;
     case "reshuffle":
       return "Der Ablagestapel wird neu gemischt.";
+    case "deck-end":
+      return { big: true, text: "🃏 Der Stapel ist zum dritten Mal leer – die Runde endet." };
     case "out":
       return { big: true, text: mine ? "🏁 Du hast keine Karten mehr!" : `🏁 ${who} hat keine Karten mehr!` };
     default:
@@ -524,7 +547,7 @@ function renderSummary(state) {
   const order = state.players.slice().sort((a, b) => state.etappe[b] - state.etappe[a] || state.scores[a] - state.scores[b]);
   const rows = order.map(p => {
     const climbed = last.climbed[p];
-    const level = state.etappe[p] >= G.ETAPPEN.length ? "alle geschafft 🏆" : `Phase ${state.etappe[p] + 1}`;
+    const level = state.etappe[p] >= G.etappenOf(state).length ? "alle geschafft 🏆" : `Phase ${state.etappe[p] + 1}`;
     return `<tr><td>${escapeHtml(nameFor(p))}</td><td class="${climbed ? "plus" : "zero"}">${climbed ? "▲" : "–"} ${level}</td><td>+${last.points[p] || 0}</td><td>${state.scores[p]}</td></tr>`;
   }).join("");
   const box = document.createElement("div");

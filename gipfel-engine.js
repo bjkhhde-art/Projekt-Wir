@@ -157,9 +157,55 @@ function extendGroup(group, card) {
   return null;
 }
 
+/* ---------- the Phasen of a game: the defaults above, or a list from phasen.json ---------- */
+
+const MIN_HAND = 5;
+const MAX_HAND = 12;
+const MAX_GROUPS = 3;
+const KINDS = { gleiche: "set", folge: "run", farbe: "color", farbfolge: "crun" };
+
+/* the Phasen and hand size a game was started with (older games: the defaults) */
+const etappenOf = state => (state && state.etappen) || ETAPPEN;
+const handSizeOf = state => (state && state.handSize) || HAND_SIZE;
+
+/* reads the content of phasen.json; throws a German message saying what is wrong */
+function parseRules(json) {
+  if (!json || typeof json !== "object") throw new Error("phasen.json ist kein gültiges Objekt.");
+  const handSize = json.handKarten === undefined ? HAND_SIZE : json.handKarten;
+  if (!Number.isInteger(handSize) || handSize < MIN_HAND || handSize > MAX_HAND) {
+    throw new Error(`„handKarten“ muss eine ganze Zahl von ${MIN_HAND} bis ${MAX_HAND} sein.`);
+  }
+  if (!Array.isArray(json.phasen) || json.phasen.length === 0) throw new Error("„phasen“ muss eine Liste mit mindestens einer Phase sein.");
+  const etappen = json.phasen.map((phase, i) => {
+    const where = `Phase ${i + 1}`;
+    if (!phase || !Array.isArray(phase.gruppen) || phase.gruppen.length === 0) throw new Error(`${where}: „gruppen“ fehlt.`);
+    if (phase.gruppen.length > MAX_GROUPS) throw new Error(`${where}: höchstens ${MAX_GROUPS} Gruppen.`);
+    const groups = phase.gruppen.map((gruppe, k) => {
+      const kind = gruppe && KINDS[gruppe.art];
+      if (!kind) throw new Error(`${where}, Gruppe ${k + 1}: „art“ muss ${Object.keys(KINDS).map(a => `„${a}“`).join(", ")} sein.`);
+      const size = gruppe.anzahl;
+      const most = kind === "run" || kind === "crun" ? MAX_VALUE : handSize;
+      if (!Number.isInteger(size) || size < 1 || size > most) throw new Error(`${where}, Gruppe ${k + 1}: „anzahl“ muss von 1 bis ${most} gehen.`);
+      return g(kind, size);
+    });
+    const total = groups.reduce((sum, group) => sum + group.size, 0);
+    /* with the drawn card a hand holds handKarten + 1 cards */
+    if (total > handSize + 1) throw new Error(`${where} braucht ${total} Karten, die Hand hat aber nur ${handSize} (+1 gezogene).`);
+    const name = typeof phase.name === "string" && phase.name.trim() ? phase.name.trim().slice(0, 40) : groups.map(groupLabel).join(" + ");
+    return { name, groups };
+  });
+  return { etappen, handSize };
+}
+
+/* the rules new games start with on this device (set by the page from phasen.json) */
+let configuredRules = null;
+function useRules(rules) {
+  configuredRules = rules || null;
+}
+
 /* splits all the chosen cards into the groups of the Etappe (every card used), or null */
-function partition(etappe, cards) {
-  const needs = ETAPPEN[etappe].groups;
+function partition(etappe, cards, list = ETAPPEN) {
+  const needs = list[etappe].groups;
   const minimum = needs.reduce((sum, need) => sum + need.size, 0);
   if (cards.length < minimum) return null;
   const buckets = needs.map(() => []);
@@ -190,8 +236,8 @@ function combinations(items, size, from = 0, chosen = [], out = []) {
 }
 
 /* the fewest cards of this hand that lay out the Etappe (stars are spent last), or null */
-function findLaydown(etappe, hand) {
-  const needs = ETAPPEN[etappe].groups;
+function findLaydown(etappe, hand, list = ETAPPEN) {
+  const needs = list[etappe].groups;
   const usable = hand.filter(c => !isStone(c)).sort((a, b) => isJoker(a) - isJoker(b));
   function solve(k, left) {
     if (k === needs.length) return [];
@@ -231,8 +277,13 @@ function recordMove(state, move) {
 }
 
 /* the deck is empty: everything below the open card is shuffled into a new deck */
+/* when the deck runs empty this often in one round, the round ends without anybody going out –
+   otherwise it could go on for ever when nobody can get rid of their last cards */
+const MAX_RESHUFFLES = 2;
+
 function refillDeck(state, rand) {
   if (state.deck.length > 0 || state.discard.length <= 1) return;
+  state.reshuffles = (state.reshuffles || 0) + 1;
   const top = state.discard.pop();
   state.deck = shuffle(state.discard, rand);
   state.discard = [top];
@@ -250,9 +301,10 @@ function startRound(state, rand) {
   state.groups = [];
   state.nextGroupId = 1;
   state.openStreak = 0;
+  state.reshuffles = 0;
   state.readyNext = [];
   const n = state.players.length;
-  for (let i = 0; i < HAND_SIZE; i++) {
+  for (let i = 0; i < handSizeOf(state); i++) {
     for (let k = 1; k <= n; k++) {
       const person = state.players[(state.dealer + k) % n];
       const card = state.deck.pop();
@@ -265,9 +317,12 @@ function startRound(state, rand) {
   state.turnPerson = state.players[(state.dealer + 1) % n];
 }
 
-function newGameState(players, wins, gameNo, dealer, moveSeq, rand) {
+function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
+  const chosen = rules || configuredRules;
   const state = {
     players: players.slice(),
+    etappen: chosen ? chosen.etappen : ETAPPEN,
+    handSize: chosen ? chosen.handSize : HAND_SIZE,
     gameNo,
     round: 0,
     dealer,
@@ -283,11 +338,17 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand) {
   return recordMove(state, { type: "deal", round: state.round });
 }
 
-function createInitialState(playersOrHost, guestPerson, rand = Math.random) {
-  if (typeof guestPerson === "function") { rand = guestPerson; guestPerson = null; }
+/* createInitialState(players, rand?, rules?) – rules from parseRules(), otherwise the device's or the defaults */
+function createInitialState(playersOrHost, guestPerson, rand = Math.random, rules = null) {
+  if (typeof guestPerson === "function") {
+    rules = rand && typeof rand === "object" ? rand : rules;
+    rand = guestPerson;
+    guestPerson = null;
+  }
+  if (typeof rand !== "function") rand = Math.random;
   const players = Array.isArray(playersOrHost) ? playersOrHost.slice() : [playersOrHost, guestPerson].filter(Boolean);
   if (players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Das Spiel braucht 2 bis 4 Personen.");
-  return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand);
+  return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand, rules);
 }
 
 function assertTurn(state, person, step) {
@@ -308,6 +369,11 @@ function takeFromHand(state, person, card) {
 function drawDeck(state, person, rand = Math.random) {
   assertTurn(state, person, "draw");
   const next = begin(state);
+  if (next.deck.length === 0 && (next.reshuffles || 0) >= MAX_RESHUFFLES) {
+    event(next, { type: "deck-end" });
+    endRound(next, null);
+    return recordMove(next, { type: "deck-end", person });
+  }
   refillDeck(next, rand);
   if (next.deck.length === 0) throw new Error("Es gibt keine Karte mehr zum Ziehen.");
   const card = next.deck.pop();
@@ -340,8 +406,8 @@ function layDown(state, person, cards) {
   const chosen = Array.from(new Set(cards || []));
   chosen.forEach(card => { if (!state.hands[person].includes(card)) throw new Error("Diese Karte hast du nicht auf der Hand."); });
   const etappe = state.etappe[person];
-  const groups = partition(etappe, chosen);
-  if (!groups) throw new Error(`Damit klappt „${ETAPPEN[etappe].name}“ noch nicht.`);
+  const groups = partition(etappe, chosen, etappenOf(state));
+  if (!groups) throw new Error(`Damit klappt „${etappenOf(state)[etappe].name}“ noch nicht.`);
   const next = begin(state);
   chosen.forEach(card => takeFromHand(next, person, card));
   const ids = groups.map(group => {
@@ -417,9 +483,9 @@ function endRound(state, outPerson) {
   state.lastRound = { round: state.round, out: outPerson, points, climbed };
   state.turnPerson = null;
   state.step = null;
-  event(state, { type: "out", person: outPerson });
+  if (outPerson) event(state, { type: "out", person: outPerson });
 
-  const summit = state.players.filter(p => state.etappe[p] >= ETAPPEN.length);
+  const summit = state.players.filter(p => state.etappe[p] >= etappenOf(state).length);
   if (summit.length === 0) {
     state.phase = "round-over";
     return;
@@ -441,7 +507,9 @@ function nextRound(state, person, rand = Math.random) {
 
 function newGame(state, person, rand = Math.random) {
   if (state.phase !== "finished") throw new Error("Die Partie läuft noch.");
-  return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand);
+  /* a new game takes the Phasen as they are now in phasen.json – otherwise those of the last game */
+  const rules = configuredRules || { etappen: etappenOf(state), handSize: handSizeOf(state) };
+  return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand, rules);
 }
 
 /* every card is somewhere: deck, discard, a hand or a group on the table */
@@ -458,6 +526,10 @@ return {
   COLOURS,
   COLOUR_NAMES,
   ETAPPEN,
+  etappenOf,
+  handSizeOf,
+  parseRules,
+  useRules,
   JOKER_POINTS,
   STONE_POINTS,
   createDeck,
