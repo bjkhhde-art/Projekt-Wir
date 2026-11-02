@@ -14,11 +14,11 @@
 const GipfelEngine = (() => {
 
 const MAX_PLAYERS = 4;
-const HAND_SIZE = 9;
-const MAX_VALUE = 10;
+const HAND_SIZE = 10;
+const MAX_VALUE = 12;
 const COLOURS = ["r", "v", "m", "g"];
 const COLOUR_NAMES = { r: "Rot", v: "Blau", m: "Grün", g: "Gelb" };
-const JOKERS = 6;
+const JOKERS = 8;
 const STONES = 4;
 const JOKER_POINTS = 20;
 const STONE_POINTS = 15;
