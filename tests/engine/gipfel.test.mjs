@@ -36,11 +36,11 @@ function table(hands, extra = {}) {
 
 /* ---------- the cards ---------- */
 const deck = G.createDeck();
-ok(deck.length === 90 && new Set(deck).size === 90, "90 different cards");
-ok(deck.filter(G.isNatural).length === 80 && deck.filter(G.isJoker).length === 6 && deck.filter(G.isStone).length === 4, "80 numbers, 8 Sterne, 4 Steinschläge");
-ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 20), "each colour: 1–10 twice");
+ok(deck.length === 108 && new Set(deck).size === 108, "108 different cards");
+ok(deck.filter(G.isNatural).length === 96 && deck.filter(G.isJoker).length === 8 && deck.filter(G.isStone).length === 4, "96 numbers, 8 Sterne, 4 Steinschläge");
+ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 24), "each colour: 1–12 twice");
 ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Stern 20, Steinschlag 15");
-ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 9");
+ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 10");
 
 /* ---------- groups ---------- */
 ok(G.makeGroup("set", ["r5-0", "v5-1", "J-0"], 3).value === 5, "a Drilling with a Stern");
@@ -50,7 +50,7 @@ ok(G.makeGroup("set", ["S-0", "r5-0"], 2) === null, "a Steinschlag never goes in
 const run = G.makeGroup("run", ["r3-0", "J-1", "m5-0", "g6-0", "v7-1"], 5);
 ok(run && run.start === 3 && run.cards[1] === "J-1", "a Fünferreihe 3–7, the Stern stands in for the 4");
 ok(G.makeGroup("run", ["r3-0", "m3-1", "g4-0"], 3) === null, "a number twice breaks a row");
-ok(G.makeGroup("run", ["r9-0", "m10-1", "J-0"], 3).start === 8, "at the top end the Stern goes below: 8–10");
+ok(G.makeGroup("run", ["r11-0", "m12-1", "J-0"], 3).start === 10, "at the top end the Stern goes below: 10–12");
 ok(G.makeGroup("run", ["r1-0", "m5-1", "J-0"], 3) === null, "1 and 5 are too far apart for three cards");
 ok(G.makeGroup("color", ["m1-0", "m9-0", "m4-1", "J-2", "m2-0"], 5).colour === "m", "Fünf in Grün");
 ok(G.makeGroup("crun", ["v2-0", "v3-0", "J-0", "v5-1"], 4).start === 2, "a Farbreihe in Blau");
@@ -58,7 +58,7 @@ ok(G.makeGroup("crun", ["v2-0", "r3-0", "v4-0", "v5-1"], 4) === null, "a Farbrei
 
 ok(G.extendGroup(run, "m8-0").cards.length === 6 && G.extendGroup(run, "r2-1").start === 2, "a row grows at both ends");
 ok(G.extendGroup(run, "r5-1") === null, "but not in the middle");
-ok(G.extendGroup(G.makeGroup("run", ["r8-0", "r9-0", "r10-0"], 3), "J-0").start === 7, "a Stern on a row that ends at 10 goes below");
+ok(G.extendGroup(G.makeGroup("run", ["r10-0", "r11-0", "r12-0"], 3), "J-0").start === 9, "a Stern on a row that ends at 12 goes below");
 ok(G.extendGroup(G.makeGroup("set", ["r5-0", "v5-0"], 2), "g5-1") && !G.extendGroup(G.makeGroup("set", ["r5-0", "v5-0"], 2), "g6-1"), "a Paar takes the same number only");
 ok(G.extendGroup(G.makeGroup("crun", ["v2-0", "v3-0", "v4-0", "v5-1"], 4), "r6-0") === null, "a Farbreihe takes its colour only");
 
@@ -75,9 +75,9 @@ ok(!G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "g9-0", "J-0"]).in
 
 /* ---------- the deal ---------- */
 const s0 = G.createInitialState(["Isi", "Benji", "Udiou"], seeded(7));
-ok(s0.players.every(p => s0.hands[p].length === 10) && s0.discard.length === 1 && G.countCards(s0) === 90, "everybody gets 10 cards, one lies open");
+ok(s0.players.every(p => s0.hands[p].length === 10) && s0.discard.length === 1 && G.countCards(s0) === 108, "everybody gets 10 cards, one lies open");
 ok(s0.turnPerson === s0.players[(s0.dealer + 1) % 3] && s0.step === "draw", "the one after the dealer starts by drawing");
-ok(s0.lastMove.type === "deal" && s0.lastMove.events.filter(e => e.type === "deal").length === 27, "the deal is one move with every card in it (for the animation)");
+ok(s0.lastMove.type === "deal" && s0.lastMove.events.filter(e => e.type === "deal").length === 30, "the deal is one move with every card in it (for the animation)");
 throwsWith(() => G.createInitialState(["Isi"]), /2 bis 4/, "at least two");
 
 /* ---------- a turn ---------- */
@@ -92,11 +92,11 @@ if (!G.isStone(open)) {
   ok(took.hands[first].includes(open) && took.discard.length === 0 && took.step === "act", "the open card can be taken");
 }
 s = G.drawDeck(s, first);
-ok(s.hands[first].length === 10 && s.step === "act", "drawing from the deck");
+ok(s.hands[first].length === 11 && s.step === "act", "drawing from the deck");
 throwsWith(() => G.drawDeck(s, first), /schon eine Karte/, "only one card per turn");
 const thrown = s.hands[first].find(c => !G.isStone(c));
 s = G.discard(s, first, thrown);
-ok(s.hands[first].length === 9 && s.discard[s.discard.length - 1] === thrown && s.turnPerson === other && s.step === "draw", "discarding ends the turn");
+ok(s.hands[first].length === 10 && s.discard[s.discard.length - 1] === thrown && s.turnPerson === other && s.step === "draw", "discarding ends the turn");
 
 /* ---------- laying out, adding, going out ---------- */
 s = table({
@@ -124,7 +124,7 @@ ok(s.etappe.Isi === 1 && s.etappe.Benji === 0, "Isi climbs to Phase 2, Benji sta
 ok(s.lastRound.points.Benji === 2 + 2 + 3 + 3 + 8 + 8 + 5 + 6 + 7 && s.scores.Benji === 44 && s.scores.Isi === 0, "Benji counts his hand: 44 points");
 throwsWith(() => G.drawDeck(s, "Benji"), /vorbei/, "nothing more to play");
 const r2 = G.nextRound(s, "Isi", seeded(5));
-ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 90 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Phasen and points carry over");
+ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 108 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Phasen and points carry over");
 
 /* going out by laying everything at once */
 s = table({ Isi: ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"], Benji: ["g2-0"] }, { etappe: { Isi: 9, Benji: 9 } });
@@ -155,7 +155,7 @@ for (const players of [["Udiou", "Klausi"], ["Isi", "Udiou", "Klausi"], ["Isi", 
       assert.ok(guard < 20000, "a game hangs");
       if (st.phase === "round-over") { st = G.nextRound(st, players[0]); continue; }
       st = Bots.gipfel.play(st, st.turnPerson);
-      assert.ok(st && G.countCards(st) === 90, "every card stays somewhere");
+      assert.ok(st && G.countCards(st) === 108, "every card stays somewhere");
     }
     rounds += st.round;
     assert.ok(st.result.winners.every(p => st.etappe[p] === G.ETAPPEN.length));
@@ -193,20 +193,20 @@ ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"
   ] });
   ok(own.handSize === 11 && own.etappen.length === 3 && own.etappen[1].name === "Reihe aus 9", "own Phasen: hand size, groups, a missing name is made up");
   throwsWith(() => G.parseRules({ phasen: [{ name: "x", gruppen: [{ art: "drilling", anzahl: 3 }] }] }), /art/, "an unknown kind is refused");
-  throwsWith(() => G.parseRules({ phasen: [{ name: "x", gruppen: [{ art: "folge", anzahl: 11 }] }] }), /anzahl/, "a row longer than 10 is refused");
+  throwsWith(() => G.parseRules({ phasen: [{ name: "x", gruppen: [{ art: "folge", anzahl: 13 }] }] }), /anzahl/, "a row longer than 12 is refused");
   throwsWith(() => G.parseRules({ handKarten: 9, phasen: [{ name: "x", gruppen: [{ art: "gleiche", anzahl: 6 }, { art: "gleiche", anzahl: 5 }] }] }), /11 Karten/, "more cards than a hand can hold are refused");
   throwsWith(() => G.parseRules({ handKarten: 20, phasen: [{ gruppen: [{ art: "folge", anzahl: 3 }] }] }), /handKarten/, "the hand size is limited");
   throwsWith(() => G.parseRules({ phasen: [] }), /mindestens einer Phase/, "at least one Phase");
 
   const s1 = G.createInitialState(["Isi", "Benji"], seeded(4), own);
-  ok(s1.players.every(p => s1.hands[p].length === 11) && s1.etappen.length === 3 && G.countCards(s1) === 90, "a game with own Phasen deals 11 cards each");
+  ok(s1.players.every(p => s1.hands[p].length === 11) && s1.etappen.length === 3 && G.countCards(s1) === 108, "a game with own Phasen deals 11 cards each");
   const t1 = Object.assign(s1, { turnPerson: "Isi", step: "act", hands: { Isi: ["r4-0", "v4-0", "g4-0", "m4-1", "r8-0", "v8-1", "J-0", "m8-0", "S-0"], Benji: s1.hands.Benji } });
   const laidOwn = G.layDown(t1, "Isi", ["r4-0", "v4-0", "g4-0", "m4-1", "r8-0", "v8-1", "J-0", "m8-0"]);
   ok(laidOwn.laid.Isi && laidOwn.groups.length === 2, "the first own Phase (two Vierlinge) can be laid out");
   const old = G.createInitialState(["Isi", "Benji"], seeded(5));
   delete old.etappen;
   delete old.handSize;
-  ok(G.etappenOf(old) === G.ETAPPEN && G.handSizeOf(old) === 9, "games from before keep the default Phasen");
+  ok(G.etappenOf(old) === G.ETAPPEN && G.handSizeOf(old) === 10, "games from before keep the default Phasen");
 
   G.useRules(own);
   const fromDevice = G.createInitialState(["Isi", "Benji"], seeded(6));
@@ -220,7 +220,7 @@ ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"
       assert.ok(guard < 20000, "a game with own Phasen hangs");
       if (st.phase === "round-over") { st = G.nextRound(st, "Isi"); continue; }
       st = Bots.gipfel.play(st, st.turnPerson);
-      assert.ok(G.countCards(st) === 90, "every card stays somewhere");
+      assert.ok(G.countCards(st) === 108, "every card stays somewhere");
     }
     rounds += st.round;
     assert.ok(st.result.winners.every(p => st.etappe[p] === 3));

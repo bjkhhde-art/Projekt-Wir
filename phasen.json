@@ -5,10 +5,10 @@
     "phasen: der Reihe nach. Jede Phase hat einen Namen und 1 bis 3 Gruppen.",
     "art: gleiche = gleiche Zahlen (Paar, Drilling …), folge = Zahlen in einer Reihe (z. B. 3-4-5-6),",
     "     farbe = Karten einer Farbe, farbfolge = Reihe in einer Farbe.",
-    "anzahl: wie viele Karten die Gruppe mindestens hat (Folgen höchstens 10, weil die Karten 1–10 gehen).",
+    "anzahl: wie viele Karten die Gruppe mindestens hat (Folgen höchstens 12, weil die Karten 1–12 gehen).",
     "Alle Gruppen einer Phase zusammen dürfen höchstens handKarten + 1 Karten brauchen."
   ],
-  "handKarten": 9,
+  "handKarten": 10,
   "phasen": [
     { "name": "Zwei Drillinge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "gleiche", "anzahl": 3 }] },
     { "name": "Drilling + Viererfolge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "folge", "anzahl": 4 }] },
