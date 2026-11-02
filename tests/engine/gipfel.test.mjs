@@ -37,20 +37,20 @@ function table(hands, extra = {}) {
 /* ---------- the cards ---------- */
 const deck = G.createDeck();
 ok(deck.length === 108 && new Set(deck).size === 108, "108 different cards");
-ok(deck.filter(G.isNatural).length === 96 && deck.filter(G.isJoker).length === 8 && deck.filter(G.isStone).length === 4, "96 numbers, 8 Sterne, 4 Steinschläge");
+ok(deck.filter(G.isNatural).length === 96 && deck.filter(G.isJoker).length === 8 && deck.filter(G.isStone).length === 4, "96 numbers, 8 Joker, 4 Aussetzen");
 ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 24), "each colour: 1–12 twice");
-ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Stern 20, Steinschlag 15");
+ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Joker 20, Aussetzen 15");
 ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 10");
 
 /* ---------- groups ---------- */
-ok(G.makeGroup("set", ["r5-0", "v5-1", "J-0"], 3).value === 5, "a Drilling with a Stern");
+ok(G.makeGroup("set", ["r5-0", "v5-1", "J-0"], 3).value === 5, "a Drilling with a Joker");
 ok(G.makeGroup("set", ["r5-0", "v6-1"], 2) === null, "different numbers are no Paar");
 ok(G.makeGroup("set", ["J-0", "J-1"], 2) === null, "a group needs at least one real number");
-ok(G.makeGroup("set", ["S-0", "r5-0"], 2) === null, "a Steinschlag never goes into a group");
+ok(G.makeGroup("set", ["S-0", "r5-0"], 2) === null, "an Aussetzen never goes into a group");
 const run = G.makeGroup("run", ["r3-0", "J-1", "m5-0", "g6-0", "v7-1"], 5);
-ok(run && run.start === 3 && run.cards[1] === "J-1", "a Fünferreihe 3–7, the Stern stands in for the 4");
+ok(run && run.start === 3 && run.cards[1] === "J-1", "a Fünferreihe 3–7, the Joker stands in for the 4");
 ok(G.makeGroup("run", ["r3-0", "m3-1", "g4-0"], 3) === null, "a number twice breaks a row");
-ok(G.makeGroup("run", ["r11-0", "m12-1", "J-0"], 3).start === 10, "at the top end the Stern goes below: 10–12");
+ok(G.makeGroup("run", ["r11-0", "m12-1", "J-0"], 3).start === 10, "at the top end the Joker goes below: 10–12");
 ok(G.makeGroup("run", ["r1-0", "m5-1", "J-0"], 3) === null, "1 and 5 are too far apart for three cards");
 ok(G.makeGroup("color", ["m1-0", "m9-0", "m4-1", "J-2", "m2-0"], 5).colour === "m", "Fünf in Grün");
 ok(G.makeGroup("crun", ["v2-0", "v3-0", "J-0", "v5-1"], 4).start === 2, "a Farbreihe in Blau");
@@ -58,20 +58,20 @@ ok(G.makeGroup("crun", ["v2-0", "r3-0", "v4-0", "v5-1"], 4) === null, "a Farbrei
 
 ok(G.extendGroup(run, "m8-0").cards.length === 6 && G.extendGroup(run, "r2-1").start === 2, "a row grows at both ends");
 ok(G.extendGroup(run, "r5-1") === null, "but not in the middle");
-ok(G.extendGroup(G.makeGroup("run", ["r10-0", "r11-0", "r12-0"], 3), "J-0").start === 9, "a Stern on a row that ends at 12 goes below");
+ok(G.extendGroup(G.makeGroup("run", ["r10-0", "r11-0", "r12-0"], 3), "J-0").start === 9, "a Joker on a row that ends at 12 goes below");
 ok(G.extendGroup(G.makeGroup("set", ["r5-0", "v5-0"], 2), "g5-1") && !G.extendGroup(G.makeGroup("set", ["r5-0", "v5-0"], 2), "g6-1"), "a Paar takes the same number only");
 ok(G.extendGroup(G.makeGroup("crun", ["v2-0", "v3-0", "v4-0", "v5-1"], 4), "r6-0") === null, "a Farbreihe takes its colour only");
 
-ok(G.partition(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0"]).length === 3, "Drei Paare, one with a Stern");
+ok(G.partition(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0"]).length === 3, "Drei Paare, one with a Joker");
 ok(G.partition(1, ["r5-0", "v5-1", "g5-0", "m1-0", "m2-0", "r3-1"]) !== null, "Drilling + Dreierreihe in any order");
 ok(G.partition(1, ["r5-0", "v5-1", "g5-0", "m1-0", "m2-0"]) === null, "one card short");
-ok(G.partition(2, ["r1-0", "v2-0", "g3-1", "m7-0", "J-1", "r9-0"]) !== null, "Zwei Dreierreihen: 1–3 and 7–9 with a Stern");
+ok(G.partition(2, ["r1-0", "v2-0", "g3-1", "m7-0", "J-1", "r9-0"]) !== null, "Zwei Dreierreihen: 1–3 and 7–9 with a Joker");
 ok(G.partition(2, ["r1-0", "v2-0", "g3-1", "m7-0", "m7-1", "r9-0"]) === null, "a 7 twice is no row");
 ok(G.partition(8, ["r6-0", "v6-0", "g6-1", "J-2", "m2-0", "m3-0", "r4-1"]) !== null, "Vierling + Dreierreihe");
 ok(G.findLaydown(3, ["r1-0", "r2-1", "J-0", "g4-0", "m5-0", "S-1", "v9-0", "r9-1", "g9-1"]).length === 5, "the hint finds the Fünferreihe");
 ok(G.findLaydown(3, ["r1-0", "r2-1", "g4-0", "m6-0", "S-1", "v9-0", "r9-1", "g9-1", "m10-0"]) === null, "and says when there is none");
-ok(G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0", "m2-0"]).includes("J-0"), "the hint spends a Stern when it is needed");
-ok(!G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "g9-0", "J-0"]).includes("J-0"), "no Stern spent when three real Paare are there");
+ok(G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "J-0", "m2-0"]).includes("J-0"), "the hint spends a Joker when it is needed");
+ok(!G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "g9-0", "J-0"]).includes("J-0"), "no Joker spent when three real Paare are there");
 
 /* ---------- the deal ---------- */
 const s0 = G.createInitialState(["Isi", "Benji", "Udiou"], seeded(7));
@@ -112,7 +112,7 @@ throwsWith(() => G.layDown(s, "Isi", ["v6-0", "v7-0"]), /schon aus/, "only one P
 const pairOf9 = s.groups.find(gr => gr.value === 9).id;
 throwsWith(() => G.addToGroup(s, "Isi", "v6-0", pairOf9), /passt da nicht/, "a 6 does not fit a 9er Paar");
 s = G.discard(s, "Isi", "S-0");
-ok(s.skip.Benji === false && s.turnPerson === "Isi" && s.lastMove.events.some(e => e.type === "stone" && e.target === "Benji") && s.lastMove.events.some(e => e.type === "skip" && e.person === "Benji"), "a Steinschlag: Benji sits out, Isi plays again");
+ok(s.skip.Benji === false && s.turnPerson === "Isi" && s.lastMove.events.some(e => e.type === "stone" && e.target === "Benji") && s.lastMove.events.some(e => e.type === "skip" && e.person === "Benji"), "an Aussetzen: Benji sits out, Isi plays again");
 s = G.drawDeck(s, "Isi");
 ok(s.hands.Isi.includes("m9-1"), "Isi draws the Grün 9");
 s = G.addToGroup(s, "Isi", "m9-1", pairOf9);
@@ -167,7 +167,7 @@ const laidByBot = Bots.gipfel.play(bot, "Udiou");
 ok(laidByBot.laid.Udiou && laidByBot.groups.length === 2, "a bot lays out its Phase as soon as it can");
 ok(Bots.gipfel.play(laidByBot, "Isi") === null, "and never plays for anybody else");
 const stoneThrow = Bots.gipfel.play({ ...laidByBot, hands: { ...laidByBot.hands, Udiou: ["S-0", "v9-1"] } }, "Udiou");
-ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"), "a bot throws a Steinschlag at the next one");
+ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"), "a bot throws an Aussetzen at the next one");
 
 /* the third time the deck runs empty, the round ends without anybody going out */
 {

@@ -549,7 +549,7 @@ function gipfelPlay(state, bot) {
     const lay = G.findLaydown(state.etappe[bot], hand, G.etappenOf(state));
     if (lay) return G.layDown(state, bot, lay);
   } else {
-    /* add whatever fits – numbers before stars, so a star is kept for later as long as possible */
+    /* add whatever fits – numbers before Joker, so a Joker is kept for later as long as possible */
     const order = hand.filter(c => !G.isStone(c)).sort((a, b) => G.isJoker(a) - G.isJoker(b));
     for (const card of order) {
       const groups = G.fittingGroups(state, card);
