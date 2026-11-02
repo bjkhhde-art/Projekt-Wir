@@ -959,3 +959,57 @@ a.hub-tab {
   background: rgba(139, 92, 246, 0.3);
   border-radius: var(--radius-pill);
 }
+
+/* ---------- pull to refresh (spinning heart, see shared.js) ---------- */
+
+html {
+  /* switches off the browser's own pull-to-refresh arrow; ours shows a heart instead */
+  overscroll-behavior-y: none;
+}
+
+.ptr-indicator {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  z-index: 10001;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface, #fff);
+  border: 1px solid var(--surface-border, rgba(0,0,0,0.08));
+  box-shadow: 0 6px 18px rgba(230, 62, 115, 0.25);
+  transform: translate(-50%, -50px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ptr-indicator.ptr-settle {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.ptr-heart {
+  font-size: 22px;
+  line-height: 1;
+  display: block;
+}
+
+.ptr-indicator.ptr-ready .ptr-heart {
+  filter: drop-shadow(0 0 4px rgba(255, 92, 138, 0.6));
+}
+
+.ptr-indicator.ptr-spinning .ptr-heart {
+  animation: ptr-spin 0.8s linear infinite;
+}
+
+@keyframes ptr-spin {
+  from { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(180deg) scale(1.15); }
+  to { transform: rotateY(360deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptr-indicator.ptr-spinning .ptr-heart { animation: heartbeat-ptr 1s ease-in-out infinite; }
+  @keyframes heartbeat-ptr { 50% { transform: scale(1.15); } }
+}

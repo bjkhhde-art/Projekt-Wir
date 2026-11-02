@@ -444,3 +444,96 @@ window.animateFillOnReveal = function (el, targetPercent) {
     initScrollReveal();
   }
 })();
+
+/* ---------- pull to refresh with a spinning heart ----------
+   The browser's own pull-to-refresh arrow cannot be restyled, so it is switched off in CSS
+   (overscroll-behavior-y) and replaced by this one: pull down at the top of the page,
+   the heart turns with the finger, and past the threshold it spins while the page reloads. */
+(function () {
+  const THRESHOLD = 70;
+  const MAX_PULL = 110;
+  let indicator = null;
+  let startY = 0;
+  let startX = 0;
+  let pull = 0;
+  let tracking = false;
+  let refreshing = false;
+
+  function ensureIndicator() {
+    if (indicator) return indicator;
+    indicator = document.createElement("div");
+    indicator.className = "ptr-indicator";
+    indicator.setAttribute("aria-hidden", "true");
+    indicator.innerHTML = `<span class="ptr-heart">❤️</span>`;
+    document.body.appendChild(indicator);
+    return indicator;
+  }
+
+  /* drags in games, swipe cards etc. own their touches; so do inner scroll areas that are not at the top */
+  function blockedByTarget(target) {
+    for (let el = target; el && el !== document.body && el.nodeType === 1; el = el.parentElement) {
+      if (el.matches("input, textarea, select, [contenteditable], [data-no-ptr], dialog[open]")) return true;
+      const style = getComputedStyle(el);
+      if (style.touchAction && !/^(auto|manipulation)$/.test(style.touchAction) && !style.touchAction.includes("pan-y")) return true;
+      if (el.scrollTop > 0 && /(auto|scroll)/.test(style.overflowY)) return true;
+    }
+    return false;
+  }
+
+  function show(distance) {
+    const el = ensureIndicator();
+    const progress = Math.min(distance / THRESHOLD, 1);
+    el.style.transform = `translate(-50%, ${distance - 50}px)`;
+    el.style.opacity = String(progress);
+    el.firstElementChild.style.transform = `rotateY(${distance * 4}deg) scale(${0.6 + progress * 0.4})`;
+    el.classList.toggle("ptr-ready", distance >= THRESHOLD);
+  }
+
+  function reset() {
+    if (!indicator) return;
+    indicator.classList.add("ptr-settle");
+    indicator.style.transform = "translate(-50%, -50px)";
+    indicator.style.opacity = "0";
+    setTimeout(() => indicator && indicator.classList.remove("ptr-settle"), 250);
+  }
+
+  window.addEventListener("touchstart", event => {
+    if (refreshing || event.touches.length !== 1) return;
+    if (window.scrollY > 0 || document.scrollingElement.scrollTop > 0) return;
+    if (blockedByTarget(event.target)) return;
+    tracking = true;
+    pull = 0;
+    startY = event.touches[0].clientY;
+    startX = event.touches[0].clientX;
+  }, { passive: true });
+
+  window.addEventListener("touchmove", event => {
+    if (!tracking) return;
+    if (event.defaultPrevented || window.scrollY > 0) { tracking = false; reset(); return; }
+    const dy = event.touches[0].clientY - startY;
+    const dx = event.touches[0].clientX - startX;
+    if (pull === 0 && Math.abs(dx) > Math.abs(dy)) { tracking = false; return; }
+    if (dy <= 0) { if (pull > 0) reset(); pull = 0; return; }
+    pull = Math.min(MAX_PULL, dy * 0.5);
+    show(pull);
+  }, { passive: true });
+
+  function end() {
+    if (!tracking) return;
+    tracking = false;
+    if (pull >= THRESHOLD) {
+      refreshing = true;
+      const el = ensureIndicator();
+      el.classList.add("ptr-settle", "ptr-spinning");
+      el.style.transform = `translate(-50%, ${THRESHOLD - 50}px)`;
+      el.style.opacity = "1";
+      el.firstElementChild.style.transform = "";
+      setTimeout(() => location.reload(), 350);
+    } else if (pull > 0) {
+      reset();
+    }
+    pull = 0;
+  }
+  window.addEventListener("touchend", end, { passive: true });
+  window.addEventListener("touchcancel", () => { if (tracking) { tracking = false; pull = 0; reset(); } }, { passive: true });
+})();
