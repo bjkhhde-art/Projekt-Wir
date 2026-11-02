@@ -45,14 +45,14 @@ await benji.click("#grJoinBtn");
 await until(async () => await isi.locator("#grBeginBtn:not([disabled])").count() === 1, 4000, "begin");
 await isi.click("#grBeginBtn");
 
-/* the deal: nine cards each fly from the deck */
+/* the deal: ten cards each fly from the deck */
 await until(async () => await isi.locator("#gsBoard:not(.hidden)").count() === 1 && await benji.locator("#gsBoard:not(.hidden)").count() === 1, 5000, "board");
 const dealt = await latest();
 ok(dealt.status === "active" && dealt.state.players.join() === "Isi,Benji" && dealt.state.lastMove.type === "deal", "the round starts with a deal");
 await until(async () => await isi.locator(".ga-ghost").count() > 0, 3000, "flying cards");
 ok(true, "cards fly from the deck while dealing");
 await until(async () => await isi.locator(".anim-hidden").count() === 0 && await isi.locator(".ga-ghost").count() === 0, 8000, "deal finished");
-ok(await isi.locator("#gsOwn .gs-hand .gs-card").count() === 9 && await isi.locator("#gsOpps .gs-opp-hand .gs-back").count() === 9, "nine own cards face up, Benji's nine face down");
+ok(await isi.locator("#gsOwn .gs-hand .gs-card").count() === 10 && await isi.locator("#gsOpps .gs-opp-hand .gs-back").count() === 10, "ten own cards face up, Benji's ten face down");
 
 /* a stacked table: Isi has three Paare on her hand, Benji is close to a Drilling */
 const game = await latest();
@@ -166,7 +166,7 @@ ok((await latest()).state.phase === "round-over", "the next round waits for both
 await benji.locator(".gs-summary .gr-ready-btn").click();
 await until(async () => (await latest()).state.round === 2, 4000, "round 2");
 const r2 = (await latest()).state;
-ok(r2.dealer === 0 && G.countCards(r2) === 90 && r2.groups.length === 0 && r2.etappe.Isi === 1, "round 2: the deal moves on, all cards anew, Isi on Phase 2");
+ok(r2.dealer === 0 && G.countCards(r2) === 108 && r2.groups.length === 0 && r2.etappe.Isi === 1, "round 2: the deal moves on, all cards anew, Isi on Phase 2");
 await until(async () => await isi.locator(".gs-summary").count() === 0 && (await isi.locator("#gsOwn .gs-seat-etappe").textContent()).includes("Drilling + Dreierreihe"), 5000, "summary gone");
 ok(true, "Isi now climbs Phase 2: Drilling + Dreierreihe");
 
@@ -190,7 +190,7 @@ const start = (await latest()).state;
 if (start.turnPerson === "Isi") {
   await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw"), 8000, "Isi's turn");
   await isi.click("#gsDeck");
-  await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 10, 4000, "Isi may act");
+  await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 11, 4000, "Isi may act");
   /* a number card – a Steinschlag would make Udiou sit out */
   const card = await isi.locator("#gsOwn .gs-hand .gs-card:not(.gs-stone):not(.gs-joker)").first().getAttribute("data-card");
   await isi.locator(`#gsOwn .gs-hand [data-card="${card}"]`).click();
@@ -201,7 +201,7 @@ await until(async () => {
   return st.turnPerson === "Isi" && st.step === "draw" && st.lastMove.person === "Udiou";
 }, 15000, "Udiou plays");
 const afterBot = (await latest()).state;
-ok(afterBot.lastMove.person === "Udiou" && afterBot.hands.Udiou.length <= 9, "Udiou drew and discarded on his own – Isi's turn again");
+ok(afterBot.lastMove.person === "Udiou" && afterBot.hands.Udiou.length <= 10, "Udiou drew and discarded on his own – Isi's turn again");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();
