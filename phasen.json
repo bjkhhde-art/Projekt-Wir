@@ -10,15 +10,15 @@
   ],
   "handKarten": 9,
   "phasen": [
-    { "name": "Zwei Drillinge", "gruppen": [{ "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }] },
-    { "name": "Drilling + Viererfolge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "folge", "anzahl": 3 }] },
-    { "name": "Vierling + Viererfolge", "gruppen": [{ "art": "folge", "anzahl": 3 }, { "art": "folge", "anzahl": 3 }] },
-    { "name": "Siebenerfolge", "gruppen": [{ "art": "folge", "anzahl": 5 }] },
-    { "name": "Achterfolge", "gruppen": [{ "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 3 }] },
-    { "name": "Neunerfolge", "gruppen": [{ "art": "farbe", "anzahl": 5 }] },
-    { "name": "Zwei Vierlinge", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "gleiche", "anzahl": 2 }] },
-    { "name": "Sieben Karten einer Farbe", "gruppen": [{ "art": "farbfolge", "anzahl": 4 }, { "art": "gleiche", "anzahl": 2 }] },
-    { "name": "Fünfling und Zwilling", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "folge", "anzahl": 3 }] },
-    { "name": "Fünfling und Drilling", "gruppen": [{ "art": "folge", "anzahl": 7 }] }
+    { "name": "Zwei Drillinge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "gleiche", "anzahl": 3 }] },
+    { "name": "Drilling + Viererfolge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "folge", "anzahl": 4 }] },
+    { "name": "Vierling + Viererfolge", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "folge", "anzahl": 4 }] },
+    { "name": "Siebenerfolge", "gruppen": [{ "art": "folge", "anzahl": 7 }] },
+    { "name": "Achterfolge", "gruppen": [{ "art": "folge", "anzahl": 8 }] },
+    { "name": "Neunerfolge", "gruppen": [{ "art": "folge", "anzahl": 9 }] },
+    { "name": "Zwei Vierlinge", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "gleiche", "anzahl": 4 }] },
+    { "name": "Sieben Karten einer Farbe", "gruppen": [{ "art": "farbe", "anzahl": 7 }] },
+    { "name": "Fünfling und Zwilling", "gruppen": [{ "art": "gleiche", "anzahl": 5 }, { "art": "gleiche", "anzahl": 2 }] },
+    { "name": "Fünfling und Drilling", "gruppen": [{ "art": "gleiche", "anzahl": 5 }, { "art": "gleiche", "anzahl": 3 }] }
   ]
 }
