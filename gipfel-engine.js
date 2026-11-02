@@ -2,7 +2,7 @@
    loaded as <script> in the browser, testable in Node via require.
 
    108 cards: the numbers 1–12 in four colours (Rot, Blau, Grün, Gelb), each twice, plus
-   8 Joker (Sterne) and 4 Aussetzen cards (Steine). Everybody gets 10 cards and climbs ten Etappen (Phasen on the screen),
+   8 Joker and 4 Aussetzen cards. Everybody gets 10 cards and climbs ten Etappen (Phasen on the screen),
    one after the other. On your turn you draw (deck or the open discard), may lay out your
    current Etappe in one go (all its groups at once), may then add single cards to any group
    on the table, and end by discarding one card. An Aussetzen on the discard makes the next
@@ -235,7 +235,7 @@ function combinations(items, size, from = 0, chosen = [], out = []) {
   return out;
 }
 
-/* the fewest cards of this hand that lay out the Etappe (stars are spent last), or null */
+/* the fewest cards of this hand that lay out the Etappe (Joker are spent last), or null */
 function findLaydown(etappe, hand, list = ETAPPEN) {
   const needs = list[etappe].groups;
   const usable = hand.filter(c => !isStone(c)).sort((a, b) => isJoker(a) - isJoker(b));

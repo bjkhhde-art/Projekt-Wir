@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 const G = require("../../gipfel-engine.js");
 
 /* Phasenjagd on two phones: lobby, the deal with flying cards, drawing, laying out a Phase field by
-   field, adding to a group, a Steinschlag, going out, the round summary and the next round */
+   field, adding to a group, an Aussetzen, going out, the round summary and the next round */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991/t/gipfel_games";
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -127,13 +127,13 @@ ok(await isi.locator("#gsOwn .gs-group.target").count() === 3, "with a card chos
 await isi.locator("#gsOwn .gs-group.target").first().click();
 await until(async () => (await latest()).state.hands.Isi.length === 3, 4000, "added");
 await until(async () => (await benji.locator("#gsEvent").textContent()).includes("legt Joker bei sich an"), 4000, "Benji told");
-ok(true, "Benji sees the Stern being added");
+ok(true, "Benji sees the Joker being added");
 
-/* a Steinschlag fits nowhere: the tap is refused, then Isi throws it on the discard – Benji sits out, Isi plays again */
+/* an Aussetzen fits nowhere: the tap is refused, then Isi throws it on the discard – Benji sits out, Isi plays again */
 await isi.locator('#gsOwn .gs-hand [data-card="S-0"]').click();
 await isi.locator("#gsOwn .gs-group.target").first().click();
 await wait(600);
-ok((await latest()).state.hands.Isi.length === 3 && await isi.locator(".toast").filter({ hasText: "passt nicht" }).count() >= 1, "the Steinschlag does not fit – Isi is told so");
+ok((await latest()).state.hands.Isi.length === 3 && await isi.locator(".toast").filter({ hasText: "passt nicht" }).count() >= 1, "the Aussetzen does not fit – Isi is told so");
 ok((await isi.locator("#gsDiscard").getAttribute("class")).includes("can-drop"), "the discard pile waits for the chosen card");
 await isi.locator("#gsDiscard").click();
 await until(async () => (await latest()).state.lastMove.events.some(e => e.type === "skip"), 4000, "stone");
@@ -191,7 +191,7 @@ if (start.turnPerson === "Isi") {
   await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw"), 8000, "Isi's turn");
   await isi.click("#gsDeck");
   await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 11, 4000, "Isi may act");
-  /* a number card – a Steinschlag would make Udiou sit out */
+  /* a number card – an Aussetzen would make Udiou sit out */
   const card = await isi.locator("#gsOwn .gs-hand .gs-card:not(.gs-stone):not(.gs-joker)").first().getAttribute("data-card");
   await isi.locator(`#gsOwn .gs-hand [data-card="${card}"]`).click();
   await isi.click("#gsDiscard");
