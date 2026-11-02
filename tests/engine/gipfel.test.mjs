@@ -169,4 +169,63 @@ ok(Bots.gipfel.play(laidByBot, "Isi") === null, "and never plays for anybody els
 const stoneThrow = Bots.gipfel.play({ ...laidByBot, hands: { ...laidByBot.hands, Udiou: ["S-0", "v9-1"] } }, "Udiou");
 ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"), "a bot throws a Steinschlag at the next one");
 
+/* the third time the deck runs empty, the round ends without anybody going out */
+{
+  let st = table({ Isi: ["r1-0"], Benji: ["g2-0"] }, { deck: [], discard: ["m1-0", "m2-0", "m3-0"], reshuffles: 2 });
+  st.laid = { Isi: true, Benji: false };
+  st.step = "draw";
+  st = G.drawDeck(st, "Isi");
+  ok(st.phase === "round-over" && st.lastMove.events.some(e => e.type === "deck-end") && st.lastRound.out === null, "deck empty for the third time: the round ends");
+  ok(st.etappe.Isi === 1 && st.etappe.Benji === 0 && st.scores.Isi === 1 && st.scores.Benji === 2, "whoever laid out climbs, everybody counts their cards");
+}
+
+/* ---------- own Phasen from phasen.json ---------- */
+{
+  const fs = require("node:fs");
+  const file = JSON.parse(fs.readFileSync(new URL("../../phasen.json", import.meta.url), "utf8"));
+  const fromFile = G.parseRules(file);
+  ok(fromFile.handSize === 9 && fromFile.etappen.length === G.ETAPPEN.length && JSON.stringify(fromFile.etappen) === JSON.stringify(G.ETAPPEN), "phasen.json in the repository holds exactly the default Phasen");
+
+  const own = G.parseRules({ handKarten: 11, phasen: [
+    { name: "Zwei Vierer", gruppen: [{ art: "gleiche", anzahl: 4 }, { art: "gleiche", anzahl: 4 }] },
+    { gruppen: [{ art: "folge", anzahl: 9 }] },
+    { name: "Bunt", gruppen: [{ art: "farbe", anzahl: 6 }, { art: "farbfolge", anzahl: 3 }] }
+  ] });
+  ok(own.handSize === 11 && own.etappen.length === 3 && own.etappen[1].name === "Reihe aus 9", "own Phasen: hand size, groups, a missing name is made up");
+  throwsWith(() => G.parseRules({ phasen: [{ name: "x", gruppen: [{ art: "drilling", anzahl: 3 }] }] }), /art/, "an unknown kind is refused");
+  throwsWith(() => G.parseRules({ phasen: [{ name: "x", gruppen: [{ art: "folge", anzahl: 11 }] }] }), /anzahl/, "a row longer than 10 is refused");
+  throwsWith(() => G.parseRules({ handKarten: 9, phasen: [{ name: "x", gruppen: [{ art: "gleiche", anzahl: 6 }, { art: "gleiche", anzahl: 5 }] }] }), /11 Karten/, "more cards than a hand can hold are refused");
+  throwsWith(() => G.parseRules({ handKarten: 20, phasen: [{ gruppen: [{ art: "folge", anzahl: 3 }] }] }), /handKarten/, "the hand size is limited");
+  throwsWith(() => G.parseRules({ phasen: [] }), /mindestens einer Phase/, "at least one Phase");
+
+  const s1 = G.createInitialState(["Isi", "Benji"], seeded(4), own);
+  ok(s1.players.every(p => s1.hands[p].length === 11) && s1.etappen.length === 3 && G.countCards(s1) === 90, "a game with own Phasen deals 11 cards each");
+  const t1 = Object.assign(s1, { turnPerson: "Isi", step: "act", hands: { Isi: ["r4-0", "v4-0", "g4-0", "m4-1", "r8-0", "v8-1", "J-0", "m8-0", "S-0"], Benji: s1.hands.Benji } });
+  const laidOwn = G.layDown(t1, "Isi", ["r4-0", "v4-0", "g4-0", "m4-1", "r8-0", "v8-1", "J-0", "m8-0"]);
+  ok(laidOwn.laid.Isi && laidOwn.groups.length === 2, "the first own Phase (two Vierlinge) can be laid out");
+  const old = G.createInitialState(["Isi", "Benji"], seeded(5));
+  delete old.etappen;
+  delete old.handSize;
+  ok(G.etappenOf(old) === G.ETAPPEN && G.handSizeOf(old) === 9, "games from before keep the default Phasen");
+
+  G.useRules(own);
+  const fromDevice = G.createInitialState(["Isi", "Benji"], seeded(6));
+  ok(fromDevice.etappen.length === 3 && fromDevice.handSize === 11, "new games use the Phasen loaded on the device");
+  G.useRules(null);
+
+  let rounds = 0;
+  for (let game = 0; game < 20; game++) {
+    let st = G.createInitialState(["Udiou", "Klausi", "Isi"], Math.random, own);
+    for (let guard = 0; st.phase !== "finished"; guard++) {
+      assert.ok(guard < 20000, "a game with own Phasen hangs");
+      if (st.phase === "round-over") { st = G.nextRound(st, "Isi"); continue; }
+      st = Bots.gipfel.play(st, st.turnPerson);
+      assert.ok(G.countCards(st) === 90, "every card stays somewhere");
+    }
+    rounds += st.round;
+    assert.ok(st.result.winners.every(p => st.etappe[p] === 3));
+  }
+  ok(rounds / 20 >= 3, `bots finish games with own Phasen too (${(rounds / 20).toFixed(1)} rounds on average)`);
+}
+
 console.log(`\n${assertions} assertions passed (gipfel engine)`);

@@ -1,0 +1,24 @@
+{
+  "_anleitung": [
+    "Hier legst du die Phasen fest. Änderungen gelten ab der nächsten neuen Partie.",
+    "handKarten: wie viele Karten jede Person bekommt (5 bis 12).",
+    "phasen: der Reihe nach. Jede Phase hat einen Namen und 1 bis 3 Gruppen.",
+    "art: gleiche = gleiche Zahlen (Paar, Drilling …), folge = Zahlen in einer Reihe (z. B. 3-4-5-6),",
+    "     farbe = Karten einer Farbe, farbfolge = Reihe in einer Farbe.",
+    "anzahl: wie viele Karten die Gruppe mindestens hat (Folgen höchstens 10, weil die Karten 1–10 gehen).",
+    "Alle Gruppen einer Phase zusammen dürfen höchstens handKarten + 1 Karten brauchen."
+  ],
+  "handKarten": 9,
+  "phasen": [
+    { "name": "Drei Paare", "gruppen": [{ "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }] },
+    { "name": "Drilling + Dreierreihe", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "folge", "anzahl": 3 }] },
+    { "name": "Zwei Dreierreihen", "gruppen": [{ "art": "folge", "anzahl": 3 }, { "art": "folge", "anzahl": 3 }] },
+    { "name": "Fünferreihe", "gruppen": [{ "art": "folge", "anzahl": 5 }] },
+    { "name": "Zwei Paare + Drilling", "gruppen": [{ "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 2 }, { "art": "gleiche", "anzahl": 3 }] },
+    { "name": "Fünf in einer Farbe", "gruppen": [{ "art": "farbe", "anzahl": 5 }] },
+    { "name": "Vierling + Paar", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "gleiche", "anzahl": 2 }] },
+    { "name": "Farbreihe aus 4 + Paar", "gruppen": [{ "art": "farbfolge", "anzahl": 4 }, { "art": "gleiche", "anzahl": 2 }] },
+    { "name": "Vierling + Dreierreihe", "gruppen": [{ "art": "gleiche", "anzahl": 4 }, { "art": "folge", "anzahl": 3 }] },
+    { "name": "Siebenerreihe", "gruppen": [{ "art": "folge", "anzahl": 7 }] }
+  ]
+}
