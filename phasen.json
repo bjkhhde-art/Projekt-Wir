@@ -8,7 +8,7 @@
     "anzahl: wie viele Karten die Gruppe mindestens hat (Folgen höchstens 10, weil die Karten 1–10 gehen).",
     "Alle Gruppen einer Phase zusammen dürfen höchstens handKarten + 1 Karten brauchen."
   ],
-  "handKarten": 9,
+  "handKarten": 10,
   "phasen": [
     { "name": "Zwei Drillinge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "gleiche", "anzahl": 3 }] },
     { "name": "Drilling + Viererfolge", "gruppen": [{ "art": "gleiche", "anzahl": 3 }, { "art": "folge", "anzahl": 4 }] },
