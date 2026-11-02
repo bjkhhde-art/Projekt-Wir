@@ -72,7 +72,10 @@ Object.assign(s, {
   skip: { Isi: false, Benji: false },
   etappe: { Isi: 0, Benji: 0 },
   moveSeq: s.moveSeq + 1,
-  lastMove: { type: "setup", events: [], seq: s.moveSeq + 1 }
+  lastMove: { type: "setup", events: [], seq: s.moveSeq + 1 },
+  /* the test plays with the built-in Phasen, whatever phasen.json says at the moment */
+  etappen: G.ETAPPEN,
+  handSize: G.HAND_SIZE
 });
 await fetch(`${API}/games/${game.id}`, {
   method: "PATCH",
