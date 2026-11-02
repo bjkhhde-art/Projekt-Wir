@@ -39,7 +39,7 @@ const deck = G.createDeck();
 ok(deck.length === 108 && new Set(deck).size === 108, "108 different cards");
 ok(deck.filter(G.isNatural).length === 96 && deck.filter(G.isJoker).length === 8 && deck.filter(G.isStone).length === 4, "96 numbers, 8 Joker, 4 Aussetzen");
 ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 24), "each colour: 1–12 twice");
-ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Joker 20, Aussetzen 15");
+ok(G.pointsOf("r1-0") === 5 && G.pointsOf("r9-0") === 5 && G.pointsOf("g10-0") === 10 && G.pointsOf("v12-0") === 10 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: 1–9 = 5, 10–12 = 10, Joker 20, Aussetzen 15");
 ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 10");
 
 /* ---------- groups ---------- */
@@ -121,10 +121,10 @@ s.hands.Isi = ["v6-0"];
 s = G.discard(s, "Isi", "v6-0");
 ok(s.phase === "round-over" && s.lastRound.out === "Isi", "no cards left: the round is over");
 ok(s.etappe.Isi === 1 && s.etappe.Benji === 0, "Isi climbs to Phase 2, Benji stays");
-ok(s.lastRound.points.Benji === 2 + 2 + 3 + 3 + 8 + 8 + 5 + 6 + 7 && s.scores.Benji === 44 && s.scores.Isi === 0, "Benji counts his hand: 44 points");
+ok(s.lastRound.points.Benji === 9 * 5 && s.scores.Benji === 45 && s.scores.Isi === 0, "Benji counts his hand: 9 cards × 5 = 45 points");
 throwsWith(() => G.drawDeck(s, "Benji"), /vorbei/, "nothing more to play");
 const r2 = G.nextRound(s, "Isi", seeded(5));
-ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 108 && r2.etappe.Isi === 1 && r2.scores.Benji === 44, "next round: fresh cards, Phasen and points carry over");
+ok(r2.round === 2 && r2.groups.length === 0 && G.countCards(r2) === 108 && r2.etappe.Isi === 1 && r2.scores.Benji === 45, "next round: fresh cards, Phasen and points carry over");
 
 /* going out by laying everything at once */
 s = table({ Isi: ["r5-0", "r6-0", "J-0", "r8-0", "m9-0", "r10-1", "g7-0"], Benji: ["g2-0"] }, { etappe: { Isi: 9, Benji: 9 } });
@@ -135,7 +135,7 @@ ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.wins.Isi ===
 s = table({ Isi: ["r9-0"], Benji: ["g2-0"] }, { etappe: { Isi: 9, Benji: 9 }, scores: { Isi: 10, Benji: 30 } });
 s.laid = { Isi: true, Benji: true };
 s = G.discard(s, "Isi", "r9-0");
-ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.scores.Benji === 32, "both on the summit – Isi has fewer points");
+ok(s.phase === "finished" && s.result.winners.join() === "Isi" && s.scores.Benji === 35, "both on the summit – Isi has fewer points");
 
 /* an empty deck: the discard is shuffled into a new one */
 s = table({ Isi: ["r1-0"], Benji: ["g2-0"] }, { deck: [], discard: ["m1-0", "m2-0", "m3-0"] });
@@ -176,7 +176,7 @@ ok(stoneThrow.lastMove.events.some(e => e.type === "stone" && e.target === "Isi"
   st.step = "draw";
   st = G.drawDeck(st, "Isi");
   ok(st.phase === "round-over" && st.lastMove.events.some(e => e.type === "deck-end") && st.lastRound.out === null, "deck empty for the third time: the round ends");
-  ok(st.etappe.Isi === 1 && st.etappe.Benji === 0 && st.scores.Isi === 1 && st.scores.Benji === 2, "whoever laid out climbs, everybody counts their cards");
+  ok(st.etappe.Isi === 1 && st.etappe.Benji === 0 && st.scores.Isi === 5 && st.scores.Benji === 5, "whoever laid out climbs, everybody counts their cards");
 }
 
 /* ---------- own Phasen from phasen.json ---------- */

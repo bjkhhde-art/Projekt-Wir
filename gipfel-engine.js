@@ -7,8 +7,8 @@
    current Etappe in one go (all its groups at once), may then add single cards to any group
    on the table, and end by discarding one card. An Aussetzen on the discard makes the next
    player sit out one turn. The round ends as soon as somebody has no cards left: whoever laid
-   out their Etappe climbs one up, everybody counts the cards still in hand as points (number =
-   its value, Joker 20, Aussetzen 15). Whoever finishes the tenth Etappe first is on the
+   out their Etappe climbs one up, everybody counts the cards still in hand as points (1–9 = 5,
+   10–12 = 10, Joker 20, Aussetzen 15). Whoever finishes the tenth Etappe first is on the
    summit – if several make it in the same round, the fewest points win. */
 
 const GipfelEngine = (() => {
@@ -22,6 +22,8 @@ const JOKERS = 8;
 const STONES = 4;
 const JOKER_POINTS = 20;
 const STONE_POINTS = 15;
+const LOW_POINTS = 5;   /* numbers 1 to 9 */
+const HIGH_POINTS = 10; /* numbers 10 to 12 */
 
 /* a group: set = same number, run = numbers in a row, color = one colour, crun = a row in one colour */
 const g = (kind, size) => ({ kind, size });
@@ -61,7 +63,7 @@ const valueOf = card => (isNatural(card) ? Number(card.slice(1, card.indexOf("-"
 function pointsOf(card) {
   if (isJoker(card)) return JOKER_POINTS;
   if (isStone(card)) return STONE_POINTS;
-  return valueOf(card);
+  return valueOf(card) >= 10 ? HIGH_POINTS : LOW_POINTS;
 }
 
 function cardLabel(card) {
@@ -532,6 +534,8 @@ return {
   useRules,
   JOKER_POINTS,
   STONE_POINTS,
+  LOW_POINTS,
+  HIGH_POINTS,
   createDeck,
   isJoker,
   isStone,

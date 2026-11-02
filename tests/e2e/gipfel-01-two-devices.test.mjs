@@ -153,10 +153,10 @@ await isi.locator('#gsOwn .gs-hand [data-card="v9-1"]').click();
 await isi.locator("#gsOwn .gs-group.target").filter({ hasText: "× 9" }).click();
 await until(async () => (await latest()).state.phase === "round-over", 4000, "round over");
 const over = (await latest()).state;
-ok(over.etappe.Isi === 1 && over.etappe.Benji === 0 && over.lastRound.points.Benji === 44 && over.scores.Isi === 0, "Isi climbs, Benji counts 44 points");
+ok(over.etappe.Isi === 1 && over.etappe.Benji === 0 && over.lastRound.points.Benji === 45 && over.scores.Isi === 0, "Isi climbs, Benji counts 45 points");
 await until(async () => await isi.locator(".gs-summary").count() === 1 && await benji.locator(".gs-summary").count() === 1, 5000, "summary");
 ok((await benji.locator("#gsEvent").textContent()).includes("Isi hat keine Karten mehr"), "Benji is told the round is over");
-ok((await isi.locator(".gs-summary").textContent()).includes("+44"), "the summary shows Benji's points");
+ok((await isi.locator(".gs-summary").textContent()).includes("+45"), "the summary shows Benji's points");
 ok(await isi.locator("#gsOpps .gs-opp-hand .gs-card:not(.gs-back)").count() === 9, "Benji's cards are shown openly after the round");
 
 /* next round: both ready */
