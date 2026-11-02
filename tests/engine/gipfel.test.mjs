@@ -37,7 +37,7 @@ function table(hands, extra = {}) {
 /* ---------- the cards ---------- */
 const deck = G.createDeck();
 ok(deck.length === 90 && new Set(deck).size === 90, "90 different cards");
-ok(deck.filter(G.isNatural).length === 80 && deck.filter(G.isJoker).length === 6 && deck.filter(G.isStone).length === 4, "80 numbers, 6 Sterne, 4 Steinschläge");
+ok(deck.filter(G.isNatural).length === 80 && deck.filter(G.isJoker).length === 6 && deck.filter(G.isStone).length === 4, "80 numbers, 8 Sterne, 4 Steinschläge");
 ok(G.COLOURS.every(c => deck.filter(x => G.colourOf(x) === c).length === 20), "each colour: 1–10 twice");
 ok(G.pointsOf("r7-0") === 7 && G.pointsOf("J-0") === 20 && G.pointsOf("S-0") === 15, "points: the number, Stern 20, Steinschlag 15");
 ok(G.ETAPPEN.length === 10 && G.ETAPPEN.every(e => e.groups.reduce((s, g) => s + g.size, 0) <= G.HAND_SIZE), "ten Phasen, each fits into a hand of 9");
@@ -75,7 +75,7 @@ ok(!G.findLaydown(0, ["r1-0", "v1-0", "r4-0", "g4-0", "m9-0", "g9-0", "J-0"]).in
 
 /* ---------- the deal ---------- */
 const s0 = G.createInitialState(["Isi", "Benji", "Udiou"], seeded(7));
-ok(s0.players.every(p => s0.hands[p].length === 9) && s0.discard.length === 1 && G.countCards(s0) === 90, "everybody gets 9 cards, one lies open");
+ok(s0.players.every(p => s0.hands[p].length === 10) && s0.discard.length === 1 && G.countCards(s0) === 90, "everybody gets 10 cards, one lies open");
 ok(s0.turnPerson === s0.players[(s0.dealer + 1) % 3] && s0.step === "draw", "the one after the dealer starts by drawing");
 ok(s0.lastMove.type === "deal" && s0.lastMove.events.filter(e => e.type === "deal").length === 27, "the deal is one move with every card in it (for the animation)");
 throwsWith(() => G.createInitialState(["Isi"]), /2 bis 4/, "at least two");
