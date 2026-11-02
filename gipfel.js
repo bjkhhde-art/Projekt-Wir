@@ -7,7 +7,6 @@ const scoreEl = document.getElementById("gsScore");
 const oppsEl = document.getElementById("gsOpps");
 const ownEl = document.getElementById("gsOwn");
 const deckEl = document.getElementById("gsDeck");
-const deckCount = document.getElementById("gsDeckCount");
 const discardEl = document.getElementById("gsDiscard");
 const eventEl = document.getElementById("gsEvent");
 const statusEl = document.getElementById("gsStatus");
@@ -217,7 +216,8 @@ function renderPiles(state) {
   deckEl.innerHTML = "";
   deckEl.classList.toggle("has-cards", state.deck.length > 1);
   if (state.deck.length > 0 || state.discard.length > 1) deckEl.appendChild(backEl());
-  deckCount.textContent = `${state.deck.length} Karten`;
+  /* no text under the piles – the number of cards is only told to screen readers */
+  deckEl.setAttribute("aria-label", `Nachziehstapel, ${state.deck.length} Karten`);
   deckEl.classList.toggle("can-draw", drawing);
   deckEl.disabled = !drawing;
 

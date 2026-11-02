@@ -50,7 +50,8 @@
   position: relative;
   flex: none;
   width: var(--w);
-  height: calc(var(--w) * 1.4);
+  /* the shape of the card pictures in phase-cards/ (about 300 × 460), so nothing is cut off */
+  height: calc(var(--w) * var(--card-ratio, 1.53));
   border-radius: calc(var(--w) * 0.16);
   border: 2px solid var(--ink);
   background: linear-gradient(165deg, #ffffff, #f4eefa);
@@ -134,7 +135,7 @@
 .gs-pile {
   position: relative;
   width: 62px;
-  height: 87px;
+  height: calc(62px * 1.53);
   padding: 0;
   border-radius: 10px;
   border: 2px dashed var(--surface-border);
@@ -678,7 +679,7 @@ body:has(#gsBoard:not(.hidden)) .page-subtitle {
 
 .gs-board .gs-pile {
   width: 50px;
-  height: 70px;
+  height: calc(50px * 1.53);
 }
 
 .gs-board .gs-pile .gs-card {
@@ -813,7 +814,8 @@ body:has(#gsBoard:not(.hidden)) .page-subtitle {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* the whole picture, never cropped (the pictures differ from each other by a pixel or two) */
+  object-fit: fill;
   border-radius: inherit;
   pointer-events: none;
   -webkit-user-drag: none;

@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const G = require("../../gipfel-engine.js");
 
@@ -37,7 +38,9 @@ const benji = await phone("Benji");
 
 /* lobby, like Cabo: up to four, friends by link, computer players */
 ok(await isi.locator("#grStartBtn").count() === 1, "Phasenjagd starts with a lobby");
-ok(await isi.locator("#gsRulesList li").count() === 10, "the rules list all ten Phasen");
+const phasenFile = JSON.parse(readFileSync(new URL("../../phasen.json", import.meta.url), "utf8"));
+await until(async () => await isi.locator("#gsRulesList li").count() === phasenFile.phasen.length, 3000, "rules from phasen.json");
+ok(true, `the rules list the ${phasenFile.phasen.length} Phasen from phasen.json`);
 await isi.click("#grStartBtn");
 await until(async () => await benji.locator("#grJoinBtn").count() === 1, 4000, "invite");
 ok(await isi.locator("#grInviteLink").count() === 1 && await isi.locator(".gr-bot-btn").count() === 2, "friends by link, Udiou and Klausi can join");
@@ -52,7 +55,9 @@ ok(dealt.status === "active" && dealt.state.players.join() === "Isi,Benji" && de
 await until(async () => await isi.locator(".ga-ghost").count() > 0, 3000, "flying cards");
 ok(true, "cards fly from the deck while dealing");
 await until(async () => await isi.locator(".anim-hidden").count() === 0 && await isi.locator(".ga-ghost").count() === 0, 8000, "deal finished");
-ok(await isi.locator("#gsOwn .gs-hand .gs-card").count() === 9 && await isi.locator("#gsOpps .gs-opp-hand .gs-back").count() === 9, "nine own cards face up, Benji's nine face down");
+/* as many cards as phasen.json says (handKarten) – the game stores it */
+const handSize = dealt.state.handSize;
+ok(await isi.locator("#gsOwn .gs-hand .gs-card").count() === handSize && await isi.locator("#gsOpps .gs-opp-hand .gs-back").count() === handSize, `${handSize} own cards face up, Benji's ${handSize} face down (as in phasen.json)`);
 
 /* a stacked table: Isi has three Paare on her hand, Benji is close to a Drilling */
 const game = await latest();
@@ -190,7 +195,7 @@ const start = (await latest()).state;
 if (start.turnPerson === "Isi") {
   await until(async () => (await isi.locator("#gsDeck").getAttribute("class")).includes("can-draw"), 8000, "Isi's turn");
   await isi.click("#gsDeck");
-  await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === 10, 4000, "Isi may act");
+  await until(async () => await isi.locator("#gsOwn .gs-hand .gs-card.pickable").count() === start.handSize + 1, 4000, "Isi may act");
   /* a number card – a Steinschlag would make Udiou sit out */
   const card = await isi.locator("#gsOwn .gs-hand .gs-card:not(.gs-stone):not(.gs-joker)").first().getAttribute("data-card");
   await isi.locator(`#gsOwn .gs-hand [data-card="${card}"]`).click();
@@ -201,7 +206,7 @@ await until(async () => {
   return st.turnPerson === "Isi" && st.step === "draw" && st.lastMove.person === "Udiou";
 }, 15000, "Udiou plays");
 const afterBot = (await latest()).state;
-ok(afterBot.lastMove.person === "Udiou" && afterBot.hands.Udiou.length <= 9, "Udiou drew and discarded on his own – Isi's turn again");
+ok(afterBot.lastMove.person === "Udiou" && afterBot.hands.Udiou.length <= start.handSize, "Udiou drew and discarded on his own – Isi's turn again");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();
