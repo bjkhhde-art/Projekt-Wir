@@ -21,10 +21,16 @@ const GameRoom = (() => {
   const isBot = name => BOTS.includes(name);
   const BOT_BACKUP_MS = 5000;
   const NAME_MAX = 20;
-  const REACTIONS = ["😂", "😭", "😍", "😘", "🫂", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏"];
-  /* emojis that are shown as our own sticker instead of the system emoji */
-  const STICKERS = { "😂": "icons/lach-emoji.png" };
-  const reactionFace = emoji => STICKERS[emoji] ? `<img src="${STICKERS[emoji]}" alt="${emoji}" class="gr-sticker">` : emoji;
+  /* our own photo stickers: sent under their key, shown as an image */
+  const STICKERS = {
+    "sticker-lach": { src: "icons/sticker-lach.png", label: "Lach-Sticker" },
+    "sticker-finger": { src: "icons/sticker-finger.png", label: "Mittelfinger-Sticker" },
+    "sticker-schlaf": { src: "icons/sticker-schlaf.png", label: "Schlaf-Sticker" },
+    "sticker-baby": { src: "icons/sticker-baby.png", label: "Baby-Sticker" }
+  };
+  const REACTIONS = ["😂", "😭", "😍", "😘", "🫂", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏", ...Object.keys(STICKERS)];
+  const reactionLabel = emoji => STICKERS[emoji] ? STICKERS[emoji].label : emoji;
+  const reactionFace = emoji => STICKERS[emoji] ? `<img src="${STICKERS[emoji].src}" alt="${STICKERS[emoji].label}" class="gr-sticker">` : emoji;
   const REACTION_GAP_MS = 700;
   const REACTION_SHOW_MS = 2600;
 
@@ -466,7 +472,7 @@ const GameRoom = (() => {
       wrap.className = "gr-react hidden";
       wrap.innerHTML = `
         <div class="gr-react-tray hidden" id="grReactTray" role="group" aria-label="Emoji schicken">
-          ${REACTIONS.map(e => `<button type="button" class="gr-react-emoji" data-emoji="${e}" aria-label="${e} schicken">${reactionFace(e)}</button>`).join("")}
+          ${REACTIONS.map(e => `<button type="button" class="gr-react-emoji" data-emoji="${e}" aria-label="${reactionLabel(e)} schicken">${reactionFace(e)}</button>`).join("")}
         </div>
         <button type="button" class="gr-react-toggle" id="grReactBtn" aria-label="Emoji schicken" aria-expanded="false">😊</button>
       `;

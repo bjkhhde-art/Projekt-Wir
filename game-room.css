@@ -380,9 +380,15 @@
 
 .gr-sticker {
   display: block;
-  height: 1.15em;
-  width: auto;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
   margin: 0 auto;
+}
+
+.gr-reaction .gr-sticker {
+  width: 2.2em;
+  height: 1.6em;
 }
 
 .gr-reaction-name {

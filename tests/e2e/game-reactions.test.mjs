@@ -42,14 +42,15 @@ await wait(1200);
 
 ok(await isi.locator("#grReactBtn").isVisible() && await lena.locator("#grReactBtn").isVisible(), "at the table everybody has the 😊 button, friends too");
 await isi.click("#grReactBtn");
-ok(await isi.locator(".gr-react-emoji").count() === 12, "it opens twelve emojis");
+ok(await isi.locator(".gr-react-emoji").count() === 16, "it opens twelve emojis and four stickers");
 ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😘🫂"), "a kiss and a hug are there");
-ok(await isi.locator('.gr-react-emoji[data-emoji="😂"] img.gr-sticker').count() === 1 && (await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😭"), "laughing (as our sticker) and crying are there");
+ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😂😭"), "laughing and crying are there");
+ok(await isi.locator(".gr-react-emoji img.gr-sticker").count() === 4, "our four photo stickers are there");
 await isi.click('.gr-react-emoji[data-emoji="😂"]');
 ok(await isi.locator("#grReactTray").isHidden(), "the row closes after sending");
-ok(await isi.locator(".gr-reaction img.gr-sticker").first().getAttribute("alt") === "😂" && (await isi.locator(".gr-reaction-name").first().textContent()) === "Du", "Isi sees her own 😂 marked 'Du'");
+ok((await isi.locator(".gr-reaction").first().textContent()).includes("😂") && (await isi.locator(".gr-reaction-name").first().textContent()) === "Du", "Isi sees her own 😂 marked 'Du'");
 await benji.waitForSelector(".gr-reaction", { timeout: 3000 });
-ok(await benji.locator(".gr-reaction img.gr-sticker").first().getAttribute("alt") === "😂" && (await benji.locator(".gr-reaction-name").first().textContent()) === "Isi", "Benji sees Isi's 😂 sticker with her name");
+ok((await benji.locator(".gr-reaction").first().textContent()).includes("😂Isi"), "Benji sees Isi's 😂 with her name");
 await lena.waitForSelector(".gr-reaction", { timeout: 3000 });
 ok((await lena.locator(".gr-reaction-name").first().textContent()) === "Isi", "the friend sees it too");
 
