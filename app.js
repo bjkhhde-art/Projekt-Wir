@@ -45,11 +45,14 @@ async function loadItems() {
 function renderBoard() {
   board.innerHTML = "";
 
+  // Offene Quests zuerst, abgeschlossene danach (Reihenfolge innerhalb bleibt erhalten)
+  const sortedItems = [...items].sort((a, b) => Number(!!a.done) - Number(!!b.done));
+
   for (let i = 0; i < 16; i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
 
-    const item = items[i];
+    const item = sortedItems[i];
 
     if (deleteMode && item) {
       cell.classList.add("delete-mode");
