@@ -153,4 +153,54 @@ ok([...allLines].some(line => line.startsWith("Guten Morgen")), "in the morning 
 ok(M.tapReaction(1) === "giggle" && M.tapReaction(5) === "sneeze" && M.tapReaction(9) === "dizzy", "taps: giggle, sneeze on the 5th, dizzy from the 8th");
 ok(M.partnerOf("Isi") === "Benji" && M.partnerOf("Benji") === "Isi", "partnerOf");
 
+/* ---------- garden ---------- */
+{
+  const day = "2026-11-03";
+  let st = { coins: 20, extras: {} };
+  const ex0 = M.currentExtras(st);
+  ok(ex0.garden.length === M.GARDEN_PLOTS && ex0.garden.every(p => p === null), "an empty garden has four free plots");
+  ok(M.plantSeed({ coins: 3, extras: {} }, 0, "melon", "Isi", day).error === "coins", "planting costs coins");
+  const planted = M.plantSeed(st, 1, "grapes", "Isi", day);
+  ok(!planted.error && planted.cost === 8 && planted.patch.extras.garden[1].seed === "grapes", "grapes are planted into plot 2");
+  ok(st.extras.garden === undefined, "planting does not mutate the stored state");
+  st = { ...st, ...planted.patch };
+  ok(M.plantSeed(st, 1, "cherry", "Benji", day).error === "occupied", "a plot holds one plant");
+  ok(M.plotStage(st.extras.garden[1]) === "seed", "a fresh seed waits for water");
+  ok(M.harvestPlot(st, 1).error === "not_ready", "unripe fruit cannot be harvested");
+  const w1 = M.waterPlot(st, 1, "Benji", day);
+  ok(!w1.error && !w1.ready && w1.coins === M.WATER_COINS, "the first watering sprouts the seed");
+  st = { ...st, ...w1.patch };
+  ok(M.plotStage(st.extras.garden[1]) === "sprout", "sprout stage after one watering");
+  ok(M.waterPlot(st, 1, "Isi", day).error === "watered", "each plot is watered once a day");
+  const w2 = M.waterPlot(st, 1, "Isi", M.shiftDay(day, 1));
+  ok(w2.ready, "grapes are ripe after two days of watering");
+  st = { ...st, ...w2.patch };
+  ok(M.waterPlot(st, 1, "Isi", M.shiftDay(day, 2)).error === "ready", "ripe fruit needs no more water");
+  const h = M.harvestPlot(st, 1);
+  ok(h.seed.fruit === "Trauben" && h.patch.extras.pantry.Trauben === 1 && h.patch.extras.garden[1] === null, "harvesting moves the fruit into the pantry and frees the plot");
+  ok(h.patch.extras.harvests === 1 && h.patch.extras.harvested_kinds.includes("Trauben"), "harvests are counted per kind");
+  st = { ...st, ...h.patch };
+  const eaten = M.takeFromPantry(st, "Trauben");
+  ok(eaten && eaten.patch.extras.pantry.Trauben === undefined, "feeding the last grapes empties that pantry slot");
+  ok(M.takeFromPantry(st, "Kirsche") === null, "fruit we never grew cannot be fed");
+}
+
+/* ---------- star rain ---------- */
+{
+  const day = "2026-11-03";
+  ok(M.starCoins(0) === 0 && M.starCoins(10) === 3 && M.starCoins(100) === M.STAR_MAX_COINS, "star coins scale with the score and are capped");
+  let st = { daily: {}, extras: {} };
+  const coins = [];
+  for (let i = 0; i < M.STAR_ROUNDS_REWARDED + 1; i++) {
+    const r = M.starRoundOutcome(st, "Isi", day, 15 + i);
+    coins.push(r.coins);
+    st = { ...st, ...r.patch };
+  }
+  ok(coins.slice(0, M.STAR_ROUNDS_REWARDED).every(c => c > 0) && coins[M.STAR_ROUNDS_REWARDED] === 0, "only the first rounds of the day pay coins");
+  ok(st.extras.star_games === M.STAR_ROUNDS_REWARDED + 1 && st.extras.star_best === 15 + M.STAR_ROUNDS_REWARDED, "games and the best score are tracked");
+  ok(M.starRoundsLeft(st, "Benji", day) === M.STAR_ROUNDS_REWARDED && M.starRoundsLeft(st, "Isi", day) === 0, "each of us has our own paid rounds");
+  ok(M.starRoundsLeft(st, "Isi", M.shiftDay(day, 1)) === M.STAR_ROUNDS_REWARDED, "paid rounds reset the next day");
+  ok(M.starRoundOutcome(st, "Isi", day, 2).record === false, "a lower score is no record");
+}
+
 console.log(`\n${assertions} assertions passed (mochi-core)`);
