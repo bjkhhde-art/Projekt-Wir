@@ -2276,3 +2276,296 @@
     transition: none;
   }
 }
+
+/* ---------- garden ---------- */
+
+#gardenBtn { background: rgba(127, 174, 85, 0.16); }
+#starsBtn { background: rgba(255, 209, 102, 0.2); }
+
+.garden-intro {
+  max-width: 340px;
+}
+
+.garden-plots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: min(100%, 360px);
+  margin: 12px 0;
+}
+
+.garden-plot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(127, 174, 85, 0.35);
+  background: linear-gradient(180deg, rgba(127, 174, 85, 0.10) 0%, rgba(169, 105, 63, 0.18) 100%);
+  text-align: center;
+}
+
+.garden-plot.stage-ready {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.garden-plot-emoji {
+  font-size: 38px;
+  line-height: 1.1;
+}
+
+.garden-plot.stage-sprout .garden-plot-emoji,
+.garden-plot.stage-ready .garden-plot-emoji {
+  animation: garden-sway 2.6s ease-in-out infinite;
+}
+
+@keyframes garden-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+.garden-plot-info {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-height: 2.4em;
+}
+
+.garden-plot-btn {
+  width: 100%;
+  padding: 8px 6px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: #fff;
+  background: var(--gradient-brand);
+}
+
+.garden-plot-btn.water { background: #3b82f6; }
+.garden-plot-btn.harvest { background: var(--success); }
+.garden-plot-btn.plant { background: #7fae55; }
+
+.garden-plot-btn.done {
+  background: var(--surface-solid);
+  color: var(--text-muted);
+  border: 1.5px solid var(--surface-border);
+  cursor: default;
+  font-weight: 600;
+}
+
+.garden-pantry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  width: min(100%, 360px);
+  text-align: center;
+}
+
+.garden-pantry-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.garden-pantry-items {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.seed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.garden-food-section h3 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+.garden-food-btn {
+  position: relative;
+  border-color: rgba(127, 174, 85, 0.5);
+}
+
+.garden-food-count {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5f8f3a;
+}
+
+/* ---------- star rain ---------- */
+
+.stars-hud {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 15px;
+  margin: 6px 0 10px;
+}
+
+.stars-field {
+  position: relative;
+  width: min(100%, 360px);
+  height: 380px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: linear-gradient(180deg, #1e1b4b 0%, #3b2a6b 60%, #6b3f8f 100%);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stars-start {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  color: #f5eef8;
+  background: rgba(20, 14, 40, 0.55);
+  font-size: 14px;
+}
+
+.stars-start.hidden {
+  display: none;
+}
+
+.stars-rounds-info {
+  font-size: 12.5px;
+  opacity: 0.85;
+}
+
+.stars-mochi {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 44px;
+  z-index: 1;
+}
+
+.stars-mochi.bounce { animation: stars-bounce 0.35s ease; }
+.stars-mochi.shake { animation: stars-shake 0.35s ease; }
+
+@keyframes stars-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-10px) scale(1.08); }
+}
+
+@keyframes stars-shake {
+  0%, 100% { transform: translateX(-50%); }
+  25% { transform: translateX(-58%); }
+  75% { transform: translateX(-42%); }
+}
+
+.stars-drop {
+  position: absolute;
+  top: -50px;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 30px;
+  line-height: 48px;
+  cursor: pointer;
+  animation: stars-fall var(--fall, 2.6s) linear forwards;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stars-drop.golden { font-size: 36px; }
+.stars-drop.cloud { --spin: 0deg; }
+
+@keyframes stars-fall {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(440px) rotate(var(--spin, 200deg)); }
+}
+
+.stars-drop.popped-good,
+.stars-drop.popped-bad {
+  animation: stars-pop 0.22s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes stars-pop {
+  to { transform: scale(1.8); opacity: 0; }
+}
+
+/* ---------- new outfits & room items ---------- */
+
+.wizard-hat-body { fill: #6d4ed8; stroke: #4c33a8; stroke-width: 1.5; stroke-linejoin: round; }
+.wizard-hat-brim { fill: #5b3fc4; stroke: #4c33a8; stroke-width: 1.2; }
+.wizard-hat-star { fill: #ffe066; }
+
+.halo-ring { fill: none; stroke: #ffd84d; stroke-width: 4; opacity: 0.95; filter: drop-shadow(0 0 3px rgba(255, 216, 77, 0.8)); }
+
+.bunny-ear { fill: #fff8ef; stroke: #e8ddc8; stroke-width: 1.5; }
+.bunny-ear-inner { fill: #ffb1c4; }
+
+.heartglasses-lens { fill: #ff5c8a; opacity: 0.9; stroke: #c9385f; stroke-width: 0.8; }
+.heartglasses-bridge { fill: #c9385f; }
+
+.monocle-glass { fill: rgba(191, 224, 247, 0.35); stroke: #d4a817; stroke-width: 2.4; }
+.monocle-chain { fill: none; stroke: #d4a817; stroke-width: 1.4; stroke-dasharray: 2 2; }
+
+.wall-rainbow-bg { fill: #eaf6ff; }
+.rainbow-arc { fill: none; stroke-width: 12; }
+.rainbow-red { stroke: #ff8fa3; }
+.rainbow-orange { stroke: #ffb37a; }
+.rainbow-yellow { stroke: #ffe27a; }
+.rainbow-green { stroke: #9be29b; }
+.rainbow-blue { stroke: #8cc8ff; }
+.rainbow-purple { stroke: #c3a6ff; }
+
+.floor-grass-bg { fill: #9fd486; }
+.floor-grass-blade { fill: none; stroke: #6aa84f; stroke-width: 1.6; stroke-linecap: round; }
+.floor-grass-flower { fill: #fff3a8; stroke: #ff8fab; stroke-width: 1.5; }
+
+.aquarium-glass { fill: rgba(191, 224, 247, 0.5); stroke: #8cb8d8; stroke-width: 1.5; }
+.aquarium-water { fill: #7cc4f0; opacity: 0.75; }
+.aquarium-fish { fill: #ff9f43; }
+.aquarium-bubble { fill: #ffffff; opacity: 0.8; }
+.aquarium-base { fill: #5c3820; }
+
+.frame-border { fill: #d9a35b; stroke: #a9693f; stroke-width: 1.5; }
+.frame-picture { fill: #fff3f7; }
+.frame-heart { fill: #ff5c8a; }
+
+.lights-wire { fill: none; stroke: #5c3820; stroke-width: 1.2; opacity: 0.7; }
+.light-bulb { animation: lights-twinkle 1.8s ease-in-out infinite; }
+.light-bulb:nth-of-type(even) { animation-delay: 0.9s; }
+.bulb-pink { fill: #ff8fab; }
+.bulb-yellow { fill: #ffe066; }
+.bulb-mint { fill: #8fdab8; }
+.bulb-purple { fill: #c3a6ff; }
+
+@keyframes lights-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light-bulb,
+  .garden-plot-emoji { animation: none !important; }
+}

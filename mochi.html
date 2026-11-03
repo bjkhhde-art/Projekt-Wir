@@ -182,6 +182,27 @@
             </g>
           </g>
 
+          <g id="hatWizard" class="hat-piece hidden" transform="translate(58,34) rotate(-16)">
+            <path d="M0,-36 L-17,12 L17,12 Z" class="wizard-hat-body"/>
+            <ellipse cx="0" cy="12" rx="25" ry="5.5" class="wizard-hat-brim"/>
+            <path d="M-2,-12 L0,-17 L2,-12 L7,-12 L3,-9 L5,-4 L0,-7 L-5,-4 L-3,-9 L-7,-12 Z" class="wizard-hat-star"/>
+          </g>
+
+          <g id="hatHalo" class="hat-piece hidden">
+            <ellipse cx="100" cy="10" rx="32" ry="7" class="halo-ring"/>
+          </g>
+
+          <g id="hatBunny" class="hat-piece hidden">
+            <g transform="rotate(-12,72,48)">
+              <ellipse cx="72" cy="24" rx="10" ry="26" class="bunny-ear"/>
+              <ellipse cx="72" cy="26" rx="5" ry="18" class="bunny-ear-inner"/>
+            </g>
+            <g transform="rotate(12,128,48)">
+              <ellipse cx="128" cy="24" rx="10" ry="26" class="bunny-ear"/>
+              <ellipse cx="128" cy="26" rx="5" ry="18" class="bunny-ear-inner"/>
+            </g>
+          </g>
+
           <path id="petCarrotLeft" class="cake-carrot" d="M48,50 L54,28 L60,50 Z"/>
           <path class="cake-leaf" d="M52,30 C48,20 54,14 58,18 C60,24 56,28 52,30 Z"/>
 
@@ -229,6 +250,17 @@
           <g id="accessoryNecklace" class="accessory-piece hidden">
             <path d="M70,104 Q100,124 130,104" class="necklace-chain"/>
             <circle cx="100" cy="121" r="4.2" class="necklace-pendant"/>
+          </g>
+
+          <g id="accessoryHeartglasses" class="accessory-piece hidden">
+            <path transform="translate(78,152) scale(1.45)" d="M0,7 C-15,-3 -8,-13 0,-5 C8,-13 15,-3 0,7 Z" class="heartglasses-lens"/>
+            <path transform="translate(122,152) scale(1.45)" d="M0,7 C-15,-3 -8,-13 0,-5 C8,-13 15,-3 0,7 Z" class="heartglasses-lens"/>
+            <rect x="92" y="148" width="16" height="3.5" rx="1.5" class="heartglasses-bridge"/>
+          </g>
+
+          <g id="accessoryMonocle" class="accessory-piece hidden">
+            <circle cx="122" cy="152" r="12" class="monocle-glass"/>
+            <path d="M133,158 Q142,170 136,186" class="monocle-chain"/>
           </g>
 
           <path id="petMouthPath" class="pet-mouth-path" d="M90,178 Q100,183 110,178"/>
@@ -309,6 +341,8 @@
         <button id="coffeeBtn" class="activity-btn"><span class="activity-icon">☕</span><span class="activity-label">Kaffee</span></button>
         <button id="sleepBtn" class="activity-btn"><span id="sleepIcon" class="activity-icon">😴</span><span id="sleepLabel" class="activity-label">Schlafen</span></button>
         <button id="openRoomBtn" class="activity-btn"><span class="activity-icon">🏠</span><span class="activity-label">Zimmer</span></button>
+        <button id="gardenBtn" class="activity-btn"><span class="activity-icon">🌱</span><span class="activity-label">Garten</span></button>
+        <button id="starsBtn" class="activity-btn"><span class="activity-icon">⭐</span><span class="activity-label">Sternenregen</span></button>
       </div>
       </div>
 
@@ -471,6 +505,16 @@
             <circle cx="300" cy="20" r="5" class="wall-dot"/>
           </g>
 
+          <g id="wallRainbow" class="room-wall hidden">
+            <rect x="0" y="0" width="320" height="130" class="wall-rainbow-bg"/>
+            <path d="M50,130 A110,110 0 0 1 270,130" class="rainbow-arc rainbow-red"/>
+            <path d="M62,130 A98,98 0 0 1 258,130" class="rainbow-arc rainbow-orange"/>
+            <path d="M74,130 A86,86 0 0 1 246,130" class="rainbow-arc rainbow-yellow"/>
+            <path d="M86,130 A74,74 0 0 1 234,130" class="rainbow-arc rainbow-green"/>
+            <path d="M98,130 A62,62 0 0 1 222,130" class="rainbow-arc rainbow-blue"/>
+            <path d="M110,130 A50,50 0 0 1 210,130" class="rainbow-arc rainbow-purple"/>
+          </g>
+
           <g id="floorWood" class="room-floor hidden">
             <rect x="0" y="130" width="320" height="70" class="floor-wood-bg"/>
             <line x1="0" y1="145" x2="320" y2="145" class="floor-wood-line"/>
@@ -510,6 +554,41 @@
             <rect x="0" y="130" width="320" height="70" class="floor-base-bg"/>
             <rect x="60" y="145" width="200" height="48" rx="14" class="floor-rug-mint"/>
             <rect x="72" y="157" width="176" height="24" rx="8" class="floor-rug-mint-inner"/>
+          </g>
+
+          <g id="floorGrass" class="room-floor hidden">
+            <rect x="0" y="130" width="320" height="70" class="floor-grass-bg"/>
+            <path d="M20,150 l3,-8 l3,8 M70,170 l3,-8 l3,8 M120,145 l3,-8 l3,8 M200,180 l3,-8 l3,8 M250,152 l3,-8 l3,8 M295,175 l3,-8 l3,8 M40,190 l3,-8 l3,8 M230,195 l3,-8 l3,8" class="floor-grass-blade"/>
+            <circle cx="95" cy="190" r="3" class="floor-grass-flower"/>
+            <circle cx="275" cy="138" r="3" class="floor-grass-flower"/>
+          </g>
+
+          <g id="decoAquarium" class="room-deco hidden" transform="translate(212,172)">
+            <rect x="-24" y="-30" width="48" height="32" rx="5" class="aquarium-glass"/>
+            <rect x="-22" y="-22" width="44" height="22" rx="3" class="aquarium-water"/>
+            <ellipse cx="-4" cy="-12" rx="7" ry="4.5" class="aquarium-fish"/>
+            <path d="M3,-12 L10,-17 L10,-7 Z" class="aquarium-fish"/>
+            <circle cx="12" cy="-20" r="1.8" class="aquarium-bubble"/>
+            <circle cx="15" cy="-25" r="1.3" class="aquarium-bubble"/>
+            <rect x="-26" y="2" width="52" height="5" rx="2" class="aquarium-base"/>
+          </g>
+
+          <g id="decoFrame" class="room-deco hidden" transform="translate(196,52)">
+            <rect x="-15" y="-18" width="30" height="34" rx="3" class="frame-border"/>
+            <rect x="-10" y="-13" width="20" height="24" class="frame-picture"/>
+            <path d="M0,6 C-9,0 -5,-7 0,-2 C5,-7 9,0 0,6 Z" class="frame-heart"/>
+          </g>
+
+          <g id="decoLights" class="room-deco hidden">
+            <path d="M0,6 Q40,24 80,8 Q120,24 160,8 Q200,24 240,8 Q280,24 320,6" class="lights-wire"/>
+            <circle cx="20" cy="13" r="3.4" class="light-bulb bulb-pink"/>
+            <circle cx="60" cy="14" r="3.4" class="light-bulb bulb-yellow"/>
+            <circle cx="100" cy="14" r="3.4" class="light-bulb bulb-mint"/>
+            <circle cx="140" cy="14" r="3.4" class="light-bulb bulb-purple"/>
+            <circle cx="180" cy="14" r="3.4" class="light-bulb bulb-pink"/>
+            <circle cx="220" cy="14" r="3.4" class="light-bulb bulb-yellow"/>
+            <circle cx="260" cy="14" r="3.4" class="light-bulb bulb-mint"/>
+            <circle cx="300" cy="13" r="3.4" class="light-bulb bulb-purple"/>
           </g>
 
           <g id="decoPlant" class="room-deco hidden" transform="translate(32,176)">
@@ -588,6 +667,39 @@
           <button id="leaveRoomScene" class="btn btn-secondary btn-sm">← Zurück zu Mochi</button>
         </div>
       </div>
+
+      <div id="gardenScene" class="coffee-scene hidden">
+        <p class="coffee-step-label">Unser Garten 🌱</p>
+        <p class="pet-hint garden-intro">Wir pflanzen Samen, gießen jedes Beet einmal am Tag und ernten Obst für Mochi. Gartenobst macht Mochi besonders satt und bringt mehr Münzen.</p>
+        <div id="gardenPlots" class="garden-plots"></div>
+        <div class="garden-pantry">
+          <span class="garden-pantry-title">🧺 Vorratskorb</span>
+          <span id="gardenPantry" class="garden-pantry-items">noch leer</span>
+        </div>
+        <div class="modal-buttons">
+          <button id="leaveGardenScene" class="btn btn-secondary btn-sm">← Zurück zu Mochi</button>
+        </div>
+      </div>
+
+      <div id="starsScene" class="coffee-scene hidden">
+        <p class="coffee-step-label">Sternenregen ⭐</p>
+        <div class="stars-hud">
+          <span>⭐ <strong id="starsScore">0</strong></span>
+          <span>⏱️ <strong id="starsTime">20</strong>s</span>
+          <span>🏅 <strong id="starsBest">0</strong></span>
+        </div>
+        <div id="starsField" class="stars-field" aria-label="Spielfeld">
+          <div id="starsStart" class="stars-start">
+            <p>Fang die fallenden Sterne für Mochi! ⭐ = 1, 🌟 = 3, aber Finger weg von den Regenwolken 🌧️ (−2).</p>
+            <p id="starsRoundsInfo" class="stars-rounds-info"></p>
+            <button id="starsPlayBtn" class="btn">Los geht's!</button>
+          </div>
+          <div id="starsMochi" class="stars-mochi" aria-hidden="true">🎂</div>
+        </div>
+        <div class="modal-buttons">
+          <button id="leaveStarsScene" class="btn btn-secondary btn-sm">← Zurück zu Mochi</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -598,6 +710,17 @@
       <div class="push-person-choice">
         <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
         <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seedModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Was pflanzen wir? 🌱</h2>
+      <p class="push-modal-text">Jedes Beet muss einmal pro Tag gegossen werden, bis die Frucht reif ist.</p>
+      <div id="seedList" class="seed-list"></div>
+      <div class="modal-buttons">
+        <button id="closeSeedModal" class="btn btn-secondary btn-block">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -613,6 +736,10 @@
         <button class="food-btn" data-food="Banane" data-emoji="🍌"><span class="activity-icon">🍌</span><span class="activity-label">Banane</span></button>
         <button class="food-btn" data-food="Avocado" data-emoji="🥑"><span class="activity-icon">🥑</span><span class="activity-label">Avocado</span></button>
         <button class="food-btn" data-food="Erdbeere" data-emoji="🍓"><span class="activity-icon">🍓</span><span class="activity-label">Erdbeere</span></button>
+      </div>
+      <div id="gardenFoodSection" class="garden-food-section hidden">
+        <h3>Aus unserem Garten 🧺</h3>
+        <div id="gardenFoodGrid" class="food-grid"></div>
       </div>
       <div class="modal-buttons">
         <button id="closeFoodModal" class="btn btn-secondary btn-block">Abbrechen</button>

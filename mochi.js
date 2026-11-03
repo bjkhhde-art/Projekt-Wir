@@ -122,6 +122,28 @@ const deliveryTime = document.getElementById("deliveryTime");
 const replyDelivery = document.getElementById("replyDelivery");
 const closeDelivery = document.getElementById("closeDelivery");
 
+const gardenBtn = document.getElementById("gardenBtn");
+const starsBtn = document.getElementById("starsBtn");
+const gardenScene = document.getElementById("gardenScene");
+const gardenPlots = document.getElementById("gardenPlots");
+const gardenPantry = document.getElementById("gardenPantry");
+const leaveGardenScene = document.getElementById("leaveGardenScene");
+const seedModal = document.getElementById("seedModal");
+const seedList = document.getElementById("seedList");
+const closeSeedModal = document.getElementById("closeSeedModal");
+const gardenFoodSection = document.getElementById("gardenFoodSection");
+const gardenFoodGrid = document.getElementById("gardenFoodGrid");
+const starsScene = document.getElementById("starsScene");
+const starsField = document.getElementById("starsField");
+const starsStart = document.getElementById("starsStart");
+const starsRoundsInfo = document.getElementById("starsRoundsInfo");
+const starsPlayBtn = document.getElementById("starsPlayBtn");
+const starsScore = document.getElementById("starsScore");
+const starsTime = document.getElementById("starsTime");
+const starsBest = document.getElementById("starsBest");
+const starsMochi = document.getElementById("starsMochi");
+const leaveStarsScene = document.getElementById("leaveStarsScene");
+
 const foodModal = document.getElementById("foodModal");
 const foodButtons = document.querySelectorAll(".food-btn");
 const closeFoodModal = document.getElementById("closeFoodModal");
@@ -215,7 +237,12 @@ const SHOP_ITEMS = {
     { id: "shelf", slot: "deco", name: "Bücherregal", icon: "📚", price: 25 },
     { id: "toybox", slot: "deco", name: "Spielzeugkiste", icon: "🧸", price: 20 },
     { id: "balloons", slot: "deco", name: "Luftballons", icon: "🎈", price: 15 },
-    { id: "cushion", slot: "deco", name: "Kissen", icon: "🛋️", price: 15 }
+    { id: "cushion", slot: "deco", name: "Kissen", icon: "🛋️", price: 15 },
+    { id: "rainbow", slot: "wall", name: "Regenbogen", icon: "🌈", price: 35 },
+    { id: "grass", slot: "floor", name: "Blumenwiese", icon: "🌼", price: 30 },
+    { id: "aquarium", slot: "deco", name: "Aquarium", icon: "🐠", price: 40 },
+    { id: "frame", slot: "deco", name: "Herz-Bild", icon: "🖼️", price: 20 },
+    { id: "lights", slot: "deco", name: "Lichterkette", icon: "✨", price: 30 }
   ],
   outfit: [
     { id: "party", slot: "hat", name: "Partyhut", icon: "🎉", price: 15 },
@@ -226,7 +253,12 @@ const SHOP_ITEMS = {
     { id: "scarf", slot: "accessory", name: "Schal", icon: "🧣", price: 15 },
     { id: "sunglasses", slot: "accessory", name: "Sonnenbrille", icon: "🕶️", price: 20 },
     { id: "bowtie", slot: "accessory", name: "Fliege", icon: "🎀", price: 12 },
-    { id: "necklace", slot: "accessory", name: "Kette", icon: "📿", price: 18 }
+    { id: "necklace", slot: "accessory", name: "Kette", icon: "📿", price: 18 },
+    { id: "wizard", slot: "hat", name: "Zauberhut", icon: "🧙", price: 40 },
+    { id: "halo", slot: "hat", name: "Heiligenschein", icon: "😇", price: 45 },
+    { id: "bunny", slot: "hat", name: "Hasenohren", icon: "🐰", price: 30 },
+    { id: "heartglasses", slot: "accessory", name: "Herzbrille", icon: "💕", price: 30 },
+    { id: "monocle", slot: "accessory", name: "Monokel", icon: "🧐", price: 35 }
   ]
 };
 
@@ -265,8 +297,21 @@ const ACHIEVEMENTS = [
   { id: "streak_7", icon: "🗓️", name: "Eine Woche Wir", desc: "7 Tage in Folge waren beide bei Mochi", check: s => (s.best_streak || 0) >= 7 },
   { id: "streak_30", icon: "🌙", name: "Ein Monat Wir", desc: "30 Tage in Folge waren beide bei Mochi", check: s => (s.best_streak || 0) >= 30 },
   { id: "double_1", icon: "💞", name: "Doppelknuddler", desc: "Mochi gleichzeitig geknuddelt", check: s => (s.double_cuddles || 0) >= 1 },
-  { id: "double_10", icon: "🫂", name: "Kuschelsandwich", desc: "10x gleichzeitig geknuddelt", check: s => (s.double_cuddles || 0) >= 10 }
+  { id: "double_10", icon: "🫂", name: "Kuschelsandwich", desc: "10x gleichzeitig geknuddelt", check: s => (s.double_cuddles || 0) >= 10 },
+  { id: "collector_20", icon: "💎", name: "Schatzkammer", desc: "20 Gegenstände besessen", check: s => ((s.owned_items) || []).length >= 20 },
+  { id: "harvest_1", icon: "🌱", name: "Grüner Daumen", desc: "Das erste Obst im Garten geerntet", check: s => extrasOf(s).harvests >= 1 },
+  { id: "harvest_10", icon: "🧺", name: "Erntezeit", desc: "10x im Garten geerntet", check: s => extrasOf(s).harvests >= 10 },
+  { id: "harvest_30", icon: "🚜", name: "Bauernhof Wir", desc: "30x im Garten geerntet", check: s => extrasOf(s).harvests >= 30 },
+  { id: "harvest_all", icon: "🥗", name: "Obstsalat", desc: "Jede Obstsorte aus dem Garten einmal geerntet", check: s => Core.SEEDS.every(seed => extrasOf(s).harvested_kinds.includes(seed.fruit)) },
+  { id: "stars_1", icon: "⭐", name: "Sternschnuppe", desc: "Zum ersten Mal Sternenregen gespielt", check: s => extrasOf(s).star_games >= 1 },
+  { id: "stars_25", icon: "🌟", name: "Sternenfänger", desc: "25 Punkte in einer Runde Sternenregen", check: s => extrasOf(s).star_best >= 25 },
+  { id: "stars_40", icon: "🌌", name: "Milchstraße", desc: "40 Punkte in einer Runde Sternenregen", check: s => extrasOf(s).star_best >= 40 },
+  { id: "stars_games_20", icon: "🎮", name: "Sternen-Profi", desc: "20 Runden Sternenregen gespielt", check: s => extrasOf(s).star_games >= 20 }
 ];
+
+function extrasOf(state) {
+  return Core.currentExtras(state);
+}
 
 function announceNewAchievements(oldState, newState) {
   if (!oldState) return;
@@ -562,6 +607,8 @@ function render() {
   renderEquippedLook();
   renderRoomLook();
   renderDaily();
+  if (!gardenScene.classList.contains("hidden")) renderGarden();
+  if (!foodModal.classList.contains("hidden")) renderGardenFood();
 
   tearLeft.classList.toggle("hidden", mood !== "verysad");
   tearRight.classList.toggle("hidden", mood !== "verysad");
@@ -572,7 +619,7 @@ function render() {
 
   sleepIcon.textContent = asleep ? "☀️" : "😴";
   sleepLabel.textContent = asleep ? "Aufwecken" : "Schlafen";
-  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, openRoomBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, openRoomBtn, gardenBtn, starsBtn].forEach(btn => btn.classList.toggle("hidden", asleep));
 }
 
 /* ---------- data loading ---------- */
@@ -718,7 +765,7 @@ async function triggerCuddle() {
   });
 }
 
-async function performActivity(kind, extraLabel, particleEmojiOverride) {
+async function performActivity(kind, extraLabel, particleEmojiOverride, options = {}) {
   if (showerLathering || activityLocked) return false;
 
   if (isAsleep()) {
@@ -745,7 +792,13 @@ async function performActivity(kind, extraLabel, particleEmojiOverride) {
   const activityLog = extraLabel ? `${kind}:${extraLabel}` : kind;
   const extra = nowIso => ({ last_activity: activityLog });
 
-  if (kind === "feed") {
+  if (kind === "feed" && options.fromGarden) {
+    /* home-grown fruit: more filling, more coins, and it leaves the pantry */
+    await applyCare({ hunger: 60, bond: 12 }, 7, 3, (nowIso, state) => {
+      const taken = Core.takeFromPantry(state, extraLabel);
+      return { last_activity: activityLog, ...(taken ? taken.patch : {}) };
+    }, { type: "feed", food: extraLabel });
+  } else if (kind === "feed") {
     await applyCare({ hunger: 45, bond: 5 }, 3, 2, extra, { type: "feed", food: extraLabel });
   } else {
     await applyCare({ bond: 12 }, 5, 2, extra, { type: kind });
@@ -842,7 +895,7 @@ function startShowerLathering() {
   petFoamOverlay.setAttribute("opacity", "0");
   petCreature.classList.add("showering");
   shampooBottle.classList.remove("hidden");
-  [messengerBtn, feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
+  [messengerBtn, feedBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn, gardenBtn, starsBtn].forEach(btn => btn.classList.add("hidden"));
   showerBtn.classList.add("hidden");
   petHint.textContent = `Tippe die Seifenblasen an, bevor sie zerplatzen! (0/${SHOWER_BUBBLE_COUNT})`;
   showToast("Seifenblasen-Zeit! Fang so viele wie möglich 🫧", "success");
@@ -855,7 +908,7 @@ async function finishShower() {
   document.querySelectorAll(".shower-bubble-target").forEach(el => el.remove());
   shampooBottle.classList.add("hidden");
   petHint.textContent = DEFAULT_PET_HINT;
-  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn, gardenBtn, starsBtn].forEach(btn => btn.classList.remove("hidden"));
 
   for (let i = 0; i < 6; i++) {
     setTimeout(() => spawnParticle("💧", { falling: true }), i * 100);
@@ -936,7 +989,7 @@ async function performDance() {
 
   activityLocked = true;
 
-  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.add("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn, gardenBtn, starsBtn].forEach(btn => btn.classList.add("hidden"));
 
   petCreature.classList.add("disco-rising");
   vibrate([10, 15, 10]);
@@ -959,7 +1012,7 @@ async function performDance() {
   }
 
   petHint.textContent = DEFAULT_PET_HINT;
-  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn].forEach(btn => btn.classList.remove("hidden"));
+  [messengerBtn, feedBtn, showerBtn, sportBtn, danceBtn, coffeeBtn, sleepBtn, openRoomBtn, gardenBtn, starsBtn].forEach(btn => btn.classList.remove("hidden"));
 
   setTimeout(() => petCreature.classList.remove("party"), DANCE_PARTY_TAIL_MS);
 
@@ -979,6 +1032,7 @@ feedBtn.addEventListener("click", () => {
     showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
     return;
   }
+  renderGardenFood();
   foodModal.classList.remove("hidden");
 });
 
@@ -1303,6 +1357,370 @@ openRoomBtn.addEventListener("click", () => {
 });
 
 leaveRoomScene.addEventListener("click", exitRoomScene);
+
+/* ---------- scenes (garden, star rain) ---------- */
+
+function enterScene(scene) {
+  petMainView.classList.add("leaving");
+
+  setTimeout(() => {
+    petMainView.classList.add("hidden");
+    petMainView.classList.remove("leaving");
+    scene.classList.remove("hidden");
+    scene.classList.add("entering");
+    void scene.offsetWidth;
+    scene.classList.remove("entering");
+  }, 350);
+}
+
+function exitScene(scene) {
+  scene.classList.add("entering");
+
+  setTimeout(() => {
+    scene.classList.add("hidden");
+    scene.classList.remove("entering");
+    petMainView.classList.add("leaving");
+    petMainView.classList.remove("hidden");
+    void petMainView.offsetWidth;
+    petMainView.classList.remove("leaving");
+  }, 350);
+}
+
+/* ---------- garden ---------- */
+
+const PLOT_STAGE_EMOJI = { empty: "🟫", seed: "🌰", sprout: "🌱" };
+let seedTargetPlot = null;
+let gardenBusy = false;
+
+function renderGarden() {
+  const extras = Core.currentExtras(petState);
+  const key = Core.dayKey();
+
+  gardenPlots.innerHTML = "";
+  extras.garden.forEach((plot, index) => {
+    const stage = Core.plotStage(plot);
+    const seed = plot ? Core.findSeed(plot.seed) : null;
+    const card = document.createElement("div");
+    card.className = "garden-plot stage-" + stage;
+    card.dataset.plot = String(index);
+
+    let info = "Freies Beet";
+    let button = `<button class="garden-plot-btn plant" data-action="plant" data-plot="${index}">Pflanzen</button>`;
+
+    if (plot && seed) {
+      const drops = `💧 ${Math.min(plot.waterings || 0, seed.days)}/${seed.days}`;
+      if (stage === "ready") {
+        info = `${seed.fruit} ist reif!`;
+        button = `<button class="garden-plot-btn harvest" data-action="harvest" data-plot="${index}">Ernten 🧺</button>`;
+      } else if (Core.canWater(plot, key)) {
+        info = `${seed.fruit} · ${drops}`;
+        button = `<button class="garden-plot-btn water" data-action="water" data-plot="${index}">Gießen 💧</button>`;
+      } else {
+        info = `${seed.fruit} · ${drops}`;
+        button = `<button class="garden-plot-btn done" disabled>Heute gegossen${plot.watered_by ? " von " + escapeHtml(plot.watered_by) : ""} ✓</button>`;
+      }
+    }
+
+    const emoji = stage === "ready" ? seed.emoji : PLOT_STAGE_EMOJI[stage];
+    card.innerHTML = `
+      <span class="garden-plot-emoji">${emoji}</span>
+      <span class="garden-plot-info">${info}</span>
+      ${button}
+    `;
+    gardenPlots.appendChild(card);
+  });
+
+  const pantry = Object.entries(extras.pantry).filter(([, count]) => count > 0);
+  gardenPantry.textContent = pantry.length
+    ? pantry.map(([fruit, count]) => `${(Core.seedForFruit(fruit) || {}).emoji || "🍎"} ${count}× ${fruit}`).join(" · ")
+    : "noch leer";
+}
+
+function renderSeedList() {
+  const coins = (petState && petState.coins) || 0;
+  seedList.innerHTML = "";
+  Core.SEEDS.forEach(seed => {
+    const row = document.createElement("div");
+    row.className = "shop-item";
+    const days = seed.days === 1 ? "1 Tag" : `${seed.days} Tage`;
+    row.innerHTML = `
+      <span class="shop-item-icon">${seed.emoji}</span>
+      <div class="shop-item-info">
+        <div class="shop-item-name">${seed.fruit}</div>
+        <div class="shop-item-price">🪙 ${seed.price} · reif nach ${days} Gießen</div>
+      </div>
+      ${coins >= seed.price
+        ? `<button class="shop-item-btn buy" data-seed="${seed.id}">Säen</button>`
+        : `<button class="shop-item-btn locked" disabled>🪙 ${seed.price}</button>`}
+    `;
+    seedList.appendChild(row);
+  });
+}
+
+const GARDEN_ERRORS = {
+  coins: "Dafür reichen unsere Münzen noch nicht 🪙",
+  occupied: "In dem Beet wächst schon etwas 🌱",
+  watered: "Das Beet wurde heute schon gegossen 💧",
+  ready: "Das ist schon reif, jetzt ernten! 🧺",
+  not_ready: "Das ist noch nicht reif 🌱",
+  empty: "Das Beet ist leer"
+};
+
+async function gardenAction(action, index, seedId) {
+  if (!requirePerson() || gardenBusy) return;
+  gardenBusy = true;
+  const person = normalizePerson(currentPerson);
+  const key = Core.dayKey();
+  let outcome = null;
+
+  const result = await mutatePet(base => {
+    if (action === "plant") {
+      outcome = Core.plantSeed(base, index, seedId, person, key);
+      if (outcome.error) return null;
+      return { ...outcome.patch, coins: (base.coins || 0) - outcome.cost };
+    }
+    outcome = action === "water" ? Core.waterPlot(base, index, person, key) : Core.harvestPlot(base, index);
+    if (outcome.error) return null;
+    return {
+      ...outcome.patch,
+      coins: (base.coins || 0) + outcome.coins,
+      total_coins_earned: (base.total_coins_earned || 0) + outcome.coins
+    };
+  });
+
+  gardenBusy = false;
+  renderGarden();
+
+  if (!result) {
+    if (outcome && outcome.error) showToast(GARDEN_ERRORS[outcome.error] || "Das ging gerade nicht", "error");
+    return;
+  }
+
+  if (action === "plant") {
+    vibrate([10, 20, 10]);
+    showToast(`${outcome.seed.emoji} ${outcome.seed.fruit} gesät! Jetzt jeden Tag gießen 💧`, "success");
+  } else if (action === "water") {
+    vibrate(12);
+    showToast(outcome.ready ? `Reif! Jetzt können wir ernten 🧺 (+${outcome.coins} 🪙)` : `Gegossen 💧 +${outcome.coins} 🪙`, "success");
+  } else {
+    vibrate([10, 20, 10, 20]);
+    celebrate(12);
+    showToast(`${outcome.seed.emoji} ${outcome.seed.fruit} geerntet! Liegt jetzt im Vorratskorb (+${outcome.coins} 🪙)`, "success");
+  }
+
+  announceNewAchievements(result.previous, result.next);
+  broadcastTogether("care", { person, type: "garden" });
+}
+
+gardenPlots.addEventListener("click", event => {
+  const btn = event.target.closest(".garden-plot-btn");
+  if (!btn || btn.disabled) return;
+  const index = Number(btn.dataset.plot);
+  if (btn.dataset.action === "plant") {
+    if (!requirePerson()) return;
+    seedTargetPlot = index;
+    renderSeedList();
+    seedModal.classList.remove("hidden");
+    return;
+  }
+  gardenAction(btn.dataset.action, index);
+});
+
+seedList.addEventListener("click", event => {
+  const btn = event.target.closest(".shop-item-btn");
+  if (!btn || btn.disabled || seedTargetPlot === null) return;
+  seedModal.classList.add("hidden");
+  gardenAction("plant", seedTargetPlot, btn.dataset.seed);
+  seedTargetPlot = null;
+});
+
+closeSeedModal.addEventListener("click", () => {
+  seedModal.classList.add("hidden");
+  seedTargetPlot = null;
+});
+
+gardenBtn.addEventListener("click", () => {
+  if (showerLathering || activityLocked || isAsleep()) return;
+  renderGarden();
+  enterScene(gardenScene);
+});
+
+leaveGardenScene.addEventListener("click", () => exitScene(gardenScene));
+
+/* the food menu shows what we harvested */
+function renderGardenFood() {
+  const pantry = Object.entries(Core.currentExtras(petState).pantry).filter(([, count]) => count > 0);
+  gardenFoodSection.classList.toggle("hidden", pantry.length === 0);
+  gardenFoodGrid.innerHTML = "";
+  pantry.forEach(([fruit, count]) => {
+    const emoji = (Core.seedForFruit(fruit) || {}).emoji || "🍎";
+    const btn = document.createElement("button");
+    btn.className = "food-btn garden-food-btn";
+    btn.dataset.food = fruit;
+    btn.dataset.emoji = emoji;
+    btn.innerHTML = `<span class="activity-icon">${emoji}</span><span class="activity-label">${fruit}</span><span class="garden-food-count">${count}×</span>`;
+    gardenFoodGrid.appendChild(btn);
+  });
+}
+
+gardenFoodGrid.addEventListener("click", event => {
+  const btn = event.target.closest(".garden-food-btn");
+  if (!btn) return;
+  foodModal.classList.add("hidden");
+  performActivity("feed", btn.dataset.food, btn.dataset.emoji, { fromGarden: true });
+});
+
+/* ---------- star rain mini game ---------- */
+
+const STARS_GAME_MS = 20000;
+const STARS_SPAWN_MS = 420;
+const STAR_KINDS = [
+  { emoji: "🌟", points: 3, chance: 0.12, cls: "golden" },
+  { emoji: "🌧️", points: -2, chance: 0.22, cls: "cloud" },
+  { emoji: "⭐", points: 1, chance: 1, cls: "star" }
+];
+
+let starsRunning = false;
+let starsPoints = 0;
+let starsSpawnTimer = null;
+let starsClockTimer = null;
+let starsEndsAt = 0;
+
+function renderStarsInfo(resultText) {
+  const extras = Core.currentExtras(petState);
+  starsBest.textContent = extras.star_best;
+  const left = currentPerson ? Core.starRoundsLeft(petState, normalizePerson(currentPerson), Core.dayKey()) : Core.STAR_ROUNDS_REWARDED;
+  const energy = decayedStats().energy;
+  const roundsText = left > 0
+    ? `Heute noch ${left} ${left === 1 ? "Runde" : "Runden"} mit Münzen (bis zu ${Core.STAR_MAX_COINS} 🪙). Kostet Mochi ${Core.STAR_ENERGY_COST} Energie.`
+    : "Für heute gibt's keine Münzen mehr, aber für den Rekord könnt ihr weiterspielen!";
+  starsRoundsInfo.textContent = (resultText ? resultText + " " : "") + roundsText + (energy < Core.STAR_ENERGY_COST ? " Mochi ist gerade zu müde 😴" : "");
+  starsPlayBtn.disabled = energy < Core.STAR_ENERGY_COST;
+}
+
+function spawnStar() {
+  const roll = Math.random();
+  let acc = 0;
+  const kind = STAR_KINDS.find(k => (acc += k.chance) > roll) || STAR_KINDS[2];
+
+  const drop = document.createElement("button");
+  drop.type = "button";
+  drop.className = "stars-drop " + kind.cls;
+  drop.textContent = kind.emoji;
+  drop.style.left = (4 + Math.random() * 80) + "%";
+  drop.style.setProperty("--fall", (2.1 + Math.random() * 1.4).toFixed(2) + "s");
+
+  drop.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    if (!starsRunning || drop.dataset.hit) return;
+    drop.dataset.hit = "1";
+    starsPoints = Math.max(0, starsPoints + kind.points);
+    starsScore.textContent = starsPoints;
+    drop.classList.add(kind.points < 0 ? "popped-bad" : "popped-good");
+    vibrate(kind.points < 0 ? [30, 20, 30] : 8);
+    starsMochi.classList.remove("bounce", "shake");
+    void starsMochi.offsetWidth;
+    starsMochi.classList.add(kind.points < 0 ? "shake" : "bounce");
+    setTimeout(() => drop.remove(), 220);
+  });
+  drop.addEventListener("animationend", event => {
+    if (event.animationName === "stars-fall") drop.remove();
+  });
+
+  starsField.appendChild(drop);
+}
+
+function stopStarsTimers() {
+  clearInterval(starsSpawnTimer);
+  clearInterval(starsClockTimer);
+  starsSpawnTimer = null;
+  starsClockTimer = null;
+  starsField.querySelectorAll(".stars-drop").forEach(el => el.remove());
+}
+
+function startStars() {
+  if (starsRunning || activityLocked || isAsleep()) return;
+  if (!requirePerson()) return;
+  if (decayedStats().energy < Core.STAR_ENERGY_COST) {
+    showToast("Mochi ist zu müde zum Spielen, erst ein Nickerchen 😴", "error");
+    return;
+  }
+
+  starsRunning = true;
+  activityLocked = true;
+  starsPoints = 0;
+  starsScore.textContent = "0";
+  starsTime.textContent = String(STARS_GAME_MS / 1000);
+  starsStart.classList.add("hidden");
+  starsEndsAt = Date.now() + STARS_GAME_MS;
+
+  spawnStar();
+  starsSpawnTimer = setInterval(spawnStar, STARS_SPAWN_MS);
+  starsClockTimer = setInterval(() => {
+    const left = Math.max(0, Math.ceil((starsEndsAt - Date.now()) / 1000));
+    starsTime.textContent = String(left);
+    if (left <= 0) finishStars();
+  }, 250);
+}
+
+async function finishStars() {
+  if (!starsRunning) return;
+  starsRunning = false;
+  stopStarsTimers();
+
+  const score = starsPoints;
+  const person = normalizePerson(currentPerson);
+  let round = null;
+
+  const result = await applyCare({ energy: -Core.STAR_ENERGY_COST, bond: 8 }, 0, 2, (nowIso, state) => {
+    round = Core.starRoundOutcome(state, person, Core.dayKey(), score);
+    return { last_activity: "stars", extraCoins: round.coins, ...round.patch };
+  }, { type: "stars", score });
+
+  activityLocked = false;
+
+  let text = `${score} ${score === 1 ? "Punkt" : "Punkte"}!`;
+  if (result && round) {
+    if (round.coins) text += ` +${round.coins} 🪙`;
+    if (round.record) {
+      text += " Neuer Rekord! 🏅";
+      celebrate(18);
+    }
+    showToast(`Sternenregen: ${text}`, "success");
+  }
+  starsStart.classList.remove("hidden");
+  starsPlayBtn.textContent = "Nochmal!";
+  renderStarsInfo(text);
+}
+
+function abortStars() {
+  if (!starsRunning) return;
+  starsRunning = false;
+  activityLocked = false;
+  stopStarsTimers();
+  starsStart.classList.remove("hidden");
+}
+
+starsPlayBtn.addEventListener("click", startStars);
+
+starsBtn.addEventListener("click", () => {
+  if (showerLathering || activityLocked) return;
+  if (isAsleep()) {
+    showToast("Mochi schläft gerade, erst aufwecken 😴", "success");
+    return;
+  }
+  if (!requirePerson()) return;
+  starsPlayBtn.textContent = "Los geht's!";
+  starsScore.textContent = "0";
+  starsTime.textContent = String(STARS_GAME_MS / 1000);
+  renderStarsInfo();
+  enterScene(starsScene);
+});
+
+leaveStarsScene.addEventListener("click", () => {
+  abortStars();
+  exitScene(starsScene);
+});
 
 /* ---------- shop ---------- */
 
@@ -2092,7 +2510,9 @@ const PARTNER_CARE_LINES = {
   sport: "{p} macht Sport mit mir 🏃",
   coffee: "{p} hat mir Kaffee gemacht ☕",
   message: "Ich soll dir was von {p} bringen 💌",
-  sleep: "{p} hat mich geweckt ☀️"
+  sleep: "{p} hat mich geweckt ☀️",
+  stars: "{p} hat Sterne für mich gefangen ⭐",
+  garden: "{p} kümmert sich um unseren Garten 🌱"
 };
 
 function onPartnerCare(payload) {
@@ -2156,6 +2576,7 @@ supabaseClient
     petState = row;
     render();
     if (!shopModal.classList.contains("hidden")) renderShop();
+    if (!seedModal.classList.contains("hidden")) renderSeedList();
   })
   .subscribe();
 

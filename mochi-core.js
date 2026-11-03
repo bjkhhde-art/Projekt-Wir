@@ -41,6 +41,22 @@
     { id: "pet", type: "pet", emoji: "🫶", text: "Streichel mich mal ganz lieb!" }
   ];
 
+  /* garden: seeds we plant together, water once a day each, and harvest for Mochi */
+  const GARDEN_PLOTS = 4;
+  const SEEDS = [
+    { id: "cherry", fruit: "Kirsche", emoji: "🍒", price: 6, days: 1 },
+    { id: "grapes", fruit: "Trauben", emoji: "🍇", price: 8, days: 2 },
+    { id: "peach", fruit: "Pfirsich", emoji: "🍑", price: 10, days: 2 },
+    { id: "melon", fruit: "Wassermelone", emoji: "🍉", price: 14, days: 3 }
+  ];
+  const WATER_COINS = 1;
+  const HARVEST_COINS = 3;
+
+  /* star rain mini game */
+  const STAR_ENERGY_COST = 15;
+  const STAR_ROUNDS_REWARDED = 3;
+  const STAR_MAX_COINS = 12;
+
   /* ---------- days ---------- */
 
   function dayKey(date) {
@@ -110,7 +126,7 @@
   }
 
   function freshDaily(key) {
-    return { date: key, wishes_done: {}, chest: {}, visitors: [], messages_rewarded: {}, bonus_claimed: false };
+    return { date: key, wishes_done: {}, chest: {}, visitors: [], messages_rewarded: {}, star_rounds: {}, bonus_claimed: false };
   }
 
   function currentDaily(state, key) {
@@ -122,7 +138,8 @@
       wishes_done: { ...(daily.wishes_done || {}) },
       chest: { ...(daily.chest || {}) },
       visitors: [...(daily.visitors || [])],
-      messages_rewarded: { ...(daily.messages_rewarded || {}) }
+      messages_rewarded: { ...(daily.messages_rewarded || {}) },
+      star_rounds: { ...(daily.star_rounds || {}) }
     };
   }
 
@@ -233,6 +250,112 @@
     return `${message.from_person} schickt dir ${kind.phrase} ${kind.emoji}`;
   }
 
+  /* ---------- garden ---------- */
+
+  function findSeed(id) {
+    return SEEDS.find(seed => seed.id === id) || null;
+  }
+
+  function seedForFruit(fruit) {
+    return SEEDS.find(seed => seed.fruit === fruit) || null;
+  }
+
+  /* a defensive copy of pet_state.extras, so callers can change it freely */
+  function currentExtras(state) {
+    const extras = (state && state.extras) || {};
+    const garden = Array.isArray(extras.garden) ? extras.garden.slice(0, GARDEN_PLOTS) : [];
+    while (garden.length < GARDEN_PLOTS) garden.push(null);
+    return {
+      ...extras,
+      garden: garden.map(plot => (plot ? { ...plot } : null)),
+      pantry: { ...(extras.pantry || {}) },
+      harvested_kinds: [...(extras.harvested_kinds || [])],
+      harvests: extras.harvests || 0,
+      star_games: extras.star_games || 0,
+      star_best: extras.star_best || 0
+    };
+  }
+
+  /* empty | seed (nothing watered yet) | sprout | ready */
+  function plotStage(plot) {
+    if (!plot) return "empty";
+    const seed = findSeed(plot.seed);
+    const need = seed ? seed.days : 1;
+    if ((plot.waterings || 0) >= need) return "ready";
+    if ((plot.waterings || 0) === 0) return "seed";
+    return "sprout";
+  }
+
+  function canWater(plot, key) {
+    return !!plot && plotStage(plot) !== "ready" && plot.watered_on !== key;
+  }
+
+  function plantSeed(state, index, seedId, person, key) {
+    const seed = findSeed(seedId);
+    const extras = currentExtras(state);
+    if (!seed || index < 0 || index >= GARDEN_PLOTS) return { error: "unknown" };
+    if (extras.garden[index]) return { error: "occupied" };
+    if (((state && state.coins) || 0) < seed.price) return { error: "coins" };
+    extras.garden[index] = { seed: seed.id, planted_by: person, planted_on: key, waterings: 0, watered_on: null, watered_by: null };
+    return { seed, cost: seed.price, patch: { extras } };
+  }
+
+  function waterPlot(state, index, person, key) {
+    const extras = currentExtras(state);
+    const plot = extras.garden[index];
+    if (!plot) return { error: "empty" };
+    if (!canWater(plot, key)) return { error: plotStage(plot) === "ready" ? "ready" : "watered" };
+    plot.waterings = (plot.waterings || 0) + 1;
+    plot.watered_on = key;
+    plot.watered_by = person;
+    return { ready: plotStage(plot) === "ready", coins: WATER_COINS, patch: { extras } };
+  }
+
+  function harvestPlot(state, index) {
+    const extras = currentExtras(state);
+    const plot = extras.garden[index];
+    if (!plot || plotStage(plot) !== "ready") return { error: "not_ready" };
+    const seed = findSeed(plot.seed);
+    extras.garden[index] = null;
+    extras.pantry[seed.fruit] = (extras.pantry[seed.fruit] || 0) + 1;
+    extras.harvests += 1;
+    if (!extras.harvested_kinds.includes(seed.fruit)) extras.harvested_kinds.push(seed.fruit);
+    return { seed, coins: HARVEST_COINS, patch: { extras } };
+  }
+
+  /* feeding a home-grown fruit takes it out of the pantry */
+  function takeFromPantry(state, fruit) {
+    const extras = currentExtras(state);
+    if (!extras.pantry[fruit]) return null;
+    extras.pantry[fruit] -= 1;
+    if (!extras.pantry[fruit]) delete extras.pantry[fruit];
+    return { patch: { extras } };
+  }
+
+  /* ---------- star rain ---------- */
+
+  function starCoins(score) {
+    return Math.max(0, Math.min(STAR_MAX_COINS, Math.floor(score / 3)));
+  }
+
+  /* only the first rounds of the day pay out, the best score always counts */
+  function starRoundOutcome(state, person, key, score) {
+    const daily = currentDaily(state, key);
+    const extras = currentExtras(state);
+    const played = daily.star_rounds[person] || 0;
+    const rewarded = played < STAR_ROUNDS_REWARDED;
+    daily.star_rounds[person] = played + 1;
+    const record = score > extras.star_best;
+    extras.star_games += 1;
+    extras.star_best = Math.max(extras.star_best, score);
+    return { coins: rewarded ? starCoins(score) : 0, rewarded, record, patch: { daily, extras } };
+  }
+
+  function starRoundsLeft(state, person, key) {
+    const daily = currentDaily(state, key);
+    return Math.max(0, STAR_ROUNDS_REWARDED - (daily.star_rounds[person] || 0));
+  }
+
   /* ---------- what Mochi says ---------- */
 
   const LINES = {
@@ -247,6 +370,7 @@
     happy: ["Ich hab euch sooo lieb! 💗", "Heute ist ein schöner Tag ✨", "Hihi, du bist toll, {me}!", "Ich bin der glücklichste Kuchen der Welt 🎂", "Hamburg und Alicante – ihr seid trotzdem ganz nah 💞"],
     okay: ["Mir ist ein bisschen langweilig…", "Spielen wir was?", "Was machen wir heute, {me}?"],
     sad: ["Mir geht's nicht so gut… 🥺", "Bleibst du ein bisschen bei mir?"],
+    garden: ["Wächst in unserem Garten schon was? 🌱", "Die Pflanzen im Garten haben bestimmt Durst 💧", "Eine Kirsche aus dem Garten wär jetzt toll 🍒"],
     facts: ["Wusstest du, dass ich aus Karottenkuchen bin? 🥕🎂", "Meine Kerze geht nie aus, solange ihr euch liebt 🕯️", "Ich hab gehört, Liebe wächst mit Entfernung ✈️"]
   };
 
@@ -278,7 +402,7 @@
     if (mood === "sad" || mood === "verysad") pools.push("sad", "sad");
     else if (mood === "neutral") pools.push("okay");
     else pools.push("happy", "happy");
-    pools.push("facts");
+    pools.push("facts", "garden");
     return fill(pick(LINES[pick(pools, random)], random), person, partner);
   }
 
@@ -297,6 +421,13 @@
     REWARDED_MESSAGES_PER_DAY,
     NOTE_MAX_LENGTH,
     CHEST_JACKPOT,
+    GARDEN_PLOTS,
+    SEEDS,
+    WATER_COINS,
+    HARVEST_COINS,
+    STAR_ENERGY_COST,
+    STAR_ROUNDS_REWARDED,
+    STAR_MAX_COINS,
     MESSAGE_KINDS,
     WISH_POOL,
     LINES,
@@ -319,7 +450,19 @@
     messageReward,
     deliveryText,
     speechLine,
-    tapReaction
+    tapReaction,
+    findSeed,
+    seedForFruit,
+    currentExtras,
+    plotStage,
+    canWater,
+    plantSeed,
+    waterPlot,
+    harvestPlot,
+    takeFromPantry,
+    starCoins,
+    starRoundOutcome,
+    starRoundsLeft
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
