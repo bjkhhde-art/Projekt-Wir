@@ -115,7 +115,7 @@ async function loadCountdowns() {
       title: "Isi ist wieder in Deutschland",
       sub: formatDate(alicanteEnd + "T00:00:00"),
       days: daysUntilBack,
-      href: "reise.html?tab=vergleich"
+      href: "reise.html"
     }));
   }
 

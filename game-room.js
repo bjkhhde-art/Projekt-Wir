@@ -304,7 +304,7 @@ const GameRoom = (() => {
         if (lobby.includes(name)) return null;
         if (lobby.length >= maxPlayers) throw new Error("Die Runde ist schon voll.");
         const next = [...lobby, name];
-        /* a two-person game (Versus) starts as soon as the second one is in */
+        /* a two-person game (Geo-Guesser) starts as soon as the second one is in */
         if (maxPlayers === 2 && next.length === 2) return startPatch(fresh, next);
         return { state: { ...fresh.state, lobby: next } };
       });
