@@ -56,6 +56,18 @@ const lightboxImage = document.getElementById("lightboxImage");
 const lightboxCaption = document.getElementById("lightboxCaption");
 const closeLightbox = document.getElementById("closeLightbox");
 
+const storyBtn = document.getElementById("storyBtn");
+const storyViewer = document.getElementById("storyViewer");
+const storyBars = document.getElementById("storyBars");
+const storyTitle = document.getElementById("storyTitle");
+const storyDate = document.getElementById("storyDate");
+const storyPause = document.getElementById("storyPause");
+const storyClose = document.getElementById("storyClose");
+const storyStage = document.getElementById("storyStage");
+const storyImage = document.getElementById("storyImage");
+const storyLoading = document.getElementById("storyLoading");
+const storyCaption = document.getElementById("storyCaption");
+
 let memories = [];
 let images = [];
 let currentMemory = null;
@@ -108,6 +120,7 @@ function buildMemoryCard(memory) {
   card.innerHTML = `
     ${isFutureMemory(memory.start_date) ? `<span class="future-badge chip">${escapeHtml(countdownLabel(memory.start_date))}</span>` : ""}
     <div class="memory-card-actions">
+      <button class="icon-action story-memory-btn" title="Als Story ansehen" aria-label="Als Story ansehen">▶</button>
       <button class="icon-action edit-memory-btn" title="Bearbeiten">✏️</button>
       <button class="icon-action delete-memory-btn" title="Löschen">×</button>
     </div>
@@ -128,6 +141,12 @@ function buildMemoryCard(memory) {
   card.querySelector(".delete-memory-btn").addEventListener("click", event => {
     event.stopPropagation();
     deleteMemory(memory.id);
+  });
+
+  card.querySelector(".story-memory-btn").addEventListener("click", async event => {
+    event.stopPropagation();
+    await openTrip(memory);
+    if (currentMemory && currentMemory.id === memory.id) openStory();
   });
 
   card.querySelector(".edit-memory-btn").addEventListener("click", event => {
@@ -457,7 +476,7 @@ function stopTripCountdown() {
 /* opening a trip is a step of its own: the phone's back button returns to the overview */
 function openTrip(memory) {
   if (window.InPageHistory) InPageHistory.push({ view: "trip:" + memory.id });
-  openGallery(memory);
+  return openGallery(memory);
 }
 
 function closeGallery() {
@@ -468,10 +487,12 @@ function closeGallery() {
   stopTripCountdown();
   closeImageSheet();
   closeImageLightbox();
+  closeStory();
   renderMemories();
 }
 
 window.addEventListener("popstate", event => {
+  if (story && !(event.state && event.state.story)) closeStory();
   const view = (event.state && event.state.view) || "";
   const tripId = view.startsWith("trip:") ? view.slice(5) : null;
   if (tripId) {
@@ -514,6 +535,7 @@ async function loadImages() {
 
   images = sortByTakenAt(data);
   renderImages();
+  if (story) syncStoryImages();
 }
 
 /* photos in the order they were taken; without a date the upload time counts */
@@ -542,6 +564,7 @@ function toLocalInputValue(value) {
 function renderImages() {
   imageGrid.innerHTML = "";
   imageHint.classList.toggle("hidden", images.length === 0);
+  storyBtn.classList.toggle("hidden", images.length === 0);
 
   if (images.length === 0) {
     imageGrid.innerHTML = `
@@ -920,6 +943,230 @@ function formatDateRange(start, end) {
   if (!start && end) return formatDate(end);
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
+
+/* ---------- story mode: the trip's photos full screen, one after another, like Instagram stories ----------
+   Tap right = next photo, tap left = previous, hold = pause, swipe down (or ×) = close.
+   Each photo stays STORY_SLIDE_MS; the bars at the top show where we are. */
+
+const STORY_SLIDE_MS = 5000;
+const STORY_HOLD_MS = 200;
+const STORY_SWIPE_CLOSE_PX = 90;
+
+let story = null;
+
+function openStory(startIndex = 0) {
+  if (!currentMemory || images.length === 0) {
+    showToast("Noch keine Bilder für eine Story.", "error");
+    return;
+  }
+  closeImageLightbox();
+  closeImageSheet();
+
+  story = {
+    list: images.slice(),
+    index: Math.min(Math.max(startIndex, 0), images.length - 1),
+    elapsed: 0,
+    lastTick: 0,
+    loaded: false,
+    paused: false,
+    held: false,
+    frame: null
+  };
+
+  storyTitle.textContent = currentMemory.title || "";
+  storyViewer.classList.remove("hidden");
+  document.body.classList.add("story-open");
+  if (window.InPageHistory) InPageHistory.push({ story: true });
+
+  renderStoryBars();
+  showStorySlide();
+  story.frame = requestAnimationFrame(storyTick);
+}
+
+function closeStory() {
+  if (!story) return;
+  cancelAnimationFrame(story.frame);
+  story = null;
+  storyViewer.classList.add("hidden");
+  storyViewer.classList.remove("paused");
+  storyStage.style.transform = "";
+  storyViewer.style.opacity = "";
+  document.body.classList.remove("story-open");
+  storyImage.removeAttribute("src");
+}
+
+/* the on-screen close goes one step back, so the phone's back button and × behave the same */
+function leaveStory() {
+  if (!story) return;
+  if (history.state && history.state.story && window.InPageHistory) InPageHistory.back(closeStory);
+  else closeStory();
+}
+
+function renderStoryBars() {
+  storyBars.innerHTML = story.list.map(() => `<div class="story-bar"><div class="story-bar-fill"></div></div>`).join("");
+  updateStoryBars();
+}
+
+function updateStoryBars() {
+  const fills = storyBars.querySelectorAll(".story-bar-fill");
+  const progress = Math.min(story.elapsed / STORY_SLIDE_MS, 1);
+  fills.forEach((fill, i) => {
+    const value = i < story.index ? 1 : i === story.index ? progress : 0;
+    fill.style.transform = `scaleX(${value})`;
+  });
+}
+
+function showStorySlide() {
+  const image = story.list[story.index];
+  story.elapsed = 0;
+  story.loaded = false;
+  updateStoryBars();
+
+  storyLoading.classList.remove("hidden");
+  storyImage.classList.add("loading");
+  storyImage.alt = image.caption || "Erinnerungsbild";
+  const onReady = () => {
+    if (!story || story.list[story.index] !== image) return;
+    story.loaded = true;
+    story.lastTick = performance.now();
+    storyLoading.classList.add("hidden");
+    storyImage.classList.remove("loading");
+  };
+  storyImage.onload = onReady;
+  /* a broken photo should not stop the story */
+  storyImage.onerror = onReady;
+  storyImage.src = image.image_url;
+  if (storyImage.complete && storyImage.naturalWidth) onReady();
+
+  storyDate.textContent = takenLabel(image);
+  storyCaption.textContent = image.caption || "";
+  storyCaption.classList.toggle("hidden", !image.caption);
+
+  /* fetch the next photo early, so tapping on feels instant */
+  const next = story.list[story.index + 1];
+  if (next) new Image().src = next.image_url;
+}
+
+function storyTick(now) {
+  if (!story) return;
+  const running = story.loaded && !story.paused && !story.held && !document.hidden;
+  if (running) {
+    story.elapsed += Math.min(now - (story.lastTick || now), 100);
+    if (story.elapsed >= STORY_SLIDE_MS) {
+      storyStep(1);
+      if (!story) return;
+    } else {
+      updateStoryBars();
+    }
+  }
+  story.lastTick = now;
+  story.frame = requestAnimationFrame(storyTick);
+}
+
+function storyStep(direction) {
+  if (!story) return;
+  const target = story.index + direction;
+  if (target >= story.list.length) {
+    leaveStory();
+    return;
+  }
+  /* back on the first photo starts it again */
+  story.index = Math.max(target, 0);
+  showStorySlide();
+}
+
+function setStoryPaused(paused) {
+  if (!story) return;
+  story.paused = paused;
+  storyViewer.classList.toggle("paused", paused);
+  storyPause.textContent = paused ? "▶" : "❚❚";
+  storyPause.title = paused ? "Weiter" : "Pause";
+  storyPause.setAttribute("aria-label", storyPause.title);
+}
+
+/* photos changed while watching (realtime): keep the current one if it still exists */
+function syncStoryImages() {
+  const current = story.list[story.index];
+  story.list = images.slice();
+  if (story.list.length === 0) {
+    leaveStory();
+    return;
+  }
+  const kept = story.list.findIndex(image => image.id === current.id);
+  story.index = kept >= 0 ? kept : Math.min(story.index, story.list.length - 1);
+  renderStoryBars();
+  if (kept < 0) showStorySlide();
+}
+
+(function wireStoryGestures() {
+  let press = null;
+
+  storyStage.addEventListener("pointerdown", event => {
+    if (!story || event.button !== 0) return;
+    press = { x: event.clientX, y: event.clientY, id: event.pointerId, holdTimer: null };
+    press.holdTimer = setTimeout(() => {
+      if (!story || !press) return;
+      story.held = true;
+      storyViewer.classList.add("holding");
+    }, STORY_HOLD_MS);
+    storyStage.setPointerCapture(event.pointerId);
+  });
+
+  storyStage.addEventListener("pointermove", event => {
+    if (!press || !story) return;
+    const dy = event.clientY - press.y;
+    if (dy > 10) {
+      story.held = true;
+      storyStage.style.transform = `translateY(${dy}px) scale(${Math.max(1 - dy / 1200, 0.85)})`;
+      storyViewer.style.opacity = String(Math.max(1 - dy / 600, 0.4));
+    }
+  });
+
+  function release(event, cancelled) {
+    if (!press || !story) return;
+    clearTimeout(press.holdTimer);
+    const dx = event.clientX - press.x;
+    const dy = event.clientY - press.y;
+    const wasHeld = story.held;
+    press = null;
+    story.held = false;
+    storyViewer.classList.remove("holding");
+    storyStage.style.transform = "";
+    storyViewer.style.opacity = "";
+    story.lastTick = performance.now();
+
+    if (cancelled) return;
+    if (dy > STORY_SWIPE_CLOSE_PX) {
+      leaveStory();
+      return;
+    }
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      storyStep(dx < 0 ? 1 : -1);
+      return;
+    }
+    if (wasHeld) return;
+    const rect = storyStage.getBoundingClientRect();
+    storyStep(event.clientX - rect.left < rect.width / 3 ? -1 : 1);
+  }
+
+  storyStage.addEventListener("pointerup", event => release(event, false));
+  storyStage.addEventListener("pointercancel", event => release(event, true));
+  storyStage.addEventListener("contextmenu", event => event.preventDefault());
+})();
+
+storyBtn.addEventListener("click", () => openStory(0));
+storyClose.addEventListener("click", leaveStory);
+storyPause.addEventListener("click", () => setStoryPaused(!story || !story.paused));
+
+document.addEventListener("keydown", event => {
+  if (!story) return;
+  if (event.key === "ArrowRight") storyStep(1);
+  else if (event.key === "ArrowLeft") storyStep(-1);
+  else if (event.key === "Escape") leaveStory();
+  else if (event.key === " ") setStoryPaused(!story.paused);
+  else return;
+  event.preventDefault();
+});
 
 /* ---------- event wiring ---------- */
 

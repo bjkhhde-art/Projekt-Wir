@@ -414,6 +414,185 @@
   opacity: 0.9;
 }
 
+/* ---------- story mode ---------- */
+
+.gallery-header-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.story {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.story.hidden {
+  display: none;
+}
+
+body.story-open {
+  overflow: hidden;
+}
+
+/* phone-shaped on a computer, edge to edge on a phone */
+.story-frame {
+  position: relative;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  height: 100dvh;
+  overflow: hidden;
+  background: #0b060d;
+}
+
+.story-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.story-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.story-image.loading {
+  opacity: 0;
+}
+
+.story-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-loading.hidden {
+  display: none;
+}
+
+.story-bars {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 10px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.story-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.story-bar-fill {
+  height: 100%;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.story-head {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 20px);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 24px 14px;
+  z-index: 2;
+  color: #fff;
+  background: linear-gradient(rgba(0, 0, 0, 0.45), transparent);
+  transition: opacity 0.2s ease;
+}
+
+.story-head-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.story-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.story-date {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.story-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.story-icon-btn:first-of-type {
+  font-size: 14px;
+  letter-spacing: -2px;
+}
+
+.story-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 40px 18px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.2s ease;
+}
+
+.story-caption.hidden {
+  display: none;
+}
+
+/* while holding, only the photo is shown – like on Instagram */
+.story.holding .story-head,
+.story.holding .story-bars,
+.story.holding .story-caption {
+  opacity: 0;
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 800px) {
@@ -445,6 +624,10 @@
 
   .gallery-header-text h2 {
     font-size: 22px;
+  }
+
+  .gallery-header-buttons {
+    justify-content: center;
   }
 }
 

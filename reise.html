@@ -131,7 +131,10 @@
             <h2 id="galleryTitle"></h2>
             <p id="galleryInfo"></p>
             <div id="tripCountdown" class="trip-countdown hidden" aria-live="polite"></div>
-            <button id="editTripBtn" class="btn btn-sm btn-secondary">✏️ Trip bearbeiten</button>
+            <div class="gallery-header-buttons">
+              <button id="storyBtn" class="btn btn-sm hidden" type="button">▶ Als Story ansehen</button>
+              <button id="editTripBtn" class="btn btn-sm btn-secondary">✏️ Trip bearbeiten</button>
+            </div>
           </div>
         </div>
 
@@ -218,6 +221,25 @@
     <button id="closeLightbox" class="close-lightbox" title="Schließen" aria-label="Schließen">×</button>
     <img id="lightboxImage" src="" alt="Großansicht">
     <p id="lightboxCaption" class="lightbox-caption"></p>
+  </div>
+
+  <div id="storyViewer" class="story hidden" role="dialog" aria-label="Reise als Story">
+    <div class="story-frame">
+      <div id="storyBars" class="story-bars"></div>
+      <div class="story-head">
+        <div class="story-head-text">
+          <span id="storyTitle" class="story-title"></span>
+          <span id="storyDate" class="story-date"></span>
+        </div>
+        <button id="storyPause" class="story-icon-btn" type="button" title="Pause" aria-label="Pause">❚❚</button>
+        <button id="storyClose" class="story-icon-btn" type="button" title="Schließen" aria-label="Schließen">×</button>
+      </div>
+      <div id="storyStage" class="story-stage">
+        <img id="storyImage" class="story-image" src="" alt="" draggable="false">
+        <div id="storyLoading" class="story-loading hidden"><span class="spinner"></span></div>
+      </div>
+      <p id="storyCaption" class="story-caption hidden"></p>
+    </div>
   </div>
 
   <nav class="app-nav" aria-label="Hauptnavigation">
