@@ -1,8 +1,8 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 
-/* the phone's back button inside a page: back to the previous tab, from a trip back to the overview,
-   from Versus back to the other games – and only then to the page before */
+/* the phone's back button inside a page: back to the previous tab, from a trip back to the overview –
+   and only then to the page before */
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; console.log("PASS:", m); };
 const API = "http://localhost:8991";
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -19,7 +19,6 @@ await ctx.addInitScript(() => {
   localStorage.setItem("pw_person", "Isi");
   localStorage.removeItem("pw_hub_tab_wir");
   localStorage.removeItem("pw_hub_tab_reise");
-  localStorage.removeItem("pw_questions_mode");
 });
 await ctx.route(/leaflet.*\.js/, route => route.fulfill({
   contentType: "text/javascript",
@@ -70,16 +69,6 @@ await wait(500);
 ok(await page.locator("#galleryView").evaluate(el => el.classList.contains("hidden")), "the on-page back button closes the trip as well");
 await back();
 ok(await activeTab() === "karte", "and the next back goes to the previous tab (Karte) – the trip is not reopened");
-
-/* ---------- questions: talk → other → Versus ---------- */
-await page.goto("http://localhost:9091/questions.html");
-await wait(700);
-ok(!(await page.locator("#talkMode").isHidden()), "the questions page opens with the talk questions");
-await page.click('.mode-btn[data-mode="other"]');
-await wait(300);
-ok(!(await page.locator("#otherMode").isHidden()), "Andere is open");
-await back();
-ok(!(await page.locator("#talkMode").isHidden()) && await page.locator("#otherMode").isHidden(), "back returns to the talk questions");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();

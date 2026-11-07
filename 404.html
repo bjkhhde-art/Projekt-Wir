@@ -15,11 +15,13 @@
     (function () {
       var MOVED = {
         "couple-quest.html": "ziele.html?tab=quest",
-        "vision.html": "ziele.html?tab=vision",
+        "vision.html": "ziele.html",
         "erinnerungen.html": "reise.html?tab=erinnerungen",
-        "vergleich.html": "reise.html?tab=vergleich",
+        "vergleich.html": "reise.html",
         "liebesbriefe.html": "wir.html?tab=briefe",
-        "reflexion.html": "wir.html"
+        "reflexion.html": "wir.html",
+        "duo.html": "games.html",
+        "monopoly.html": "games.html"
       };
       var page = location.pathname.split("/").pop();
       if (MOVED[page]) location.replace(MOVED[page]);

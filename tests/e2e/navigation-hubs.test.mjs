@@ -12,38 +12,36 @@ const base = "http://localhost:9091/";
 const activeNav = () => page.locator(".nav-item.active").getAttribute("href");
 const visible = selector => page.locator(selector).isVisible();
 
-/* Ziele: Quest tab with the bingo board, Vision tab with the timeline */
+/* Ziele: just the Quest with the bingo board – the Vision is gone */
 await page.goto(base + "ziele.html"); await page.waitForTimeout(500);
-const tabs = await page.locator(".hub-tab").allTextContents();
-ok(JSON.stringify(tabs) === JSON.stringify(["🎯 Quest", "🔭 Vision"]), `ToDos has the Quest and Vision tabs (${tabs.join(", ")})`);
+ok(await page.locator(".hub-tab").count() === 0, "ToDos has no tabs any more");
 ok((await page.locator("h1").textContent()).startsWith("ToDos"), "the page is called ToDos");
-await page.click('.hub-tab[data-tab="quest"]');
-ok(await page.locator("#board").count() === 1 && await visible("#openAddModal") && !(await visible("#openVisionModal")), "the Quest tab shows the bingo board with its own + button");
+ok(await page.locator("#board").count() === 1 && await visible("#openAddModal") && await page.locator("#openVisionModal, #visionTimeline").count() === 0, "ToDos shows the bingo board with its + button, no Vision");
 await page.click("#openAddModal"); await page.waitForTimeout(200);
 ok(!(await page.locator("#addModal").evaluate(el => el.classList.contains("hidden"))), "adding a bingo field opens its form");
 await page.click("#closeModal");
-await page.click('.hub-tab[data-tab="vision"]');
-ok(await visible("#visionTimeline") && await visible("#openVisionModal") && !(await visible("#openAddModal")), "the Vision tab shows the timeline with its own + button");
 ok(await activeNav() === "ziele.html", "ToDos lights up ToDos in the nav");
 
 /* old Couple Quest links land on the Quest tab */
 await page.goto(base + "couple-quest.html"); await page.waitForTimeout(800);
-ok(page.url().endsWith("ziele.html?tab=quest"), "the old couple-quest.html address forwards to ToDos");
-ok(await page.locator('.hub-tab.active').getAttribute("data-tab") === "quest", "and opens the Quest tab");
+ok(page.url().endsWith("ziele.html?tab=quest") && await page.locator("#board").count() === 1, "the old couple-quest.html address forwards to ToDos");
 await page.goto(base + "erinnerungen.html"); await page.waitForTimeout(800);
 ok(page.url().endsWith("reise.html?tab=erinnerungen"), "old addresses land on the right tab");
 await page.goto(base + "gibt-es-nicht.html"); await page.waitForTimeout(500);
 ok((await page.locator("h1").textContent()).includes("Diese Seite gibt es nicht") && await page.locator('a[href="index.html"]').count() === 1, "unknown addresses show a friendly page with a way home");
 await page.goto(base + "ziele.html?tab=quest"); await page.waitForTimeout(400);
-ok(page.url().includes("ziele.html") && await page.locator('.hub-tab.active').getAttribute("data-tab") === "quest", "push links to ziele.html?tab=quest open the Quest tab");
+ok(page.url().includes("ziele.html") && await page.locator("#board").count() === 1, "push links to ziele.html?tab=quest open the Quest");
+await page.goto(base + "vision.html"); await page.waitForTimeout(800);
+ok(page.url().endsWith("ziele.html"), "the old vision.html address lands on ToDos");
 
 /* Spiele: the questions next to the games; Chat-Wrapped moved to the KPIs */
 await page.goto(base + "games.html"); await page.waitForTimeout(400);
 const tiles = await page.locator(".game-tile h2").allTextContents();
-ok(JSON.stringify(tiles) === JSON.stringify(["Wir zwei", "Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Phase 10", "Monopoly", "Geo-Guesser", "Fragen"]), `Spiele lists the questions next to the games (${tiles.join(", ")})`);
+ok(JSON.stringify(tiles) === JSON.stringify(["Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Phase 10", "Geo-Guesser", "Fragen"]), `Spiele lists the questions next to the games (${tiles.join(", ")})`);
 await page.locator(".game-tile", { hasText: "Fragen" }).click(); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html") && (await page.locator("h1").textContent()).startsWith("Fragen"), "the tile opens the questions page");
 ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuestionBtn"), "the questions page has its four categories and the next button");
+ok(await page.locator(".mode-btn, #otherMode, #versusMode").count() === 0, "only the conversation questions are left – no 'Andere'");
 ok(await activeNav() === "games.html", "the questions page highlights Spiele in the nav");
 
 /* Wir: Kuschelakku, Watchlist, Briefe; old links forward */
@@ -83,14 +81,14 @@ await page.click("#kpiWrapped");
 await page.waitForURL(/chat\.html$/); await page.waitForTimeout(400);
 ok(await activeNav() === "kpis.html" && await page.locator('.page-back[href="kpis.html"]').count() === 1, "WhatsApp Wrapped opens from the KPIs and belongs to them");
 
-/* Reisen: Karte, Kommt noch, Vergangen (+ Vergleich) */
+/* Reisen: Karte, Kommt noch, Vergangen */
 await page.goto(base + "reise.html"); await page.waitForTimeout(500);
-ok(JSON.stringify(await page.locator(".hub-tab").allTextContents()) === JSON.stringify(["🗺️ Karte", "✈️ Kommt noch", "📸 Vergangen", "🌍 Vergleich"]), "Reisen has Karte, Kommt noch, Vergangen and Vergleich");
+ok(JSON.stringify(await page.locator(".hub-tab").allTextContents()) === JSON.stringify(["🗺️ Karte", "✈️ Kommt noch", "📸 Vergangen"]), "Reisen has Karte, Kommt noch and Vergangen");
 await page.setViewportSize({ width: 360, height: 740 });
-ok(await page.locator(".hub-tabs").evaluate(el => [...el.children].every(tab => tab.scrollWidth <= tab.clientWidth + 1) && el.scrollWidth <= el.clientWidth + 1), "the four Reisen tabs fit on a 360 px phone");
+ok(await page.locator(".hub-tabs").evaluate(el => [...el.children].every(tab => tab.scrollWidth <= tab.clientWidth + 1) && el.scrollWidth <= el.clientWidth + 1), "the three Reisen tabs fit on a 360 px phone");
 await page.setViewportSize({ width: 390, height: 844 });
 
-for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "monopoly.html", "gipfel.html", "geo.html"]) {
+for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "gipfel.html", "geo.html"]) {
   await page.goto(base + game); await page.waitForTimeout(300);
   ok(await activeNav() === "games.html", `${game} highlights Games in the nav`);
 }
@@ -99,9 +97,10 @@ for (const game of ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "mono
 await page.goto(base + "index.html"); await page.waitForTimeout(500);
 ok(await page.locator(".home-card").count() === 0 && !(await page.locator("main").textContent()).includes("Alle Bereiche"), "the 'Alle Bereiche' list is gone, the bar is the way around");
 ok(await page.locator("#dashQuestionText").count() === 0 && !(await page.locator("main").textContent()).includes("Frage für uns"), "the 'Frage für uns' card is gone from the start page");
+ok(await page.locator("#dashDailyTile").count() === 0 && !(await page.locator("main").textContent()).includes("Frage des Tages"), "the 'Frage des Tages' tile is gone from the start page");
 
 /* every single game has a back arrow to the games overview */
-for (const game of ["nimmt", "cabo", "qwixx", "flip7", "monopoly", "gipfel", "geo", "questions"]) {
+for (const game of ["nimmt", "cabo", "qwixx", "flip7", "gipfel", "geo", "questions"]) {
   /* the lobby page with its title – a round left over from another test (Flip 7 with three hides the title) is cleared */
   if (game !== "questions") await fetch(`http://localhost:8991/t/${game}_games/reset`, { method: "POST" });
   await page.goto(`http://localhost:9091/${game}.html`);

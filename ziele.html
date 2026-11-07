@@ -17,7 +17,6 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="vision.css">
   <script src="theme.js"></script>
   <script src="pin-lock.js"></script>
 </head>
@@ -25,12 +24,7 @@
 
   <main class="page">
     <h1 class="page-title">ToDos ✅</h1>
-    <p class="page-subtitle">Was wir gemeinsam erledigen wollen: unsere Couple Quest und die langfristige Vision</p>
-
-    <div class="hub-tabs" role="tablist">
-      <button class="hub-tab" data-tab="quest" role="tab">🎯 Quest</button>
-      <button class="hub-tab" data-tab="vision" role="tab">🔭 Vision</button>
-    </div>
+    <p class="page-subtitle">Was wir gemeinsam erledigen wollen: unsere Couple Quest</p>
 
     <section class="hub-panel" data-panel="quest">
       <div class="quest-toolbar">
@@ -39,14 +33,9 @@
 
       <div id="board"></div>
     </section>
-
-    <section class="hub-panel" data-panel="vision" hidden>
-      <div id="visionTimeline" class="vision-timeline"></div>
-    </section>
   </main>
 
-  <button id="openAddModal" class="fab" title="Neues Bingofeld" aria-label="Neues Bingofeld" data-show-for="quest">+</button>
-  <button id="openVisionModal" class="fab" title="Neues Ziel" aria-label="Neues Ziel" data-show-for="vision">+</button>
+  <button id="openAddModal" class="fab" title="Neues Bingofeld" aria-label="Neues Bingofeld">+</button>
 
   <div id="addModal" class="modal hidden">
     <div class="modal-box">
@@ -107,44 +96,6 @@
     </div>
   </div>
 
-
-  <div id="visionModal" class="modal hidden">
-    <div class="modal-box">
-      <h2 id="visionModalTitle">Neues Ziel</h2>
-
-      <label>Titel</label>
-      <input id="visionTitleInput" type="text" placeholder="z. B. Eigenes Haus">
-
-      <label>Beschreibung</label>
-      <textarea id="visionDescInput" rows="3" placeholder="Was genau stellen wir uns vor?"></textarea>
-
-      <label>Für welches Jahr?</label>
-      <select id="visionYearInput"></select>
-
-      <label>Bild (optional)</label>
-      <div id="visionCoverPreviewWrap" class="cover-preview hidden">
-        <img id="visionCoverPreviewImg" src="" alt="Aktuelles Bild">
-      </div>
-      <input id="visionCoverInput" type="file" accept="image/*">
-
-      <div class="modal-buttons">
-        <button id="saveVisionBtn" class="btn">Ziel eintragen</button>
-        <button id="closeVisionModal" class="btn btn-secondary">Abbrechen</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="personModal" class="modal hidden">
-    <div class="modal-box">
-      <h2>Wer bist du? 💗</h2>
-      <p class="push-modal-text">Damit wir wissen, wer dieses Ziel eingetragen hat.</p>
-      <div class="push-person-choice">
-        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
-        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
-      </div>
-    </div>
-  </div>
-
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
     <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
@@ -156,8 +107,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
-  <script src="hub-tabs.js"></script>
   <script src="app.js"></script>
-  <script src="vision.js"></script>
 </body>
 </html>
