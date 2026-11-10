@@ -130,6 +130,8 @@
      go through the fake backend so two browser contexts can see each other */
   function makeChannel(name, options) {
     const presenceKey = options && options.config && options.config.presence && options.config.presence.key;
+    /* like broadcast { self: false }: a channel never hears its own messages */
+    const senderId = Math.random().toString(36).slice(2);
     const handlers = { postgres: [], presence: [], broadcast: {} };
     let presenceState = {};
     let lastBroadcastId = 0;
@@ -182,7 +184,7 @@
               const messages = await bRes.json();
               messages.forEach(msg => {
                 lastBroadcastId = Math.max(lastBroadcastId, msg.id);
-                if (msg.sender === presenceKey) return;
+                if (msg.sender === senderId) return;
                 (handlers.broadcast[msg.event] || []).forEach(cb => cb({ event: msg.event, payload: msg.payload }));
               });
             } catch (e) { /* ignore */ }
@@ -211,7 +213,7 @@
         await fetch(`${API}/rt/broadcast/${name}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ event: message.event, payload: message.payload, sender: presenceKey })
+          body: JSON.stringify({ event: message.event, payload: message.payload, sender: senderId })
         });
         return "ok";
       },
