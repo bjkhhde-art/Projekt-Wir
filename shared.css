@@ -122,6 +122,11 @@ body {
   animation: page-in 0.45s ease both;
 }
 
+/* pages with a round "+" button: the last card can scroll up above it instead of hiding behind it */
+body:has(.fab) .page {
+  padding-bottom: 100px;
+}
+
 /* sub pages (the single games) get a round back arrow in the top left corner */
 .page-with-back {
   position: relative;

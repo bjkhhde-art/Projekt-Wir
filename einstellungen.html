@@ -47,6 +47,12 @@
     </section>
 
     <section class="card settings-card">
+      <h2 class="settings-title">👤 Wer bin ich?</h2>
+      <p class="settings-subtitle">Dieses Handy gehört: <strong id="devicePersonName">…</strong></p>
+      <button id="changePersonBtn" class="btn btn-secondary btn-block" type="button">Ändern</button>
+    </section>
+
+    <section class="card settings-card">
       <h2 class="settings-title">Push-Benachrichtigungen</h2>
       <p id="pushStatusText" class="settings-subtitle">Status wird geladen...</p>
       <button id="enablePushBtn" class="btn btn-block hidden">Push-Benachrichtigungen aktivieren</button>
@@ -138,6 +144,12 @@
         <input type="text" id="botNameKlausi" class="bot-name-input" data-bot="Klausi" maxlength="20" placeholder="Klausi" autocomplete="off">
       </div>
     </section>
+
+    <section class="card settings-card">
+      <h2 class="settings-title">🔒 Abmelden</h2>
+      <p class="settings-subtitle">Meldet nur dieses Handy ab – danach fragt die App wieder nach dem Passwort. Das andere Handy bleibt angemeldet.</p>
+      <button id="signOutBtn" class="btn btn-secondary btn-block" type="button">Auf diesem Handy abmelden</button>
+    </section>
   </main>
 
   <div id="personModal" class="modal hidden">
@@ -160,7 +172,7 @@
     <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Spiele</span></a>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
   <script src="supabase-client.js"></script>
   <script src="shared.js"></script>
   <script src="bot-names.js"></script>

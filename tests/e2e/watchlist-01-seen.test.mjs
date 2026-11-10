@@ -88,6 +88,15 @@ await hold(page.locator(".watched-row", { hasText: "La La Land" }).locator(".wat
 ok(!(await page.locator("#watchlistModal").evaluate(el => el.classList.contains("hidden"))), "holding a watched row opens the edit form");
 ok(await page.locator("#watchlistEditExtras").isVisible() && (await page.locator("#watchlistToggleWatchedBtn").textContent()).includes("noch nicht gesehen"), "the form offers 'noch nicht gesehen' and delete");
 await page.click("#watchlistToggleWatchedBtn");
+/* taking it back asks first – rating and date would be gone */
+await page.waitForSelector(".confirm-box");
+ok((await page.locator(".confirm-message").textContent()).includes("Bewertung") && (await page.locator(".confirm-message").textContent()).includes("verloren"), "'noch nicht gesehen' asks first and says what gets lost");
+await page.click(".confirm-no");
+await wait(400);
+ok((await rows()).find(r => r.id === 5).watched === true && (await rows()).find(r => r.id === 5).rating === 3, "cancelling keeps it watched, with its rating");
+await hold(page.locator(".watched-row", { hasText: "La La Land" }).locator(".watched-main"));
+await page.click("#watchlistToggleWatchedBtn");
+await page.click(".confirm-yes");
 await wait(600);
 ok((await rows()).find(r => r.id === 5).watched === false, "La La Land is back on the list");
 ok(await page.locator(".watchlist-card", { hasText: "La La Land" }).count() === 1 && await page.locator(".watched-row").count() === 3, "it moves back to the big cards");
@@ -127,6 +136,7 @@ ok((await page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watc
 /* un-watching clears it */
 await hold(page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-main"));
 await page.click("#watchlistToggleWatchedBtn");
+await page.click(".confirm-yes");
 await wait(700);
 const pastLives = (await rows()).find(r => r.id === 3);
 ok(pastLives.watched === false && pastLives.seen_by === null, "marking it as not watched also clears who watched it");

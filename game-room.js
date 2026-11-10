@@ -19,6 +19,7 @@ const GameRoom = (() => {
   const isBot = name => BOTS.includes(name);
   const BOT_BACKUP_MS = 5000;
   const NAME_MAX = 20;
+  const RESERVED_NAMES = ["du", "dich", "dir", "ich"];
   /* our own photo stickers: sent under their key, shown as an image */
   const STICKERS = {
     "sticker-lach": { src: "icons/sticker-lach.png", label: "Lach-Sticker" },
@@ -84,6 +85,8 @@ const GameRoom = (() => {
     if (!name) return "Bitte gib einen Namen ein.";
     const lower = name.toLowerCase();
     if ([...MEMBERS, ...BOTS, ...BOTS.map(botLabel)].some(m => m.toLowerCase() === lower)) return `„${name}“ ist schon vergeben – nimm einen anderen Namen.`;
+    /* every phone shows its own player as "Du" – a friend called "Du" would look like someone else */
+    if (RESERVED_NAMES.includes(lower)) return `„${name}“ geht leider nicht – so heißt hier jeder sich selbst. Nimm einen anderen Namen.`;
     if (taken.some(t => t.toLowerCase() === lower)) return `„${name}“ spielt schon mit – nimm einen anderen Namen.`;
     return null;
   }
@@ -165,7 +168,7 @@ const GameRoom = (() => {
       document.querySelectorAll(".person-choice-btn").forEach(button => {
         button.addEventListener("click", () => {
           person = button.dataset.person;
-          localStorage.setItem("pw_person", person);
+          setDevicePerson(client, person);
           personModal.classList.add("hidden");
           lastRenderedJson = null;
           sync();
@@ -266,7 +269,10 @@ const GameRoom = (() => {
       const previous = currentGame && currentGame.state;
       const carried = config.carryOver && previous ? config.carryOver(previous) : null;
       const row = { status: "waiting", host_person: person, guest_person: null, state: { option: chosenOption, lobby: [person], ...(carried ? { carried } : {}) }, version: 0 };
-      if (invites) row.invite_code = newInviteCode();
+      if (invites) {
+        row.invite_code = newInviteCode();
+        await expireOldInvites();
+      }
       const { error } = await client.from(table).insert(row);
       if (error) {
         console.error("Fehler beim Erstellen:", error);
@@ -281,6 +287,16 @@ const GameRoom = (() => {
         url: typeof url === "function" ? url(chosenOption) : url
       });
       await sync();
+    }
+
+    /* A friend's link opens exactly one round. Once a new round is started, the links of all
+       earlier rounds stop working – nobody can look into or change an old round any more. */
+    async function expireOldInvites() {
+      const { error } = await client
+        .from(table)
+        .update({ invite_code: null })
+        .in("status", ["waiting", "active", "finished", "closed"]);
+      if (error) console.warn("Alte Einladungen konnten nicht beendet werden:", error);
     }
 
     async function cancelWaitingGame(gameId) {
@@ -435,7 +451,8 @@ const GameRoom = (() => {
       }
       const { error } = await client
         .from(table)
-        .update({ status: "closed", state: { ...fresh.state, closedBy: person }, version: (fresh.version || 0) + 1, updated_at: new Date().toISOString() })
+        /* a closed round's invite link stops working (invite_code gone) */
+        .update({ status: "closed", invite_code: null, state: { ...fresh.state, closedBy: person }, version: (fresh.version || 0) + 1, updated_at: new Date().toISOString() })
         .eq("id", fresh.id);
       if (error) {
         console.error("Fehler beim Beenden:", error);
@@ -827,11 +844,17 @@ const GameRoom = (() => {
       document.getElementById("grLeaveLobbyBtn").addEventListener("click", leaveLobby);
     }
 
+    /* set once this page has shown the friend's round – when the round is closed its link stops
+       working, and the friend is thanked instead of being told the invitation is not valid */
+    let guestSawRound = false;
+
     function renderGuest(game) {
       if (!game || game.invite_code !== guestInvite) {
-        renderGuestMessage("Diese Einladung gilt nicht mehr", "Frag nach einem neuen Link 💌");
+        if (guestSawRound) renderGuestMessage("Die Runde ist vorbei", "Danke fürs Mitspielen! 💛");
+        else renderGuestMessage("Diese Einladung gilt nicht mehr", "Frag nach einem neuen Link 💌");
         return;
       }
+      guestSawRound = true;
       if (game.status === "closed") {
         renderGuestMessage("Die Runde ist vorbei", "Danke fürs Mitspielen! 💛");
         return;

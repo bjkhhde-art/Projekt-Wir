@@ -363,7 +363,7 @@ function requirePerson() {
 personButtons.forEach(button => {
   button.addEventListener("click", () => {
     currentPerson = button.dataset.person;
-    localStorage.setItem("pw_person", currentPerson);
+    setDevicePerson(supabaseClient, currentPerson);
     personModal.classList.add("hidden");
     showToast(`Hey ${currentPerson}! Mochi freut sich auf dich 💗`, "success");
     render();

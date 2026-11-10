@@ -98,6 +98,39 @@ function renderLevel(config, level, updatedAt) {
   return firedBigVibration;
 }
 
+/* One notification per battery once the swiping has settled – not one for every little move */
+const NOTIFY_SETTLE_MS = 1500;
+const pendingNotices = {};
+
+function notifyLevel(person, level) {
+  clearTimeout(pendingNotices[person] && pendingNotices[person].timer);
+  pendingNotices[person] = { level, timer: setTimeout(() => sendLevelNotice(person), NOTIFY_SETTLE_MS) };
+}
+
+function sendLevelNotice(person) {
+  const pending = pendingNotices[person];
+  if (!pending) return;
+  clearTimeout(pending.timer);
+  delete pendingNotices[person];
+
+  const owner = normalizePerson(person);
+  /* the phone that changed it never gets the notification – the other one does */
+  const sender = devicePerson() || owner;
+  const whose = sender === owner ? "den Akku" : `${owner}s Akku`;
+  sendAppNotification(supabaseClient, {
+    title: "Kuschelbatterie aktualisiert 🔋",
+    body: `${sender} hat ${whose} auf ${pending.level}% gesetzt.`,
+    excludePerson: sender,
+    category: "battery",
+    url: "batterien.html"
+  });
+}
+
+/* leaving the page sends what is still waiting */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") Object.keys(pendingNotices).forEach(sendLevelNotice);
+});
+
 async function saveLevel(person, level) {
   const { error } = await supabaseClient
     .from("cuddle_batteries")
@@ -110,13 +143,7 @@ async function saveLevel(person, level) {
     return;
   }
 
-  sendAppNotification(supabaseClient, {
-    title: "Kuschelbatterie aktualisiert 🔋",
-    body: `${normalizePerson(person)} hat den Akku auf ${level}% gesetzt.`,
-    excludePerson: normalizePerson(person),
-    category: "battery",
-    url: "batterien.html"
-  });
+  notifyLevel(person, level);
 }
 
 async function loadLevels() {

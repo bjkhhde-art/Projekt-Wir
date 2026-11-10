@@ -1,9 +1,3 @@
-const { firstMeeting, firstDate, anniversary } = MILESTONES;
-
-function calculateDaysTogether(startDate) {
-  return daysBetween(startDate);
-}
-
 function nextAnniversaryDate(startDate) {
   const start = new Date(startDate);
   const today = new Date();
@@ -19,39 +13,38 @@ function nextAnniversaryDate(startDate) {
   return next;
 }
 
-document.getElementById("firstMeetingDate").textContent =
-  formatDate(firstMeeting.date);
+const setText = (id, text) => { document.getElementById(id).textContent = text; };
 
-document.getElementById("firstMeetingPlace").textContent =
-  firstMeeting.place;
+function renderMilestones(milestones) {
+  if (!milestones) {
+    ["daysTogether", "nextAnniversaryCountdown"].forEach(id => setText(id, "–"));
+    return;
+  }
+  const { firstMeeting = {}, firstDate = {}, anniversary } = milestones;
 
-document.getElementById("anniversaryDate").textContent =
-  formatDate(anniversary.date);
+  setText("firstMeetingDate", formatDate(firstMeeting.date));
+  setText("firstMeetingPlace", firstMeeting.place || "");
+  setText("firstDateDate", formatDate(firstDate.date));
+  setText("firstDatePlace", firstDate.place || "");
+  setText("anniversaryDate", formatDate(anniversary.date));
+  setText("anniversaryPlace", anniversary.place || "");
+  setText("daysTogether", daysBetween(anniversary.date) + " Tage");
 
-document.getElementById("anniversaryPlace").textContent =
-  anniversary.place;
+  const nextAnniv = nextAnniversaryDate(anniversary.date);
+  const daysUntilNext = daysBetween(new Date(), nextAnniv);
+  setText("nextAnniversaryCountdown", daysUntilNext === 0 ? "Heute! 🎉" : daysUntilNext + " Tage");
+  setText("nextAnniversaryDate", nextAnniv.toLocaleDateString("de-DE"));
+}
 
-document.getElementById("daysTogether").textContent =
-  calculateDaysTogether(anniversary.date) + " Tage";
-
-document.getElementById("firstDateDate").textContent =
-  formatDate(firstDate.date);
-
-document.getElementById("firstDatePlace").textContent =
-  firstDate.place;
-
-const nextAnniv = nextAnniversaryDate(anniversary.date);
-const daysUntilNext = daysBetween(new Date(), nextAnniv);
-
-document.getElementById("nextAnniversaryCountdown").textContent =
-  daysUntilNext === 0 ? "Heute! 🎉" : daysUntilNext + " Tage";
-
-document.getElementById("nextAnniversaryDate").textContent =
-  nextAnniv.toLocaleDateString("de-DE");
+/* the phone's copy at once, then the fresh one */
+const cachedMilestones = PwMilestones.cached();
+if (cachedMilestones) renderMilestones(cachedMilestones);
+PwMilestones.load(supabaseClient).then(fresh => {
+  if (fresh || !cachedMilestones) renderMilestones(fresh);
+});
 
 /* ---------- "Wie lange noch bis …": next trip, Isi back from Alicante ---------- */
 
-const DEFAULT_ALICANTE_END = "2027-01-24";
 const kpiCountdowns = document.getElementById("kpiCountdowns");
 
 function daysLabel(days) {
@@ -102,8 +95,8 @@ async function loadCountdowns() {
       </a>`);
   }
 
-  const alicanteEnd = (settingsResult.data && settingsResult.data.alicante_end) || DEFAULT_ALICANTE_END;
-  const daysUntilBack = daysBetween(new Date(), alicanteEnd + "T00:00:00");
+  const alicanteEnd = settingsResult.data && settingsResult.data.alicante_end;
+  const daysUntilBack = alicanteEnd ? daysBetween(new Date(), alicanteEnd + "T00:00:00") : -1;
   if (daysUntilBack >= 0) {
     rows.push(countdownRow({
       icon: "🏠",

@@ -1,7 +1,7 @@
-/* Chat-Wrapped: seals the chat for the cloud. The database is readable by anyone who knows the (public)
-   key of this site, so the chat never goes there as text: it is compressed and encrypted in the browser
-   with a passphrase only the two of them know (AES-GCM, key from PBKDF2). Supabase only ever sees the
-   encrypted Base64 pieces. Used by chat.js (window.ChatCrypto) and the node tests. */
+/* Chat-Wrapped: seals the chat for the cloud. Only the signed-in shared account can read the database,
+   but the chat is too private to rely on that alone (and that one password is shared): it never goes
+   there as text – it is compressed and encrypted in the browser with a chat password only the two of
+   them know (AES-GCM, key from PBKDF2). Supabase only ever sees the encrypted Base64 pieces. Used by chat.js (window.ChatCrypto) and the node tests. */
 (function () {
   const SALT = new TextEncoder().encode("projekt-wir/chat-wrapped/v1");
   const ROUNDS = 250000;

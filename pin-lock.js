@@ -16,7 +16,48 @@
     }
   }
 
+  /* Signed in – but a session can end (password changed, login removed, expired on the server).
+     Then supabase-js drops it, or the server no longer accepts it: back to the password instead of
+     showing empty pages as if there were no data. */
+  function watchSession() {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof supabaseClient === "undefined") return;
+      let leaving = false;
+      const backToLock = () => {
+        /* signing out on purpose (settings) goes to the start page by itself */
+        if (leaving || window.PW_SIGNING_OUT) return;
+        leaving = true;
+        location.reload();
+      };
+
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        /* (supabase-js asks not to call it again from inside this callback – hence the timeout) */
+        if (!session && (event === "SIGNED_OUT" || event === "INITIAL_SESSION")) setTimeout(backToLock, 0);
+      });
+
+      /* about every half hour (and never offline) the server is asked whether the login still counts */
+      if (navigator.onLine === false || !supabaseClient.auth.getUser) return;
+      const CHECK_KEY = "pw_session_checked";
+      let checkedAt = 0;
+      try { checkedAt = Number(sessionStorage.getItem(CHECK_KEY)) || 0; } catch (error) { /* storage blocked */ }
+      if (Date.now() - checkedAt < 30 * 60 * 1000) return;
+
+      supabaseClient.auth.getUser().then(({ data, error }) => {
+        if (!error && data && data.user) {
+          try { sessionStorage.setItem(CHECK_KEY, String(Date.now())); } catch (storageError) { /* fine */ }
+          return;
+        }
+        /* only a clear "no" from the server counts – a weak connection is no reason to sign out */
+        const refused = error && (error.status === 401 || error.status === 403 || error.name === "AuthSessionMissingError");
+        if (refused) {
+          supabaseClient.auth.signOut({ scope: "local" }).finally(backToLock);
+        }
+      }).catch(() => { /* offline or flaky: keep going */ });
+    });
+  }
+
   if (hasSession()) {
+    watchSession();
     return;
   }
 

@@ -766,7 +766,12 @@ function addFilesToQueue(fileList) {
   renderUploadQueue();
 }
 
+/* preview addresses of the queue – given back to the browser whenever the queue is drawn anew */
+let queueUrls = [];
+
 function renderUploadQueue() {
+  queueUrls.forEach(url => URL.revokeObjectURL(url));
+  queueUrls = [];
   if (pendingFiles.length === 0) {
     uploadQueue.classList.add("hidden");
     return;
@@ -777,6 +782,7 @@ function renderUploadQueue() {
 
   pendingFiles.forEach((file, index) => {
     const url = URL.createObjectURL(file);
+    queueUrls.push(url);
 
     const thumb = document.createElement("div");
     thumb.className = "upload-thumb";
@@ -807,13 +813,16 @@ async function uploadQueuedImages() {
   uploadImageBtn.innerHTML = `<span class="spinner"></span> Lade ${pendingFiles.length} Bild(er) hoch…`;
 
   const caption = captionInput.value.trim();
+  const failed = [];
   let successCount = 0;
+  let unreadable = 0;
 
   for (const file of pendingFiles) {
+    let imageUrl = null;
     try {
       /* read the date from the original – the smaller upload copy has no metadata any more */
       const taken = await takenAtOf(file);
-      const imageUrl = await uploadFile(file, `memories/${currentMemory.id}`);
+      imageUrl = await uploadFile(file, `memories/${currentMemory.id}`);
 
       const { error } = await supabaseClient
         .from("trip_images")
@@ -829,6 +838,10 @@ async function uploadQueuedImages() {
       successCount++;
     } catch (error) {
       console.error("Fehler beim Bild speichern:", error);
+      if (error && error.code === "unreadable-image") unreadable++;
+      /* the file went up but the photo was not saved: do not leave it lying in the storage */
+      if (imageUrl) await removeUnusedFiles([imageUrl]);
+      failed.push(file);
     }
   }
 
@@ -840,11 +853,18 @@ async function uploadQueuedImages() {
     celebrate(8);
   }
 
-  if (successCount < pendingFiles.length) {
-    showToast("Manche Bilder konnten nicht hochgeladen werden.", "error");
+  /* what did not work stays in the queue – one more tap on "Hochladen" tries exactly those again */
+  pendingFiles = failed;
+  if (failed.length === 0) captionInput.value = "";
+  renderUploadQueue();
+
+  if (failed.length > 0) {
+    const why = unreadable > 0
+      ? " Dieses Foto-Format (z. B. HEIC) kann der Browser nicht umwandeln – bitte als JPG wählen."
+      : " Sie sind noch in der Liste – nochmal auf „Hochladen“ tippen.";
+    showToast(`${failed.length} von ${failed.length + successCount} Bild(ern) nicht hochgeladen.${why}`, "error");
   }
 
-  clearUploadQueue();
   await loadImages();
 }
 
@@ -859,6 +879,10 @@ async function takenAtOf(file) {
 
 async function uploadFile(originalFile, folder) {
   const file = await shrinkImageForUpload(originalFile);
+  /* an iPhone photo the browser could not turn into a JPG would not open on the other phone */
+  if (/^image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
+    throw Object.assign(new Error("Bild konnte nicht umgewandelt werden"), { code: "unreadable-image" });
+  }
   const fileExt = file.name.split(".").pop();
   const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 

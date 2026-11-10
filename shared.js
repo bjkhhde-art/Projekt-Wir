@@ -1,9 +1,41 @@
 /* Projekt Wir – shared UI helpers: toasts, celebration hearts, nav highlighting. */
 
-window.MILESTONES = {
-  firstMeeting: { date: "2025-11-27", place: "Prof's Night (Park Theater Kempten)" },
-  firstDate: { date: "2025-12-01", place: "Weihnachtsmarkt Kempten" },
-  anniversary: { date: "2026-01-05", place: "Botanischer Garten Hamburg Nienstedten" }
+/* Our dates (first meeting, first date, anniversary) live in the database (app_settings.milestones),
+   which only signed-in members can read – not in this public code. The last copy is kept on the phone,
+   so the numbers show at once and offline. Shape: { firstMeeting: { date, place }, firstDate, anniversary } */
+window.PwMilestones = {
+  KEY: "pw_milestones",
+  valid(value) {
+    return Boolean(value && value.anniversary && typeof value.anniversary.date === "string");
+  },
+  cached() {
+    try {
+      const value = JSON.parse(localStorage.getItem(this.KEY));
+      return this.valid(value) ? value : null;
+    } catch (error) {
+      return null;
+    }
+  },
+  remember(value) {
+    try { localStorage.setItem(this.KEY, JSON.stringify(value)); } catch (error) { /* storage full or blocked */ }
+  },
+  forget() {
+    try { localStorage.removeItem(this.KEY); } catch (error) { /* nothing to forget */ }
+  },
+  /* the fresh dates from the database; the phone's copy when offline; null if none are saved */
+  async load(client) {
+    try {
+      const { data, error } = await client.from("app_settings").select("milestones").eq("id", "shared").maybeSingle();
+      if (error) throw error;
+      const value = data && data.milestones;
+      if (!this.valid(value)) return null;
+      this.remember(value);
+      return value;
+    } catch (error) {
+      console.error("Fehler beim Laden der Jahrestage:", error);
+      return this.cached();
+    }
+  }
 };
 
 /* "Lena", "Lena und Tom", "Lena, Tom und Ben" */
@@ -163,6 +195,13 @@ window.normalizePerson = function (name) {
   return (name || "").startsWith("Isi") ? "Isi" : "Benji";
 };
 
+/* who uses this phone ("Wer bin ich" in the settings) – "Isi", "Benji" or null when not chosen yet */
+window.devicePerson = function () {
+  let stored = null;
+  try { stored = localStorage.getItem("pw_person"); } catch (error) { /* storage blocked */ }
+  return stored ? normalizePerson(stored) : null;
+};
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -217,6 +256,37 @@ window.subscribeToPush = async function (supabaseClient, person) {
 
   localStorage.setItem("pw_push_enabled", "true");
   localStorage.setItem("pw_person", person);
+};
+
+/* this phone's push subscription, or null (no service worker yet, never subscribed, or expired) */
+window.currentPushSubscription = async function () {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+    const registration = await navigator.serviceWorker.getRegistration();
+    return registration ? await registration.pushManager.getSubscription() : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+/* Push is really on only when the phone still allows it and still holds a subscription –
+   the old local flag alone can be out of date (permission withdrawn, subscription expired) */
+window.pushIsActive = async function () {
+  if (!("Notification" in window) || Notification.permission !== "granted") return false;
+  return Boolean(await window.currentPushSubscription());
+};
+
+/* "Wer bin ich": remembers who uses this phone and moves its push subscription along,
+   so notifications meant for that person reach this phone (and no longer the other person's) */
+window.setDevicePerson = async function (supabaseClient, person) {
+  localStorage.setItem("pw_person", person);
+  const subscription = await window.currentPushSubscription();
+  if (!subscription) return;
+  const keys = subscription.toJSON().keys || {};
+  const { error } = await supabaseClient
+    .from("push_subscriptions")
+    .upsert({ person, endpoint: subscription.endpoint, p256dh: keys.p256dh, auth: keys.auth }, { onConflict: "endpoint" });
+  if (error) console.error("Push-Abo konnte nicht umgestellt werden:", error);
 };
 
 window.sendAppNotification = async function (supabaseClient, { title, body, excludePerson, onlyPerson, category, url }) {

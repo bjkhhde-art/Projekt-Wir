@@ -108,7 +108,11 @@ function showRandomQuestion() {
 
   if (availableQuestions.length === 0) {
     clearSeenIds(currentGroupKey);
-    availableQuestions = currentQuestions;
+    /* all asked: start over – but never with the question that is on the screen right now */
+    const shown = questionHistory[currentQuestionIndex];
+    availableQuestions = currentQuestions.length > 1 && shown
+      ? currentQuestions.filter(question => question.id !== shown.id)
+      : currentQuestions;
   }
 
   const randomIndex = Math.floor(Math.random() * availableQuestions.length);
