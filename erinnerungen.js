@@ -235,15 +235,18 @@ function renderMapMarkers() {
 
   memories.forEach(memory => {
     const coords = memory.coordinates || [];
+    /* trips still ahead of us show up grey on the map */
+    const pinClass = isFutureMemory(memory.start_date) ? "trip-pin trip-pin-future" : "trip-pin";
 
     coords.forEach(point => {
       const icon = L.divIcon({
         className: "",
-        html: '<div class="trip-pin" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
+        html: '<div class="' + pinClass + '" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
         iconSize: [18, 18]
       });
 
-      const marker = L.marker([point.lat, point.lng], { icon });
+      /* past trips sit on top of the grey upcoming ones */
+      const marker = L.marker([point.lat, point.lng], { icon, zIndexOffset: isFutureMemory(memory.start_date) ? 0 : 1000 });
       marker.on("click", () => {
         /* the trip opens in its list tab: a step of its own, so "back" returns to the map */
         const tabButton = document.querySelector(`.hub-tab[data-tab="${tabForTrip(memory)}"]`);
