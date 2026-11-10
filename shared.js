@@ -339,7 +339,7 @@ window.animateFillOnReveal = function (el, targetPercent) {
   window.confirmDialog = function (message, confirmLabel) {
     return new Promise(resolve => {
       const overlay = document.createElement("div");
-      overlay.className = "modal";
+      overlay.className = "modal confirm-modal";
       overlay.innerHTML = `
         <div class="modal-box confirm-box">
           <h2>Bist du sicher?</h2>

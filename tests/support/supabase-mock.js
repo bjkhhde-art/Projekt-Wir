@@ -99,6 +99,11 @@
 
       then(resolve, reject) {
         const run = async () => {
+          /* an update by something other than the id (e.g. .eq("person", …)) changes every matching row */
+          if (pendingOp && pendingOp.type === "update" && idFilter() === undefined) {
+            const res = await postJson(`${base}/update`, { filters, payload: pendingOp.payload });
+            return { data: await res.json(), error: null };
+          }
           if (pendingOp && pendingOp.type === "update") {
             const version = versionFilter();
             const query = version !== undefined ? `?version=${version}` : "";
@@ -110,7 +115,7 @@
             const data = await res.json();
             return { data, error: null };
           }
-          if (pendingOp && pendingOp.type === "delete" && isPlainTable(table)) {
+          if (pendingOp && pendingOp.type === "delete" && (isPlainTable(table) || idFilter() === undefined)) {
             await postJson(`${base}/delete`, { filters });
             return { data: null, error: null };
           }

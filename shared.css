@@ -544,6 +544,11 @@ textarea:focus {
   animation: fade-in 0.2s ease;
 }
 
+/* "Bist du sicher?" always sits on top of whatever asked – also full-screen views like an opened letter (300) */
+.modal.confirm-modal {
+  z-index: 900;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

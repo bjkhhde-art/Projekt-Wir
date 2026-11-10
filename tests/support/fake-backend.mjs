@@ -83,6 +83,13 @@ async function handle(req, res, name, path, url) {
     send(res, 200, { ok: true });
     return true;
   }
+  if (req.method === "POST" && path === "/update") {
+    const body = await readBody(req);
+    const changed = t.rows.filter(row => matches(row, body.filters || []));
+    changed.forEach(row => Object.assign(row, body.payload));
+    send(res, 200, changed);
+    return true;
+  }
   if (req.method === "POST" && path === "/delete") {
     const body = await readBody(req);
     t.rows = t.rows.filter(row => !matches(row, body.filters || []));
