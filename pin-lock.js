@@ -1,6 +1,6 @@
 (function () {
   /* The lock is a real login: the password signs this phone in to the shared Supabase account, and the
-     database only answers signed-in members (see supabase/migrations/20261110_members_only_access.sql).
+     database only answers signed-in members (see supabase/migrations/20261110120000_members_only_access.sql).
      Neither the password nor a hash of it lives in this public repository. */
   const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
   const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
