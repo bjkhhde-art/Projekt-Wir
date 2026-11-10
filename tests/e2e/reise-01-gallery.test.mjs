@@ -21,7 +21,7 @@ await post("/t/trips/seed", { rows: [
   { id: 2, title: "Hamburg", location: "Hamburg", start_date: isoDay(12), end_date: isoDay(16), cover_url: null, coordinates: null, created_at: "2026-09-01T10:00:00Z" }
 ] });
 await post("/t/trip_images/seed", { rows: [
-  { id: 11, trip_id: 1, image_url: picture + "?a", caption: "Castello Santa Barbara", created_at: "2026-08-30T10:00:00Z" },
+  { id: 11, trip_id: 1, image_url: "/storage/v1/object/public/trip-images/1/castello%20a.jpg", caption: "Castello Santa Barbara", created_at: "2026-08-30T10:00:00Z" },
   { id: 12, trip_id: 1, image_url: picture + "?b", caption: "Blick aufs Wasser", created_at: "2026-08-30T11:00:00Z" },
   { id: 13, trip_id: 1, image_url: picture + "?c", caption: "", created_at: "2026-08-30T12:00:00Z" }
 ] });
@@ -129,6 +129,8 @@ await page.click(".confirm-yes");
 await wait(500);
 ok(!(await dump("trip_images")).some(i => i.id === 11), "deleting asks once and removes the photo");
 ok(await page.locator(".image-card").count() === 2, "the gallery shows two photos");
+const removals = await page.evaluate(() => window.__mockRemovals || []);
+ok(removals.length === 1 && removals[0].bucket === "trip-images" && removals[0].paths.join() === "1/castello a.jpg", "deleting a photo also deletes its file from storage");
 
 /* + adds photos */
 const chooserPromise = page.waitForEvent("filechooser");

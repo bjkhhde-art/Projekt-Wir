@@ -237,6 +237,10 @@
                 (window.__mockUploads = window.__mockUploads || []).push({ bucket, name, size: file.size, type: file.type, options });
                 return { data: { path: name }, error: null };
               },
+              async remove(paths) {
+                (window.__mockRemovals = window.__mockRemovals || []).push({ bucket, paths });
+                return { data: paths.map(name => ({ name })), error: null };
+              },
               getPublicUrl(name) {
                 return { data: { publicUrl: "/icons/icon-512.png?upload=" + encodeURIComponent(name) } };
               }
