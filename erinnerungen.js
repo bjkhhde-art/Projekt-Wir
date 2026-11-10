@@ -235,15 +235,18 @@ function renderMapMarkers() {
 
   memories.forEach(memory => {
     const coords = memory.coordinates || [];
+    /* trips still ahead are grey; the places we have already been stay in colour and on top */
+    const upcoming = isFutureMemory(memory.start_date);
+    const title = memory.title + (upcoming ? " (geplant)" : "");
 
     coords.forEach(point => {
       const icon = L.divIcon({
         className: "",
-        html: '<div class="trip-pin" title="' + memory.title.replace(/"/g, "&quot;") + '"></div>',
+        html: '<div class="trip-pin' + (upcoming ? " trip-pin--upcoming" : "") + '" title="' + escapeHtml(title) + '"></div>',
         iconSize: [18, 18]
       });
 
-      const marker = L.marker([point.lat, point.lng], { icon });
+      const marker = L.marker([point.lat, point.lng], { icon, zIndexOffset: upcoming ? 0 : 1000 });
       marker.on("click", () => {
         /* the trip opens in its list tab: a step of its own, so "back" returns to the map */
         const tabButton = document.querySelector(`.hub-tab[data-tab="${tabForTrip(memory)}"]`);
