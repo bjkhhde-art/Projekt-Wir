@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /* Serves the real site from the repository root. In every page the Supabase client is swapped
-   for tests/support/supabase-mock.js and the PIN gate is pre-unlocked, so tests run offline. */
+   for tests/support/supabase-mock.js and the phone is pre-signed-in (a stored session), so tests run offline. */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SUPABASE_CDN = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>';
@@ -24,7 +24,7 @@ const TYPES = {
 function prepareHtml(html) {
   return html
     /* a test can set sessionStorage.__pw_locked to see the real lock (password and invite tests) */
-    .replace("<head>", '<head>\n  <script>if (!sessionStorage.getItem("__pw_locked")) localStorage.setItem("pw_unlocked", "true");</script>')
+    .replace("<head>", '<head>\n  <script>if (!sessionStorage.getItem("__pw_locked")) localStorage.setItem("sb-lrzgcqoqcwicpuuuhaoj-auth-token", "{\\"access_token\\":\\"test-token\\"}");</script>')
     .replace(SUPABASE_CDN, '<script src="/tests/support/supabase-mock.js"></script>');
 }
 

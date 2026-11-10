@@ -101,11 +101,18 @@ const GameRoom = (() => {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
     const maxPlayers = config.maxPlayers || 4;
     const invites = config.invites !== false;
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const personModal = document.getElementById("personModal");
 
     const guestInvite = invites && window.PW_GUEST_INVITE ? window.PW_GUEST_INVITE : null;
     const isGuest = Boolean(guestInvite);
+    /* members use their login; an invited friend is not signed in and shows the invite code instead –
+       the database then lets them see and play only the round with that code */
+    const client = isGuest
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: { headers: { "x-pw-invite": guestInvite } },
+        auth: { persistSession: false, autoRefreshToken: false }
+      })
+      : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const guestKey = guestInvite ? `pw_guest:${table}:${guestInvite}` : null;
 
     let person = isGuest ? readGuestName() : localStorage.getItem("pw_person");
@@ -902,10 +909,13 @@ const GameRoom = (() => {
         BotNames.watch(document.body);
         BotNames.load(client);
       }
-      client
-        .channel(`${table}_changes`)
-        .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
-        .subscribe(status => { liveConnected = status === "SUBSCRIBED"; });
+      /* live row updates only reach signed-in members; a guest's page re-syncs on the short timer instead */
+      if (!isGuest) {
+        client
+          .channel(`${table}_changes`)
+          .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
+          .subscribe(status => { liveConnected = status === "SUBSCRIBED"; });
+      }
       keepInSync();
       sync();
     }

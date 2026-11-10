@@ -1,18 +1,29 @@
 (function () {
-  /* Only a salted PBKDF2 hash of the password lives here (the repository is public).
-     Devices that were unlocked before stay unlocked – the stored flag is unchanged. */
-  const PASSWORD_SALT = "b4fa1c0c5a8911d827e5c419caaf47fd";
-  const PASSWORD_HASH = "237bb0842f268f7529b127a11c53fafec419368a9f76bb5bed872647045783b7";
-  const PBKDF2_ROUNDS = 210000;
-  const STORAGE_KEY = "pw_unlocked";
+  /* The lock is a real login: the password signs this phone in to the shared Supabase account, and the
+     database only answers signed-in members (see supabase/migrations/20261110_members_only_access.sql).
+     Neither the password nor a hash of it lives in this public repository. */
+  const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
+  /* the shared account (Supabase → Authentication → Users); example.com never receives mail */
+  const LOGIN_EMAIL = "projekt-wir@example.com";
+  /* where supabase-js keeps the session – present means this phone is signed in */
+  const SESSION_KEY = "sb-lrzgcqoqcwicpuuuhaoj-auth-token";
   const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "gipfel.html"];
 
-  if (localStorage.getItem(STORAGE_KEY) === "true") {
+  function hasSession() {
+    try {
+      return Boolean(localStorage.getItem(SESSION_KEY));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  if (hasSession()) {
     return;
   }
 
   /* Invited friends open a game page with ?invite=…: they get only that game (no navigation,
-     no other pages) and are never unlocked – game-room.js checks the invite against the round. */
+     no other pages) and are never signed in – the database lets them see exactly the round with this code. */
   const page = location.pathname.split("/").pop() || "index.html";
   const invite = new URLSearchParams(location.search).get("invite");
   if (GAME_PAGES.includes(page) && invite && /^[A-Za-z0-9]{6,32}$/.test(invite)) {
@@ -23,16 +34,27 @@
 
   document.documentElement.style.visibility = "hidden";
 
-  function hex(bytes) {
-    return Array.from(new Uint8Array(bytes)).map(byte => byte.toString(16).padStart(2, "0")).join("");
+  async function signIn(password) {
+    if (!window.supabase) return "offline";
+    try {
+      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { error } = await client.auth.signInWithPassword({ email: LOGIN_EMAIL, password });
+      if (!error) return "ok";
+      if (error.code === "invalid_credentials" || error.status === 400) return "wrong";
+      if (!error.status || error.name === "AuthRetryableFetchError") return "offline";
+      console.error("Anmeldung fehlgeschlagen:", error);
+      return "failed";
+    } catch (error) {
+      console.error("Anmeldung fehlgeschlagen:", error);
+      return "offline";
+    }
   }
 
-  async function hashPassword(value) {
-    const salt = new Uint8Array(PASSWORD_SALT.match(/../g).map(pair => parseInt(pair, 16)));
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(value), "PBKDF2", false, ["deriveBits"]);
-    const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: PBKDF2_ROUNDS, hash: "SHA-256" }, key, 256);
-    return hex(bits);
-  }
+  const MESSAGES = {
+    wrong: "Falsches Passwort, versuch's nochmal 💭",
+    offline: "Keine Verbindung – bitte prüf dein Internet 📶",
+    failed: "Anmelden hat nicht geklappt – versuch's gleich nochmal."
+  };
 
   function buildGate() {
     const overlay = document.createElement("div");
@@ -46,7 +68,7 @@
           <input id="pinGateInput" class="pin-gate-input" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Passwort">
           <button id="pinGateShow" class="pin-gate-show" type="button" aria-label="Passwort anzeigen">👁</button>
         </div>
-        <p id="pinGateError" class="pin-gate-error hidden">Falsches Passwort, versuch's nochmal 💭</p>
+        <p id="pinGateError" class="pin-gate-error hidden" role="alert"></p>
         <button id="pinGateSubmit" class="btn btn-block">Entsperren</button>
       </div>
     `;
@@ -61,23 +83,26 @@
 
     async function tryUnlock() {
       const value = input.value;
-      if (!value) return;
+      if (!value || submitBtn.disabled) return;
       submitBtn.disabled = true;
-      const hash = await hashPassword(value);
-      submitBtn.disabled = false;
+      const result = await signIn(value);
 
-      if (hash === PASSWORD_HASH) {
-        localStorage.setItem(STORAGE_KEY, "true");
-        document.documentElement.style.visibility = "visible";
-        overlay.remove();
-      } else {
-        errorEl.classList.remove("hidden");
-        box.classList.remove("shake");
-        void box.offsetWidth;
-        box.classList.add("shake");
-        input.select();
-        input.focus();
+      if (result === "ok") {
+        /* the flag of the old, purely local lock is no longer needed */
+        try { localStorage.removeItem("pw_unlocked"); } catch (error) { /* nothing to clean */ }
+        /* the page loaded its data before the login – load it again, now as a member */
+        location.reload();
+        return;
       }
+
+      submitBtn.disabled = false;
+      errorEl.textContent = MESSAGES[result];
+      errorEl.classList.remove("hidden");
+      box.classList.remove("shake");
+      void box.offsetWidth;
+      box.classList.add("shake");
+      input.select();
+      input.focus();
     }
 
     showBtn.addEventListener("click", () => {

@@ -21,7 +21,7 @@ await fetch(`${API}/t/flip7_games/reset`, { method: "POST" });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const errors = [];
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-await ctx.addInitScript(() => { localStorage.setItem("pw_person", "Isi"); localStorage.setItem("pw_unlocked", "true"); });
+await ctx.addInitScript(() => { localStorage.setItem("pw_person", "Isi"); });
 const page = await ctx.newPage();
 page.on("pageerror", e => errors.push(e.message));
 

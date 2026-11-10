@@ -223,9 +223,41 @@
     return chan;
   }
 
+  /* the shared login: the test password signs in and stores a session like supabase-js does */
+  const SESSION_KEY = "sb-lrzgcqoqcwicpuuuhaoj-auth-token";
+  const TEST_PASSWORD = "test-passwort";
+
   window.supabase = {
-    createClient() {
+    createClient(url, key, options) {
+      (window.__mockClientOptions = window.__mockClientOptions || []).push(options || null);
       return {
+        auth: {
+          async signInWithPassword({ email, password }) {
+            (window.__mockSignIns = window.__mockSignIns || []).push({ email });
+            if (window.__mockAuthOffline) return { data: {}, error: { name: "AuthRetryableFetchError", status: 0, message: "Failed to fetch" } };
+            if (password !== TEST_PASSWORD) return { data: {}, error: { code: "invalid_credentials", status: 400, message: "Invalid login credentials" } };
+            const session = { access_token: "test-token", user: { email } };
+            localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+            return { data: { session }, error: null };
+          },
+          async getSession() {
+            const raw = localStorage.getItem(SESSION_KEY);
+            return { data: { session: raw ? JSON.parse(raw) : null }, error: null };
+          },
+          async signOut() {
+            localStorage.removeItem(SESSION_KEY);
+            return { error: null };
+          },
+          onAuthStateChange() {
+            return { data: { subscription: { unsubscribe() {} } } };
+          }
+        },
+        /* database functions: a test can answer one with window.__mockRpcResponses[name] = args => data */
+        async rpc(name, args) {
+          (window.__mockRpcCalls = window.__mockRpcCalls || []).push({ name, args });
+          const answer = window.__mockRpcResponses && window.__mockRpcResponses[name];
+          return { data: answer ? await answer(args) : null, error: null };
+        },
         from(table) { return makeQueryBuilder(table); },
         channel(name, options) { return makeChannel(name, options); },
         removeChannel(chan) { if (chan && chan.unsubscribe) chan.unsubscribe(); },
