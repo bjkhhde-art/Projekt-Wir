@@ -10,6 +10,7 @@ npm ci
 npx playwright install chromium
 npm test            # alles
 npm test -- qwixx   # nur Dateien mit "qwixx" im Namen
+npm run lint        # ESLint über die Skripte der Seite (Regeln: ../eslint.config.mjs)
 ```
 
 Auf GitHub laufen die Tests automatisch bei jedem Push (siehe `.github/workflows/tests.yml`).

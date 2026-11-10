@@ -17,7 +17,9 @@ function safeAppUrl(raw) {
 
 /* ---------- installable app: fresh from the network, the last copy (or a friendly page) offline ----------
    Only our own files are touched; Supabase, CDNs and everything else go straight to the network. */
-const CACHE = "pw-pages-v1";
+/* Count this up whenever files are renamed, split or removed (v2: Mochi split, style.css → ziele.css,
+   supabase-client.js): the new service worker then drops the old copies instead of keeping them around. */
+const CACHE = "pw-pages-v2";
 const OFFLINE_PAGE = "offline.html";
 const PRECACHE = [OFFLINE_PAGE, "icons/icon-192.png", "favicon.svg", "manifest.webmanifest"];
 
