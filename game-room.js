@@ -101,11 +101,18 @@ const GameRoom = (() => {
     const { table, title, icon, url, lobbyEl, boardEl, leaveBtn } = config;
     const maxPlayers = config.maxPlayers || 4;
     const invites = config.invites !== false;
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const personModal = document.getElementById("personModal");
 
     const guestInvite = invites && window.PW_GUEST_INVITE ? window.PW_GUEST_INVITE : null;
     const isGuest = Boolean(guestInvite);
+    /* members use their login; an invited friend is not signed in and shows the invite code instead –
+       the database then lets them see and play only the round with that code */
+    const client = isGuest
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: { headers: { "x-pw-invite": guestInvite } },
+        auth: { persistSession: false, autoRefreshToken: false }
+      })
+      : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const guestKey = guestInvite ? `pw_guest:${table}:${guestInvite}` : null;
 
     let person = isGuest ? readGuestName() : localStorage.getItem("pw_person");
@@ -123,6 +130,8 @@ const GameRoom = (() => {
       ? (optionValues.includes(config.initialOption) ? config.initialOption : optionValues[0])
       : null;
     let reactionChannel = null;
+    let roundChannel = null;
+    let roundGameId = null;
     let reactionGameId = null;
     let lastReactionAt = 0;
     let botTimer = null;
@@ -244,7 +253,10 @@ const GameRoom = (() => {
           showToast("Konnte nicht gespeichert werden.", "error");
           return false;
         }
-        if (data && data.length > 0) return true;
+        if (data && data.length > 0) {
+          announceChange();
+          return true;
+        }
       }
       showToast(networkTrouble ? "Schwache Verbindung – bitte nochmal tippen." : "Gleichzeitig getippt – bitte nochmal.", "error");
       return false;
@@ -278,6 +290,8 @@ const GameRoom = (() => {
       if (error) {
         console.error("Fehler beim Abbrechen:", error);
         showToast("Konnte nicht abgebrochen werden.", "error");
+      } else {
+        announceChange();
       }
       await sync();
     }
@@ -430,6 +444,7 @@ const GameRoom = (() => {
         showToast("Spiel konnte nicht beendet werden.", "error");
         return;
       }
+      announceChange();
       await sync();
     }
 
@@ -494,6 +509,26 @@ const GameRoom = (() => {
         });
       });
       return { wrap, layer, setOpen };
+    }
+
+    /* Every saved move is announced on a small live channel of the round – no content, only "look again".
+       Invited friends get no live database rows (they are not signed in), and this keeps their table
+       just as quick as everybody else's. */
+    function watchRound(game) {
+      const id = game && game.status !== "closed" ? game.id : null;
+      if (id === roundGameId) return;
+      if (roundChannel) client.removeChannel(roundChannel);
+      roundChannel = null;
+      roundGameId = id;
+      if (!id) return;
+      roundChannel = client
+        .channel(`${table}-round-${id}`, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "changed" }, () => sync())
+        .subscribe();
+    }
+
+    function announceChange() {
+      if (roundChannel) roundChannel.send({ type: "broadcast", event: "changed", payload: {} });
     }
 
     function joinReactions(game) {
@@ -839,6 +874,7 @@ const GameRoom = (() => {
       if (generation !== syncGeneration) return;
       /* no connection is not "no round": leave the board as it is until the network is back */
       if (!game && fetchFailed) return;
+      watchRound(game);
 
       /* re-rendering an unchanged game would restart running card animations */
       const json = JSON.stringify(game);
@@ -902,10 +938,13 @@ const GameRoom = (() => {
         BotNames.watch(document.body);
         BotNames.load(client);
       }
-      client
-        .channel(`${table}_changes`)
-        .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
-        .subscribe(status => { liveConnected = status === "SUBSCRIBED"; });
+      /* live row updates only reach signed-in members; a guest's page re-syncs on the short timer instead */
+      if (!isGuest) {
+        client
+          .channel(`${table}_changes`)
+          .on("postgres_changes", { event: "*", schema: "public", table }, () => sync())
+          .subscribe(status => { liveConnected = status === "SUBSCRIBED"; });
+      }
       keepInSync();
       sync();
     }

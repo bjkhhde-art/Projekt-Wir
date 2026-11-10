@@ -68,8 +68,14 @@ const BotNames = (() => {
 
   async function load(client) {
     try {
-      const { data, error } = await client.from("app_settings").select("bot_names").eq("id", "shared").maybeSingle();
-      if (!error && data) set(data.bot_names || {});
+      /* invited friends may not read the settings table – they ask for just the names */
+      if (window.PW_GUEST_INVITE) {
+        const { data, error } = await client.rpc("guest_bot_names");
+        if (!error && data) set(data);
+      } else {
+        const { data, error } = await client.from("app_settings").select("bot_names").eq("id", "shared").maybeSingle();
+        if (!error && data) set(data.bot_names || {});
+      }
     } catch (error) {
       /* no connection: the last known names stay */
     }

@@ -49,6 +49,17 @@ function person(value: unknown) {
   return typeof value === "string" && PERSONS.has(value) ? value : null;
 }
 
+/* only a signed-in member (the shared login, see public.members) may send notifications –
+   supabase-js sends the session token along with functions.invoke */
+async function isMember(request: Request) {
+  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return false;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) return false;
+  const { data: member } = await supabase.from("members").select("user_id").eq("user_id", data.user.id).maybeSingle();
+  return Boolean(member);
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -63,6 +74,10 @@ Deno.serve(async request => {
 
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
+  }
+
+  if (!(await isMember(request))) {
+    return json({ error: "Nicht angemeldet." }, 401);
   }
 
   try {

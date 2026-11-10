@@ -33,3 +33,21 @@ Buttons, Modals, Toasts) und werden von jeder Seite eingebunden.
 
 Live:
 https://bjkhhde-art.github.io/bingo-board/
+
+## Login & Datenschutz
+
+Das Passwortfeld ist ein echter Login: Es meldet das Handy beim gemeinsamen Supabase-Konto
+`projekt-wir@example.com` an. Die Datenbank (Tabellen und der Speicher für Reisebilder)
+antwortet nur angemeldeten Mitgliedern (`public.members`). Der öffentliche Schlüssel im Code
+reicht allein nicht mehr, um etwas zu lesen oder zu ändern. Das Passwort steht in keiner Datei.
+
+Eingeladene Freunde (`?invite=…` auf einer Spielseite) melden sich nicht an. Ihre Seite schickt den
+Einladungscode mit, und die Datenbank zeigt ihnen genau diese eine Runde.
+
+Einrichtung (einmalig, siehe `supabase/migrations/20261110_members_only_access.sql`):
+
+1. Supabase → Authentication → Users → *Add user*: E-Mail `projekt-wir@example.com`,
+   ein **neues** Passwort, Haken bei *Auto Confirm User*.
+2. Supabase → Authentication → Sign In / Providers: *Allow new users to sign up* ausschalten.
+3. Website veröffentlichen. Jedes Handy fragt dann einmal nach dem Passwort.
+4. Migration ausführen und die Edge Function `notify-new-letter` neu deployen.
