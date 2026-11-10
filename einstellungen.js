@@ -1,5 +1,7 @@
 const personModal = document.getElementById("personModal");
 const personButtons = document.querySelectorAll(".person-choice-btn");
+const devicePersonName = document.getElementById("devicePersonName");
+const changePersonBtn = document.getElementById("changePersonBtn");
 
 const pushStatusText = document.getElementById("pushStatusText");
 const enablePushBtn = document.getElementById("enablePushBtn");
@@ -26,15 +28,25 @@ function requirePerson() {
   return false;
 }
 
+function showDevicePerson() {
+  devicePersonName.textContent = currentPerson ? normalizePerson(currentPerson) : "noch niemand";
+}
+
 personButtons.forEach(button => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
+    const changed = currentPerson !== button.dataset.person;
     currentPerson = button.dataset.person;
-    localStorage.setItem("pw_person", currentPerson);
     personModal.classList.add("hidden");
+    showDevicePerson();
+    await setDevicePerson(supabaseClient, currentPerson);
     loadSettings();
     refreshPushStatus();
+    if (changed) showToast(`Dieses Handy gehört jetzt ${currentPerson} 💗`, "success");
   });
 });
+
+changePersonBtn.addEventListener("click", () => personModal.classList.remove("hidden"));
+showDevicePerson();
 
 if (!currentPerson) {
   personModal.classList.remove("hidden");
@@ -198,9 +210,8 @@ BotNames.load(supabaseClient).then(showBotNames);
 
 /* ---------- push status ---------- */
 
-function refreshPushStatus() {
+async function refreshPushStatus() {
   const supported = "serviceWorker" in navigator && "PushManager" in window;
-  const enabled = supported && localStorage.getItem("pw_push_enabled") === "true";
 
   if (!supported) {
     pushStatusText.textContent = "Push wird von diesem Browser nicht unterstützt.";
@@ -209,14 +220,24 @@ function refreshPushStatus() {
     return;
   }
 
+  /* the phone itself says whether push still works – not only what was remembered when turning it on */
+  const enabled = await pushIsActive();
+  const wasOn = localStorage.getItem("pw_push_enabled") === "true";
+  if (!enabled && wasOn) localStorage.removeItem("pw_push_enabled");
+  const blocked = "Notification" in window && Notification.permission === "denied";
+
   if (enabled) {
     pushStatusText.textContent = "Push-Benachrichtigungen sind aktiviert ✅";
     pushStatusText.className = "settings-subtitle status-on";
     enablePushBtn.classList.add("hidden");
   } else {
-    pushStatusText.textContent = "Push-Benachrichtigungen sind noch nicht aktiviert.";
+    pushStatusText.textContent = blocked
+      ? "Benachrichtigungen sind für diese Seite blockiert – in den Browser- bzw. Handy-Einstellungen wieder erlauben."
+      : wasOn
+        ? "Push ist auf diesem Handy nicht mehr aktiv – bitte nochmal aktivieren."
+        : "Push-Benachrichtigungen sind noch nicht aktiviert.";
     pushStatusText.className = "settings-subtitle status-off";
-    enablePushBtn.classList.remove("hidden");
+    enablePushBtn.classList.toggle("hidden", blocked);
   }
 }
 
@@ -287,3 +308,17 @@ installBtn.addEventListener("click", async () => {
 });
 document.addEventListener("pw:install-changed", renderInstall);
 renderInstall();
+
+/* ---------- sign out (this phone only) ---------- */
+
+document.getElementById("signOutBtn").addEventListener("click", async () => {
+  const confirmed = await confirmDialog("Dieses Handy wird abgemeldet. Zum Wiederkommen braucht ihr das Passwort.", "Abmelden");
+  if (!confirmed) return;
+  window.PW_SIGNING_OUT = true;
+  /* "local": the shared login stays valid on the other phone (the default would sign out everywhere) */
+  const { error } = await supabaseClient.auth.signOut({ scope: "local" });
+  if (error) console.error("Abmelden:", error);
+  /* the copy of our dates is for signed-in phones only */
+  PwMilestones.forget();
+  location.replace("index.html");
+});

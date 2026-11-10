@@ -568,10 +568,23 @@ function prepareDateInput(input, iso) {
   input.value = iso ? dayKey(new Date(iso)) : "";
 }
 
-/* marking as watched first asks how (together or one of us alone) and when – today unless changed */
-function toggleWatched(entry) {
+/* what "not watched after all" throws away – said in the question before it happens */
+function watchedDetails(entry) {
+  const lost = ["wer geschaut hat", "das Datum"];
+  if (entry.rating) lost.unshift("eure Bewertung");
+  if (seenEpisodes(entry).size > 0) lost.push("die abgehakten Folgen");
+  return listNames(lost);
+}
+
+/* marking as watched first asks how (together or one of us alone) and when – today unless changed;
+   taking it back asks first, because rating, date and episode ticks are gone afterwards */
+async function toggleWatched(entry) {
   if (entry.watched) {
-    setWatched(entry, false, null);
+    const confirmed = await confirmDialog(
+      `„${entry.title}“ wieder auf „noch nicht gesehen“ setzen? Dabei gehen ${watchedDetails(entry)} verloren.`,
+      "Zurücksetzen"
+    );
+    if (confirmed) setWatched(entry, false, null);
     return;
   }
   seenByEntry = entry;

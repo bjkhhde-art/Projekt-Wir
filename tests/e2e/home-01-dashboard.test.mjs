@@ -9,7 +9,8 @@ const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Con
 const TODAY = new Date("2026-03-01T10:00:00+01:00");
 
 await post("/t/app_settings/seed", { rows: [
-  { id: "shared", alicante_start: "2026-01-01", alicante_end: "2026-03-02", bot_names: {}, created_at: "2026-01-01T10:00:00Z" }
+  /* made-up dates – the real ones are only in the database */
+  { id: "shared", alicante_start: "2026-01-01", alicante_end: "2026-03-02", bot_names: {}, milestones: { firstMeeting: { date: "2025-11-20", place: "Testkino" }, firstDate: { date: "2025-12-03", place: "Testmarkt" }, anniversary: { date: "2026-01-10", place: "Testpark am See" } }, created_at: "2026-01-01T10:00:00Z" }
 ] });
 await post("/t/cuddle_batteries/seed", { rows: [
   { id: 1, person: "Isi G", level: 30, created_at: "2026-01-01T10:00:00Z" },
@@ -43,7 +44,8 @@ if (await page.locator("#pushModal").isVisible()) {
   ok(true, "no notification question where the browser cannot do push");
 }
 
-ok(await text("#heroDays") === "55 🎉", "the hero counts 55 days together");
+await page.waitForFunction(() => document.getElementById("heroDays").textContent.includes("🎉"));
+ok(await text("#heroDays") === "50 🎉", "the hero counts 50 days together");
 await page.waitForFunction(() => document.getElementById("alicanteDaysLeft").textContent.length > 0);
 ok(await text("#alicantePercent") === "99%", "Alicante: 59 of 60 days are behind us (99 %)");
 ok(await text("#alicanteDaysLeft") === "Noch 1 Tag, bis Isi wieder in Deutschland ist", "and it says how long until Isi is back, in the singular");

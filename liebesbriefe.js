@@ -211,12 +211,13 @@ function escapeHtmlWithBreaks(text) {
 /* ---------- push notifications ---------- */
 
 function notifyNewLetter(author) {
-  const person = normalizePerson(author);
+  /* the phone that wrote it never gets the notification – the other one does */
+  const sender = devicePerson() || normalizePerson(author);
 
   sendAppNotification(supabaseClient, {
     title: "Neuer Liebesbrief 💌",
     body: `${author} hat dir eine Nachricht geschrieben.`,
-    excludePerson: person,
+    excludePerson: sender,
     category: "letters",
     url: "wir.html?tab=briefe"
   });
@@ -278,6 +279,9 @@ async function deleteNote(id) {
 }
 
 openNoteModal.addEventListener("click", () => {
+  /* a letter is from whoever uses this phone, unless they pick otherwise */
+  const me = devicePerson();
+  if (me) noteAuthorInput.value = me;
   noteModal.classList.remove("hidden");
   noteMessageInput.focus();
 });

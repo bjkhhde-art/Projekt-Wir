@@ -115,10 +115,20 @@ self.addEventListener("notificationclick", event => {
 
   const targetUrl = safeAppUrl(event.notification.data && event.notification.data.url);
 
+  /* the app already open (on another page)? show the right page there instead of a second window */
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
-      const existing = clientList.find(client => client.url === targetUrl);
-      if (existing) return existing.focus();
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clientList => {
+      const exact = clientList.find(client => client.url === targetUrl);
+      if (exact) return exact.focus();
+      const ours = clientList.find(client => client.url.startsWith(self.registration.scope) && "navigate" in client);
+      if (ours) {
+        try {
+          const moved = await ours.navigate(targetUrl);
+          return (moved || ours).focus();
+        } catch (error) {
+          /* not allowed for this window (e.g. not controlled yet) – open a new one below */
+        }
+      }
       return self.clients.openWindow(targetUrl);
     })
   );

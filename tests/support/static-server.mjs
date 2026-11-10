@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
    for tests/support/supabase-mock.js and the phone is pre-signed-in (a stored session), so tests run offline. */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const SUPABASE_CDN = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>';
+const SUPABASE_CDN = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>';
 const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",

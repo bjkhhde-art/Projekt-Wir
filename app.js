@@ -16,7 +16,10 @@ const deleteBar = document.getElementById("deleteBar");
 const confirmDelete = document.getElementById("confirmDelete");
 const cancelDelete = document.getElementById("cancelDelete");
 
+const MAX_FIELDS = 16;
+
 let items = [];
+let saving = false;
 let deleteMode = false;
 let selectedForDelete = [];
 let editingItemId = null;
@@ -33,7 +36,9 @@ async function loadItems() {
     return;
   }
 
-  items = data.slice(0, 16);
+  /* normally at most 16 – if both phones added the 16th field at once, the extra one still shows
+     (and can be deleted) instead of silently disappearing */
+  items = data || [];
   renderBoard();
 }
 
@@ -43,7 +48,7 @@ function renderBoard() {
   // Offene Quests zuerst, abgeschlossene danach (Reihenfolge innerhalb bleibt erhalten)
   const sortedItems = [...items].sort((a, b) => Number(!!a.done) - Number(!!b.done));
 
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < Math.max(MAX_FIELDS, sortedItems.length); i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
 
@@ -62,6 +67,10 @@ function renderBoard() {
         cell.classList.add("done");
       }
 
+      /* an open quest whose day has passed */
+      const overdue = Boolean(item.due_date) && !item.done && daysBetween(new Date(), item.due_date) < 0;
+      if (overdue) cell.classList.add("overdue");
+
       const progressIcons = [];
 
       for (let j = 0; j < item.target; j++) {
@@ -73,7 +82,7 @@ function renderBoard() {
         ${!deleteMode ? `<button class="cell-edit-btn" title="Bearbeiten">✏️</button>` : ""}
         <div class="category">${escapeHtml(item.category || "Sonstiges ⭐")}</div>
         <div class="author">Von: ${escapeHtml(item.author || "Unbekannt")}</div>
-        <div class="due-date">${item.due_date ? "Fällig: " + formatDate(item.due_date) : ""}</div>
+        <div class="due-date${overdue ? " overdue" : ""}">${item.due_date ? (overdue ? "⏰ Überfällig: " : "Fällig: ") + formatDate(item.due_date) : ""}</div>
         <div class="cell-title">${escapeHtml(item.title)}</div>
         <div class="progress">${progressIcons.join(" ")}</div>
       `;
@@ -115,7 +124,7 @@ function openAddModalHandler() {
 
   input.value = "";
   categoryInput.value = "Liebe ❤️";
-  authorInput.value = "Isi";
+  authorInput.value = devicePerson() || "Isi";
   dueDateInput.value = "";
   targetInput.value = "1";
 
@@ -132,19 +141,40 @@ function openQuestEditModal(item) {
   categoryInput.value = item.category || "Liebe ❤️";
   authorInput.value = item.author || "Isi";
   dueDateInput.value = item.due_date || "";
-  targetInput.value = String(item.target ?? 1);
+  /* "0" is no goal any more – such an older quest gets 1 when it is saved */
+  targetInput.value = String(Number(item.target) > 0 ? item.target : 1);
 
   addModal.classList.remove("hidden");
   input.focus();
 }
 
+/* one save at a time: a double tap (or Enter plus a tap) must not add the quest twice */
 async function saveItem() {
+  if (saving) return;
   const title = input.value.trim();
 
   if (!title) {
     showToast("Bitte einen Titel eingeben.", "error");
     return;
   }
+
+  saving = true;
+  addBtn.disabled = true;
+  try {
+    await writeItem(title);
+  } finally {
+    saving = false;
+    addBtn.disabled = false;
+  }
+}
+
+/* how many fields the board has right now – asked fresh, the other phone may just have added one */
+async function countFields() {
+  const { data, error } = await supabaseClient.from("bingo_items").select("id");
+  return error ? items.length : (data || []).length;
+}
+
+async function writeItem(title) {
 
   if (editingItemId) {
     const item = items.find(existing => existing.id === editingItemId);
@@ -174,8 +204,9 @@ async function saveItem() {
 
     showToast("Feld aktualisiert 💗", "success");
   } else {
-    if (items.length >= 16) {
-      showToast("Das Bingo ist voll. Es können maximal 16 Felder genutzt werden.", "error");
+    if (await countFields() >= MAX_FIELDS) {
+      showToast(`Das Bingo ist voll. Es können maximal ${MAX_FIELDS} Felder genutzt werden.`, "error");
+      await loadItems();
       return;
     }
 
@@ -199,11 +230,12 @@ async function saveItem() {
 
     showToast("Neues Feld hinzugefügt ✨", "success");
 
-    const person = normalizePerson(authorInput.value);
+    /* the phone that added it never gets the notification – the other one does */
+    const sender = devicePerson() || normalizePerson(authorInput.value);
     sendAppNotification(supabaseClient, {
       title: "Neue Couple Quest 🎯",
-      body: `${authorInput.value} hat "${title}" hinzugefügt.`,
-      excludePerson: person,
+      body: `${sender} hat "${title}" hinzugefügt.`,
+      excludePerson: sender,
       category: "quest",
       url: "ziele.html?tab=quest"
     });
@@ -215,43 +247,63 @@ async function saveItem() {
 
 let progressInFlight = false;
 
+/* the quest as it is in the database right now (the other phone may have ticked it a moment ago) */
+async function freshItem(item) {
+  const { data, error } = await supabaseClient.from("bingo_items").select("*").eq("id", item.id).maybeSingle();
+  return error || !data ? item : data;
+}
+
 async function updateProgress(item) {
-  const target = Number(item.target);
+  if (progressInFlight) return;
 
-  if (target === 0 || progressInFlight) {
-    return;
-  }
-
-  const newCurrent = item.current < target ? item.current + 1 : 0;
-  const newDone = newCurrent >= target;
-
-  /* tapping a finished quest starts it over – only on purpose, not by an accidental tap */
-  if (newCurrent === 0 && !(await confirmDialog(`"${item.title}" wieder auf 0 zurücksetzen?`, "Zurücksetzen"))) {
+  /* a quest without a goal cannot be ticked – it opens so a goal can be chosen */
+  if (!(Number(item.target) > 0)) {
+    openQuestEditModal(item);
     return;
   }
 
   progressInFlight = true;
-  const { error } = await supabaseClient
-    .from("bingo_items")
-    .update({
-      current: newCurrent,
-      done: newDone
-    })
-    .eq("id", item.id);
-  progressInFlight = false;
+  try {
+    /* each tap counts once, even when both phones tap at the same moment: the step is only written
+       if nobody changed the quest in between – otherwise it is counted again on the new value */
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const base = await freshItem(item);
+      const target = Number(base.target);
+      const current = Number(base.current) || 0;
+      const newCurrent = current < target ? current + 1 : 0;
+      const newDone = newCurrent >= target;
 
-  if (error) {
-    console.error("Fehler beim Aktualisieren:", error);
-    showToast("Aktualisieren hat nicht geklappt.", "error");
-    return;
+      /* tapping a finished quest starts it over – only on purpose, not by an accidental tap */
+      if (newCurrent === 0 && !(await confirmDialog(`"${base.title}" wieder auf 0 zurücksetzen?`, "Zurücksetzen"))) {
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("bingo_items")
+        .update({ current: newCurrent, done: newDone })
+        .eq("id", base.id)
+        .eq("current", current)
+        .select();
+
+      if (error) {
+        console.error("Fehler beim Aktualisieren:", error);
+        showToast("Aktualisieren hat nicht geklappt.", "error");
+        return;
+      }
+
+      if (data && data.length > 0) {
+        if (newDone && !base.done) {
+          celebrate(16);
+          showToast(`"${base.title}" geschafft! 🎉`, "success");
+        }
+        return;
+      }
+    }
+    showToast("Das hat gerade nicht geklappt – tipp nochmal.", "error");
+  } finally {
+    progressInFlight = false;
+    await loadItems();
   }
-
-  if (newDone && !item.done) {
-    celebrate(16);
-    showToast(`"${item.title}" geschafft! 🎉`, "success");
-  }
-
-  await loadItems();
 }
 
 function startDeleteMode() {

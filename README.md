@@ -56,7 +56,14 @@ antwortet nur angemeldeten Mitgliedern (`public.members`). Der öffentliche Schl
 reicht allein nicht mehr, um etwas zu lesen oder zu ändern. Das Passwort steht in keiner Datei.
 
 Eingeladene Freunde (`?invite=…` auf einer Spielseite) melden sich nicht an. Ihre Seite schickt den
-Einladungscode mit, und die Datenbank zeigt ihnen genau diese eine Runde.
+Einladungscode mit, und die Datenbank zeigt ihnen genau diese eine Runde. Ist die Runde beendet (oder wird
+eine neue gestartet), wird der Code gelöscht – alte Links funktionieren dann nicht mehr.
+
+Unsere Daten (erstes Treffen, erstes Date, Jahrestag mit Orten) stehen nicht im öffentlichen Code, sondern in
+`app_settings.milestones` (nur für Mitglieder lesbar). Ändern im Supabase-SQL-Editor:
+`update public.app_settings set milestones = '{"firstMeeting": {"date": "JJJJ-MM-TT", "place": "…"}, "firstDate": {…}, "anniversary": {…}}' where id = 'shared';`
+
+„Abmelden“ in den Einstellungen meldet nur dieses Handy ab, das andere bleibt angemeldet.
 
 Einrichtung (einmalig, siehe `supabase/migrations/20261110120000_members_only_access.sql`):
 

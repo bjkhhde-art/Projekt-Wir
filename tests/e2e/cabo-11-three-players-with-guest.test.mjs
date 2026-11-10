@@ -57,6 +57,10 @@ await lena.fill("#grGuestName", "isi");
 await lena.click("#grGuestJoinBtn");
 await lena.waitForSelector(".gr-lobby-note");
 ok((await lena.locator(".gr-lobby-note").textContent()).includes("vergeben"), "'Isi' cannot be taken as a friend's name");
+await lena.fill("#grGuestName", "Du");
+await lena.click("#grGuestJoinBtn");
+await lena.waitForFunction(() => (document.querySelector(".gr-lobby-note") || {}).textContent?.includes("Du"));
+ok((await lena.locator(".gr-lobby-note").textContent()).includes("geht leider nicht"), "'Du' cannot be a friend's name (every phone calls its own player Du)");
 await lena.fill("#grGuestName", "  Lena!! ");
 await lena.click("#grGuestJoinBtn");
 await lena.waitForSelector("text=Du bist dabei");
@@ -148,6 +152,17 @@ ok((await lena.locator(".gr-lobby-card h2").textContent()).includes("gilt nicht 
 await lena.goto(link);
 await lena.waitForTimeout(900);
 ok(await lena.locator("#caboBoard").isVisible(), "the friend's phone remembers the name and goes back to the table");
+
+/* ending the round ends the link: the friend is thanked, the code is gone */
+await isi.click("#leaveGameBtn");
+await isi.click("#leaveGameBtn");
+await wait(900);
+ok((await latest()).status === "closed" && (await latest()).invite_code === null, "ending the round deletes its invite code");
+await lena.waitForFunction(() => (document.querySelector(".gr-lobby-card h2") || {}).textContent?.includes("vorbei"), null, { timeout: 5000 });
+ok(await lena.locator("#caboBoard").isHidden(), "the friend sees 'Die Runde ist vorbei' and no more cards");
+await lena.reload();
+await lena.waitForSelector(".gr-lobby-card h2");
+ok((await lena.locator(".gr-lobby-card h2").textContent()).includes("gilt nicht mehr"), "opened again later, the old link no longer works");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();

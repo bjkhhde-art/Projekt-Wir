@@ -1,15 +1,30 @@
-animateCountUp(document.getElementById("heroDays"), daysBetween(MILESTONES.anniversary.date), { suffix: " 🎉" });
+/* days together since the anniversary (from the database, see PwMilestones in shared.js) */
+const heroDays = document.getElementById("heroDays");
+let heroShown = null;
 
-const DEFAULT_ALICANTE_START = "2026-09-01";
-const DEFAULT_ALICANTE_END = "2027-01-24";
+function renderHeroDays(milestones) {
+  if (!milestones) return;
+  const days = daysBetween(milestones.anniversary.date);
+  if (days === heroShown) return;
+  heroShown = days;
+  animateCountUp(heroDays, days, { suffix: " 🎉" });
+}
+
+renderHeroDays(PwMilestones.cached());
+PwMilestones.load(supabaseClient).then(renderHeroDays);
 
 const alicantePercent = document.getElementById("alicantePercent");
 const alicanteProgressFill = document.getElementById("alicanteProgressFill");
 const alicanteDaysLeft = document.getElementById("alicanteDaysLeft");
 
 function renderAlicanteProgress(startDate, endDate) {
-  const start = new Date((startDate || DEFAULT_ALICANTE_START) + "T00:00:00");
-  const end = new Date((endDate || DEFAULT_ALICANTE_END) + "T00:00:00");
+  /* the dates are set in the settings – without them there is nothing to count */
+  if (!startDate || !endDate) {
+    alicanteDaysLeft.textContent = "Daten fehlen noch – in den Einstellungen eintragen.";
+    return;
+  }
+  const start = new Date(startDate + "T00:00:00");
+  const end = new Date(endDate + "T00:00:00");
   const now = new Date();
 
   const totalMs = end - start;
@@ -39,7 +54,7 @@ async function loadAlicanteProgress() {
 
   if (error) {
     console.error("Fehler beim Laden der Alicante-Daten:", error);
-    renderAlicanteProgress();
+    alicanteDaysLeft.textContent = "Konnte gerade nicht geladen werden.";
     return;
   }
 
@@ -76,8 +91,9 @@ function clamp(value, min, max) {
 
 /* ---------- push modal ---------- */
 
-function maybeShowPushModal() {
+async function maybeShowPushModal() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  /* asked once per phone; whether push still works is shown in the settings */
   if (localStorage.getItem("pw_push_enabled") === "true") return;
 
   pushModal.classList.remove("hidden");
@@ -113,7 +129,7 @@ maybeShowPushModal();
 personButtons.forEach(button => {
   button.addEventListener("click", () => {
     currentPerson = button.dataset.person;
-    localStorage.setItem("pw_person", currentPerson);
+    setDevicePerson(supabaseClient, currentPerson);
     personModal.classList.add("hidden");
     loadDashBattery();
   });

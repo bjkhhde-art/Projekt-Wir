@@ -100,7 +100,9 @@
       then(resolve, reject) {
         const run = async () => {
           /* an update by something other than the id (e.g. .eq("person", …)) changes every matching row */
-          if (pendingOp && pendingOp.type === "update" && idFilter() === undefined) {
+          /* … and so does an update whose filters go beyond id and version (e.g. id + current), like the real database */
+          const onlyIdAndVersion = filters.every(([op, field]) => op === "eq" && (field === "id" || field === "version"));
+          if (pendingOp && pendingOp.type === "update" && (idFilter() === undefined || !onlyIdAndVersion)) {
             const res = await postJson(`${base}/update`, { filters, payload: pendingOp.payload });
             return { data: await res.json(), error: null };
           }
@@ -234,6 +236,8 @@
   const SESSION_KEY = "sb-lrzgcqoqcwicpuuuhaoj-auth-token";
   const TEST_PASSWORD = "test-passwort";
 
+  const authListeners = [];
+
   window.supabase = {
     createClient(url, key, options) {
       (window.__mockClientOptions = window.__mockClientOptions || []).push(options || null);
@@ -251,12 +255,27 @@
             const raw = localStorage.getItem(SESSION_KEY);
             return { data: { session: raw ? JSON.parse(raw) : null }, error: null };
           },
-          async signOut() {
+          /* a test sets window.__mockUserGone to play a login the server no longer accepts */
+          async getUser() {
+            if (window.__mockUserGone || localStorage.getItem("__mock_user_gone")) {
+              return { data: { user: null }, error: { name: "AuthApiError", status: 403, message: "invalid JWT" } };
+            }
+            const raw = localStorage.getItem(SESSION_KEY);
+            return raw
+              ? { data: { user: { id: "member", email: "projekt-wir@example.com" } }, error: null }
+              : { data: { user: null }, error: { name: "AuthSessionMissingError", status: 400, message: "Auth session missing!" } };
+          },
+          async signOut(options) {
+            (window.__mockSignOuts = window.__mockSignOuts || []).push(options || null);
+            /* kept across the reload that follows, so a test can see how it signed out */
+            sessionStorage.setItem("__mock_last_signout", JSON.stringify(options || null));
             localStorage.removeItem(SESSION_KEY);
+            authListeners.forEach(fn => fn("SIGNED_OUT", null));
             return { error: null };
           },
-          onAuthStateChange() {
-            return { data: { subscription: { unsubscribe() {} } } };
+          onAuthStateChange(fn) {
+            authListeners.push(fn);
+            return { data: { subscription: { unsubscribe() { authListeners.splice(authListeners.indexOf(fn), 1); } } } };
           }
         },
         /* database functions: a test can answer one with window.__mockRpcResponses[name] = args => data */
@@ -273,6 +292,11 @@
           from(bucket) {
             return {
               async upload(name, file, options) {
+                /* a test sets window.__mockUploadFailures = n to let the next n uploads fail */
+                if (window.__mockUploadFailures > 0) {
+                  window.__mockUploadFailures--;
+                  return { data: null, error: { message: "upload failed (test)" } };
+                }
                 (window.__mockUploads = window.__mockUploads || []).push({ bucket, name, size: file.size, type: file.type, options });
                 return { data: { path: name }, error: null };
               },
