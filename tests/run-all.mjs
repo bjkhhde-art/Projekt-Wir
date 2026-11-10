@@ -6,16 +6,30 @@ import { startFakeBackend } from "./support/fake-backend.mjs";
 import { startStaticServer } from "./support/static-server.mjs";
 
 /* Runs every engine test, then every two-device browser test against the local servers.
-   Usage: npm test            (all)
-          npm test -- nimmt    (only files whose name contains "nimmt") */
+   Usage: npm test                  (all)
+          npm test -- nimmt         (only files whose name contains "nimmt")
+          npm test -- cabo briefe   (several areas at once)
+          npm test -- spiele        (a group, see GROUPS – the table in tests/README.md lists every area) */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const filter = process.argv[2] || "";
+/* names that stand for several file names, or a friendlier name for one */
+const GROUPS = {
+  spiele: ["cabo", "nimmt", "qwixx", "flip7", "gipfel", "geo", "bots", "game-reactions", "bot-names"],
+  phase10: ["gipfel"],
+  quest: ["ziele"],
+  todos: ["ziele"],
+  kuschelakku: ["akku"],
+  fragen: ["questions"],
+  login: ["password-gate"],
+  app: ["all-pages-smoke", "app-shell", "navigation", "service-worker", "connection", "password-gate"]
+};
+const filters = process.argv.slice(2).flatMap(arg => GROUPS[arg.toLowerCase()] || [arg.toLowerCase()]);
+const wanted = name => filters.length === 0 || filters.some(f => name.toLowerCase().includes(f));
 /* browser tests wait on real timers; one retry absorbs a slow CI machine and is reported as such */
 const E2E_ATTEMPTS = 2;
 
 async function testFiles(folder) {
-  const names = (await readdir(path.join(HERE, folder))).filter(n => n.endsWith(".test.mjs") && n.includes(filter)).sort();
+  const names = (await readdir(path.join(HERE, folder))).filter(n => n.endsWith(".test.mjs") && wanted(n)).sort();
   return names.map(n => path.join(folder, n));
 }
 
