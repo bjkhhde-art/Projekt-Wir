@@ -1,0 +1,558 @@
+/* Mochi styles, part 2 of 4: top bar, growth, outfits, stat bars, room, shop and achievements. */
+
+/* ============================================================
+   Pou-style extensions: stats, coins, growth, outfits, room, shop
+   ============================================================ */
+
+/* ---------- topbar: growth badge + coins ---------- */
+
+.pet-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 10px;
+}
+
+.growth-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--purple-deep);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+}
+
+.pet-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pet-topbar-icon-btn {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--purple-deep);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.pet-topbar-icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pet-topbar-icon-btn:active {
+  transform: scale(0.95);
+}
+
+.pet-coin-pill {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #a86a12;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: transform 0.15s ease;
+}
+
+.pet-coin-pill:hover {
+  transform: translateY(-1px);
+}
+
+.pet-coin-pill:active {
+  transform: scale(0.95);
+}
+
+/* ---------- growth stages (resize the whole creature box, avoids
+   fighting the transform-based breathe/dance/etc animations) ---------- */
+
+.pet-creature.growth-baby {
+  width: clamp(122px, 34vw, 170px);
+  height: clamp(122px, 34vw, 170px);
+}
+
+.pet-creature.growth-adult {
+  width: clamp(165px, 46vw, 230px);
+  height: clamp(165px, 46vw, 230px);
+}
+
+/* ---------- hats & accessories ---------- */
+
+.hat-piece,
+.accessory-piece {
+  transition: opacity 0.2s ease;
+}
+
+.crown-body {
+  fill: #fbbf24;
+  stroke: #b8790a;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.crown-gem {
+  fill: #ff5c8a;
+}
+
+.beanie-body {
+  fill: var(--purple);
+  stroke: var(--purple-deep);
+  stroke-width: 1.5;
+}
+
+.beanie-brim {
+  fill: #c4b5fd;
+  stroke: var(--purple-deep);
+  stroke-width: 1.5;
+}
+
+.beanie-pom {
+  fill: #fff8ef;
+  stroke: #e8ddc8;
+  stroke-width: 1.5;
+}
+
+.party-hat-body {
+  fill: #ff5c8a;
+  stroke: #c9385f;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.party-hat-dot {
+  fill: #fff8ef;
+}
+
+.party-hat-pom {
+  fill: #ffe066;
+  stroke: #d4a817;
+  stroke-width: 1.2;
+}
+
+.scarf-body {
+  fill: #ff5c8a;
+  stroke: #c9385f;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.scarf-tail {
+  fill: #e63e73;
+  stroke: #c9385f;
+  stroke-width: 1.2;
+}
+
+.sunglasses-lens {
+  fill: #241726;
+  opacity: 0.88;
+}
+
+.sunglasses-bridge {
+  fill: #241726;
+  opacity: 0.88;
+}
+
+.cap-dome {
+  fill: #60a5fa;
+  stroke: #3b7fd4;
+  stroke-width: 1.5;
+}
+
+.cap-brim {
+  fill: #3b7fd4;
+  stroke: #2f66ab;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.cap-button {
+  fill: #fff8ef;
+}
+
+.flowercrown-band {
+  fill: none;
+  stroke: #7fae55;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.flower-petal {
+  fill: #ff8fab;
+}
+
+.flower-center {
+  fill: #ffe066;
+}
+
+.bowtie-wing {
+  fill: #ff5c8a;
+  stroke: #c9385f;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.bowtie-knot {
+  fill: #c9385f;
+}
+
+.necklace-chain {
+  fill: none;
+  stroke: #ffe066;
+  stroke-width: 2;
+}
+
+.necklace-pendant {
+  fill: #ff8fab;
+  stroke: #e0688e;
+  stroke-width: 1.2;
+}
+
+/* ---------- four independent stat bars ---------- */
+
+.pet-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  width: min(100%, 300px);
+  margin-bottom: 14px;
+}
+
+.pet-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pet-stat-icon {
+  font-size: 14px;
+  flex: none;
+  width: 18px;
+}
+
+.pet-stat-bar {
+  flex: 1;
+  height: 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-solid);
+  border: 1.5px solid var(--surface-border);
+  overflow: hidden;
+}
+
+.pet-stat-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.stat-hunger { background: linear-gradient(90deg, #ffb199, #f0883e); }
+.stat-energy { background: linear-gradient(90deg, #ffe066, #f59e0b); }
+.stat-clean { background: linear-gradient(90deg, #93c5fd, #60a5fa); }
+.stat-bond { background: var(--gradient-brand); }
+
+/* ---------- room scene ---------- */
+
+#openRoomBtn { background: rgba(96, 165, 250, 0.14); }
+
+.room-wall,
+.room-floor,
+.room-deco {
+  transition: opacity 0.2s ease;
+}
+
+.room-trim {
+  fill: #e4d4f7;
+}
+
+.room-mochi-shadow {
+  fill: rgba(60, 40, 25, 0.14);
+}
+
+.wall-sky-bg { fill: #2b2350; }
+.wall-moon { fill: #ffe9b8; }
+.wall-moon-shadow { fill: #2b2350; }
+.wall-star { fill: #ffe9b8; }
+
+.wall-clouds-bg { fill: #bfe0f7; }
+.wall-cloud { fill: #ffffff; opacity: 0.92; }
+
+.wall-hearts-bg { fill: #ffdce8; }
+.wall-heart { fill: #ff5c8a; opacity: 0.75; }
+
+.wall-mint-bg { fill: #d9f2e6; }
+.wall-mint-stripe { stroke: #a8ddc3; stroke-width: 14; }
+
+.wall-dots-bg { fill: #fff0d9; }
+.wall-dot { fill: #ffc978; opacity: 0.8; }
+
+.floor-wood-bg { fill: #c99361; }
+.floor-wood-line { stroke: #a9693f; stroke-width: 2; }
+
+.floor-base-bg { fill: #f3e6c9; }
+
+.floor-rug-pink { fill: #ff8fab; }
+.floor-rug-pink-inner { fill: #ffb1c4; }
+
+.floor-rug-stars { fill: #8b5cf6; }
+.floor-rug-star { fill: #ffe9b8; }
+
+.floor-tiles-bg { fill: #f3e6c9; }
+.floor-tile-dark { fill: #e0c9a0; }
+
+.floor-rug-mint { fill: #6ec9a4; }
+.floor-rug-mint-inner { fill: #8fdab8; }
+
+.deco-pot { fill: #c96a28; }
+.deco-plant-leaf { fill: #7fae55; }
+
+.deco-lamp-pole { fill: #5c3820; }
+.deco-lamp-base { fill: #5c3820; }
+.deco-lamp-shade { fill: #f59e0b; }
+.deco-lamp-glow { fill: #ffe9b8; }
+
+.window-frame { fill: #fff8ef; stroke: #e8ddc8; stroke-width: 2; }
+.window-pane { fill: #bfe0f7; }
+.window-crossbar { stroke: #fff8ef; stroke-width: 2.5; }
+.window-ledge { fill: #e8ddc8; }
+
+.shelf-plank { fill: #a9693f; }
+.shelf-book.book-a { fill: #ff5c8a; }
+.shelf-book.book-b { fill: #8b5cf6; }
+.shelf-book.book-c { fill: #60a5fa; }
+.shelf-plant-pot { fill: #7fae55; }
+
+.toybox-body { fill: #ff8fab; stroke: #e0688e; stroke-width: 1.5; }
+.toybox-lid { fill: #ffb1c4; stroke: #e0688e; stroke-width: 1.5; }
+.toybox-heart { fill: #ffffff; opacity: 0.85; }
+
+.balloon-string { stroke: #c9b8a8; stroke-width: 1; }
+.balloon { stroke: rgba(0, 0, 0, 0.12); stroke-width: 1; }
+.balloon-pink { fill: #ff8fab; }
+.balloon-purple { fill: #b18cf9; }
+.balloon-yellow { fill: #ffd166; }
+
+.cushion-body { fill: #b18cf9; stroke: #9a6fef; stroke-width: 1.5; }
+.cushion-seam { fill: none; stroke: #9a6fef; stroke-width: 1.5; opacity: 0.6; }
+
+.mochi-room-icon {
+  transform: translate(160px, 152px);
+  transform-box: view-box;
+  transform-origin: 160px 172px;
+  animation: mochi-room-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes mochi-room-bob {
+  0%, 100% { transform: translate(160px, 152px); }
+  50% { transform: translate(160px, 147px); }
+}
+
+.mochi-mini-frosting {
+  fill: #fff8ef;
+  stroke: #e8ddc8;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.mochi-mini-carrot {
+  fill: #f0883e;
+  stroke: #c96a28;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.mochi-mini-candle {
+  fill: #fff3df;
+  stroke: #e8ddc8;
+  stroke-width: 1.5;
+}
+
+.mochi-mini-flame {
+  fill: #ffb648;
+}
+
+.mochi-mini-cheek {
+  fill: rgba(255, 130, 110, 0.55);
+}
+
+/* ---------- shop modal ---------- */
+
+.shop-modal-box {
+  max-width: 420px;
+}
+
+.shop-coin-display {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 22px;
+  color: #a86a12;
+  margin: 4px 0 16px;
+}
+
+.shop-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.shop-tab {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.shop-tab.active {
+  background: var(--gradient-brand);
+  color: white;
+  border-color: transparent;
+}
+
+.shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+
+.shop-items.hidden {
+  display: none;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+}
+
+.shop-item-icon {
+  font-size: 24px;
+  flex: none;
+  width: 32px;
+  text-align: center;
+}
+
+.shop-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-item-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.shop-item-price {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.shop-item-btn {
+  flex: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shop-item-btn.buy {
+  background: var(--gradient-brand);
+  color: white;
+}
+
+.shop-item-btn.locked {
+  background: var(--surface-border);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.shop-item-btn.equip {
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--purple-deep);
+}
+
+.shop-item-btn.equipped {
+  background: var(--gradient-brand);
+  color: white;
+}
+
+/* ---------- achievements modal ---------- */
+
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+}
+
+.achievement-card.unlocked {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.achievement-card.locked {
+  opacity: 0.55;
+}
+
+.achievement-icon {
+  font-size: 24px;
+  flex: none;
+  width: 32px;
+  text-align: center;
+}
+
+.achievement-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.achievement-desc {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 420px) {
+  .pet-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

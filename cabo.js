@@ -26,7 +26,8 @@ let currentGame = null;
 let selectedSwapSlots = new Set();
 let selectedPowerOwnSlot = null;
 
-let lastAnimatedMove = { gameId: null, seq: null };
+/* each move is animated once per device; after a reload only a fresh deal is replayed */
+const takeUnseenMove = GameAnim.moveTracker();
 const flipMemory = new Map();
 let flipScope = "";
 let flipTiming = { base: 0, revealOrder: 0 };
@@ -167,18 +168,6 @@ function captureLayout(players) {
   return layout;
 }
 
-/* Each move is animated once per device; after a reload only a fresh deal is replayed. */
-function takeUnseenMove(game) {
-  const state = game.state;
-  const sameGame = lastAnimatedMove.gameId === game.id;
-  const unseen = !sameGame || (state.moveSeq || 0) > (lastAnimatedMove.seq || 0);
-  if (unseen) lastAnimatedMove = { gameId: game.id, seq: state.moveSeq };
-
-  const move = state.lastMove;
-  if (!move || !unseen || !GameAnim.enabled()) return null;
-  if (!sameGame && move.type !== "deal") return null;
-  return move;
-}
 
 function flipDelayFor(move, state) {
   if (!move) return 0;

@@ -18,7 +18,8 @@ const DEAL_STEP_MS = 70;
 const FLY_MS = 460;
 const SORT_KEY = "gs_sort";
 
-let lastAnimatedMove = { gameId: null, seq: null };
+/* each move is animated once per device; after a reload only a fresh deal is replayed */
+const takeUnseenMove = GameAnim.moveTracker();
 let currentState = null;
 let cheeredGame = null;
 const selected = new Set();
@@ -569,17 +570,6 @@ function renderSummary(state) {
 
 /* ---------- animations (like Cabo): cards fly between deck, hands, groups and the discard ---------- */
 
-/* each move is animated once per device; after a reload only a fresh deal is replayed */
-function takeUnseenMove(game) {
-  const state = game.state;
-  const sameGame = lastAnimatedMove.gameId === game.id;
-  const unseen = !sameGame || (state.moveSeq || 0) > (lastAnimatedMove.seq || 0);
-  if (unseen) lastAnimatedMove = { gameId: game.id, seq: state.moveSeq };
-  const move = state.lastMove;
-  if (!move || !unseen || !GameAnim.enabled()) return null;
-  if (!sameGame && move.type !== "deal") return null;
-  return move;
-}
 
 /* where every card was before this render – the start of its flight */
 function snapshot() {

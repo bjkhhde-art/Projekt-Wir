@@ -16,7 +16,8 @@ const STEP_MS = 360;
 const FLY_MS = 480;
 const ACTION_ICONS = { freeze: "🧊", second: "❤️", flip3: "⚡" };
 
-let lastAnimatedMove = { gameId: null, seq: null };
+/* each move is animated once per device; after a reload only a fresh deal is replayed */
+const takeUnseenMove = GameAnim.moveTracker();
 const seatEls = new Map();
 
 const room = GameRoom.create({
@@ -335,17 +336,6 @@ let cheeredGame = null;
 
 /* ---------- animations (like Cabo): cards fly face down from the deck and turn over ---------- */
 
-/* each move is animated once per device; after a reload only a fresh deal is replayed */
-function takeUnseenMove(game) {
-  const state = game.state;
-  const sameGame = lastAnimatedMove.gameId === game.id;
-  const unseen = !sameGame || (state.moveSeq || 0) > (lastAnimatedMove.seq || 0);
-  if (unseen) lastAnimatedMove = { gameId: game.id, seq: state.moveSeq };
-  const move = state.lastMove;
-  if (!move || !unseen || !GameAnim.enabled()) return null;
-  if (!sameGame && move.type !== "deal") return null;
-  return move;
-}
 
 /* where a flying card lands: its own slot on the table, or – if it does not stay there – the row */
 function landingKey(event, state) {

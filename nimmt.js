@@ -13,7 +13,8 @@ const handEl = document.getElementById("nmHand");
 const PLACE_STEP_MS = 950;
 const FLY_MS = 520;
 
-let lastAnimatedMove = { gameId: null, seq: null };
+/* each move is animated once per device; after a reload only a fresh deal is replayed */
+const takeUnseenMove = GameAnim.moveTracker();
 let previousState = null;
 let previousStateGameId = null;
 
@@ -410,18 +411,6 @@ function pileRect(person) {
   return GameAnim.rectOf(person === room.person ? ownPileEl : els && els.pile);
 }
 
-/* Each move is animated once per device; after a reload only a fresh deal is replayed. */
-function takeUnseenMove(game) {
-  const state = game.state;
-  const sameGame = lastAnimatedMove.gameId === game.id;
-  const unseen = !sameGame || (state.moveSeq || 0) > (lastAnimatedMove.seq || 0);
-  if (unseen) lastAnimatedMove = { gameId: game.id, seq: state.moveSeq };
-
-  const move = state.lastMove;
-  if (!move || !unseen || !GameAnim.enabled()) return null;
-  if (!sameGame && move.type !== "deal") return null;
-  return move;
-}
 
 function hideMovingCards(move, state) {
   if (move.type === "choose" && move.person === room.person) {
