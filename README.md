@@ -1,16 +1,21 @@
 # Projekt Wir 💗
 
-Gemeinsame Couple-App mit:
+Gemeinsame Couple-App (installierbar, mit Login, Push-Benachrichtigungen und Dark Mode) mit:
 
-- 🎯 Couple Quest – Bingo-Board mit Zielen, Fortschritt & Bearbeiten
-- 🔋 Kuschelbatterien – Akkustand per Wischgeste anpassen, live synchronisiert
-- 📊 KPIs – Meilensteine, Tage zusammen & Countdown zum nächsten Jahrestag
-- 📸 Erinnerungen – Trips anlegen/bearbeiten, Bilder per Drag & Drop hochladen
-- 💬 Questions – Gesprächsthemen nach Kategorie
-- 💌 Liebesbriefe – Kurznachrichten als Umschläge, zum Öffnen antippen & hochwischen
-- 📊 Chat-Wrapped – WhatsApp-Export hochladen: Statistiken, Awards, Wortwolke, Zitate, „Wer hat's geschrieben?“. Weitere Exporte werden mit dem vorhandenen Chat abgeglichen (nur Neues kommt dazu, auch mitten im Verlauf). Der Chat liegt für beide in Supabase, aber nur **verschlüsselt** (AES-GCM im Browser, eigenes Chat-Passwort, nicht lesbar ohne es)
-- ☁️ Supabase Realtime Sync (Datenbank & Storage)
-- 📱 Mobile-first mit Bottom-Navigation, Dark Mode & sanften Animationen
+- 🎯 **Couple Quest** – Bingo-Board mit Zielen; offene Quests zuerst, erledigte danach
+- 🔋 **Kuschelakku** – Akkustand per Wischgeste, live für beide
+- 📊 **KPIs** – Tage zusammen, nächster Jahrestag, „Wie lange noch bis …“
+- ✈️ **Reisen** – Karte mit vergangenen und kommenden Reisen, Fotos mit Aufnahmedatum, Story-Modus
+- 💌 **Briefe** – Kurznachrichten als Umschläge, zum Öffnen antippen & hochwischen
+- 🎬 **Watchlist** – Filme und Serien mit Filter, Gesehen-Status und Serienfortschritt
+- 🍰 **Mochi** – gemeinsames Haustier mit Pflege, Shop, Garten, Minispielen, Wünschen und Nachrichten
+- 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10 und Geo-Guesser, live auf zwei Handys; Freunde per
+  Einladungslink und die Computer-Spieler Udiou und Klausi können mitspielen; Emoji-Reaktionen
+- 💬 **Gesprächsfragen** – über 5.000 Fragen nach Kategorie
+- 📊 **Chat-Wrapped** – WhatsApp-Export hochladen: Statistiken, Awards, Wortwolke, Zitate, „Wer hat's
+  geschrieben?“. Weitere Exporte werden abgeglichen (nur Neues kommt dazu). Der Chat liegt für beide in
+  Supabase, aber nur **verschlüsselt** (AES-GCM im Browser, eigenes Chat-Passwort)
+- ☁️ Supabase für Datenbank, Speicher und Live-Sync; offline zeigt die App die letzte Version
 
 ## Navigation
 

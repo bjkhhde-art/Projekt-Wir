@@ -29,7 +29,7 @@ let hangs = false;
 const fetched = [];
 const caches = {
   open: async () => cacheApi,
-  keys: async () => ["pw-pages-v0", "pw-pages-v1", "other-app"],
+  keys: async () => ["pw-pages-v0", "pw-pages-v1", "pw-pages-v2", "other-app"],
   deleted: [],
   delete: async key => { caches.deleted.push(key); }
 };
@@ -73,7 +73,7 @@ const run = async (name, event) => {
 await run("install", {});
 ok(store.has(scope + "offline.html") && store.has(scope + "icons/icon-192.png"), "installing keeps the offline page and the icon");
 await run("activate", {});
-ok(caches.deleted.join() === "pw-pages-v0", "an old cache of ours is removed, other caches stay");
+ok(caches.deleted.join() === "pw-pages-v0,pw-pages-v1", "old caches of ours are removed, the current one and other caches stay");
 
 async function request(url, mode = "no-cors", method = "GET") {
   let response = null;

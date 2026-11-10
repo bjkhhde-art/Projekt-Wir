@@ -4,9 +4,11 @@
   "type": "module",
   "description": "Engine and two-device browser tests for the games (Cabo, 6 nimmt!, Qwixx, Flip 7, Phasenjagd)",
   "scripts": {
-    "test": "node run-all.mjs"
+    "test": "node run-all.mjs",
+    "lint": "cd .. && eslint ."
   },
   "devDependencies": {
+    "eslint": "9.39.5",
     "playwright": "1.63.0"
   }
 }
