@@ -737,9 +737,9 @@ async function setImageAsCover() {
 
 async function deleteSheetImage() {
   if (!sheetImage) return;
-  const imageId = sheetImage.id;
+  const image = sheetImage;
   closeImageSheet();
-  await deleteImage(imageId);
+  await deleteImage(image);
 }
 
 async function updateCaption(imageId, caption) {
@@ -882,14 +882,14 @@ async function uploadFile(originalFile, folder) {
   return data.publicUrl;
 }
 
-async function deleteImage(id) {
+async function deleteImage(image) {
   const confirmed = await confirmDialog("Dieses Bild wird endgültig gelöscht.");
   if (!confirmed) return;
 
   const { error } = await supabaseClient
     .from("trip_images")
     .delete()
-    .eq("id", id);
+    .eq("id", image.id);
 
   if (error) {
     console.error("Fehler beim Löschen:", error);
@@ -897,13 +897,56 @@ async function deleteImage(id) {
     return;
   }
 
+  await removeUnusedFiles([image.image_url]);
   showToast("Bild gelöscht.");
   await loadImages();
+}
+
+/* "…/storage/v1/object/public/trip-images/<path>" → "<path>"; null for pictures stored elsewhere */
+function storagePathOf(url) {
+  const marker = "/object/public/trip-images/";
+  const at = typeof url === "string" ? url.indexOf(marker) : -1;
+  if (at === -1) return null;
+  return decodeURIComponent(url.slice(at + marker.length).split("?")[0]);
+}
+
+/* deletes the files behind these URLs from storage – except those a photo or a trip cover still shows */
+async function removeUnusedFiles(urls) {
+  const candidates = [...new Set(urls.filter(url => storagePathOf(url)))];
+  if (!candidates.length) return;
+
+  try {
+    const [images, covers] = await Promise.all([
+      supabaseClient.from("trip_images").select("image_url").in("image_url", candidates),
+      supabaseClient.from("trips").select("cover_url").in("cover_url", candidates)
+    ]);
+    if (images.error || covers.error) throw images.error || covers.error;
+
+    const stillUsed = new Set([
+      ...(images.data || []).map(row => row.image_url),
+      ...(covers.data || []).map(row => row.cover_url)
+    ]);
+    const paths = candidates.filter(url => !stillUsed.has(url)).map(storagePathOf);
+    if (!paths.length) return;
+
+    const { error } = await supabaseClient.storage.from("trip-images").remove(paths);
+    if (error) throw error;
+  } catch (error) {
+    /* the photo itself is already gone; a leftover file only costs space */
+    console.warn("Bilddatei konnte nicht aus dem Speicher entfernt werden:", error);
+  }
 }
 
 async function deleteMemory(id) {
   const confirmed = await confirmDialog("Die Erinnerung und alle enthaltenen Bilder werden endgültig gelöscht.");
   if (!confirmed) return;
+
+  const { data: tripImages } = await supabaseClient
+    .from("trip_images")
+    .select("image_url")
+    .eq("trip_id", id);
+  const memory = memories.find(entry => entry.id === id);
+  const files = (tripImages || []).map(row => row.image_url).concat(memory && memory.cover_url ? [memory.cover_url] : []);
 
   await supabaseClient
     .from("trip_images")
@@ -921,6 +964,7 @@ async function deleteMemory(id) {
     return;
   }
 
+  await removeUnusedFiles(files);
   showToast("Erinnerung gelöscht.");
   await loadMemories();
 }
