@@ -32,7 +32,7 @@ enthalten das gemeinsame Design-System (Farben, Typografie, Navigation,
 Buttons, Modals, Toasts) und werden von jeder Seite eingebunden.
 
 Live:
-https://bjkhhde-art.github.io/bingo-board/
+https://bjkhhde-art.github.io/Projekt-Wir/
 
 ## Login & Datenschutz
 
@@ -44,10 +44,19 @@ reicht allein nicht mehr, um etwas zu lesen oder zu ändern. Das Passwort steht 
 Eingeladene Freunde (`?invite=…` auf einer Spielseite) melden sich nicht an. Ihre Seite schickt den
 Einladungscode mit, und die Datenbank zeigt ihnen genau diese eine Runde.
 
-Einrichtung (einmalig, siehe `supabase/migrations/20261110_members_only_access.sql`):
+Einrichtung (einmalig, siehe `supabase/migrations/20261110120000_members_only_access.sql`):
 
 1. Supabase → Authentication → Users → *Add user*: E-Mail `projekt-wir@example.com`,
    ein **neues** Passwort, Haken bei *Auto Confirm User*.
 2. Supabase → Authentication → Sign In / Providers: *Allow new users to sign up* ausschalten.
 3. Website veröffentlichen. Jedes Handy fragt dann einmal nach dem Passwort.
 4. Migration ausführen und die Edge Function `notify-new-letter` neu deployen.
+
+## Datenbank-Migrationen
+
+`supabase/migrations/` folgt dem Schema der Supabase CLI: `<Zeitstempel>_<name>.sql`. Der Zeitstempel ist
+dieselbe Version, unter der die Migration in Supabase eingetragen ist, so dass Reihenfolge und Stand
+übereinstimmen. Neue Migrationen bekommen einen neuen, späteren Zeitstempel. Bereits ausgeführte Dateien
+werden nicht mehr geändert.
+
+Tabellen entfernter Features liegen im Schema `archive` (über die API nicht erreichbar).
