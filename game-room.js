@@ -5,8 +5,6 @@
    (pin-lock.js lets exactly that through), pick a name and only ever see this one game. */
 
 const GameRoom = (() => {
-  const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
   const LEAVE_CONFIRM_MS = 4000;
   const MAX_WRITE_ATTEMPTS = 4;
   /* weak mobile network: every request gets a deadline, reads are retried, a regular re-sync catches missed live events */
@@ -108,11 +106,11 @@ const GameRoom = (() => {
     /* members use their login; an invited friend is not signed in and shows the invite code instead –
        the database then lets them see and play only the round with that code */
     const client = isGuest
-      ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      ? supabase.createClient(PW_SUPABASE.url, PW_SUPABASE.key, {
         global: { headers: { "x-pw-invite": guestInvite } },
         auth: { persistSession: false, autoRefreshToken: false }
       })
-      : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      : supabaseClient;
     const guestKey = guestInvite ? `pw_guest:${table}:${guestInvite}` : null;
 
     let person = isGuest ? readGuestName() : localStorage.getItem("pw_person");

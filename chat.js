@@ -7,7 +7,6 @@
   const DB_NAME = "pw-chat";
   const KEY = "export";
   const PASSPHRASE_KEY = "passphrase-key";
-  const supabaseClient = supabase.createClient("https://lrzgcqoqcwicpuuuhaoj.supabase.co", "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK");
   const Crypto = window.ChatCrypto;
   const QUIZ_ROUNDS = 10;
 

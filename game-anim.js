@@ -161,5 +161,22 @@ const GameAnim = (() => {
     );
   }
 
-  return { enabled, rectOf, tag, hide, reveal, revealAll, fly, slideFrom, shake, shuffle };
+  /* Remembers which move of which round was already animated. The returned function gives the move
+     to animate now, or null: nothing new, animations off, or a round seen for the first time
+     (then only its deal is shown). */
+  function moveTracker() {
+    let last = { gameId: null, seq: null };
+    return function takeUnseenMove(game) {
+      const state = game.state;
+      const sameGame = last.gameId === game.id;
+      const unseen = !sameGame || (state.moveSeq || 0) > (last.seq || 0);
+      if (unseen) last = { gameId: game.id, seq: state.moveSeq };
+      const move = state.lastMove;
+      if (!move || !unseen || !enabled()) return null;
+      if (!sameGame && move.type !== "deal") return null;
+      return move;
+    };
+  }
+
+  return { enabled, rectOf, tag, hide, reveal, revealAll, fly, slideFrom, shake, shuffle, moveTracker };
 })();

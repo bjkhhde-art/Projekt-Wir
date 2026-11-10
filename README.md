@@ -31,6 +31,15 @@ Statisches Vanilla HTML/CSS/JS ohne Build-Schritt. `shared.css` und `shared.js`
 enthalten das gemeinsame Design-System (Farben, Typografie, Navigation,
 Buttons, Modals, Toasts) und werden von jeder Seite eingebunden.
 
+- `supabase-client.js` ist die eine Verbindung zu Supabase (`supabaseClient`). Jede Seite lädt sie direkt
+  nach supabase-js, die Seitenskripte benutzen nur noch `supabaseClient`.
+- Spiele: Regeln in `*-engine.js`, Lobby/Sync/Gäste in `game-room.js`, Animationen in `game-anim.js`
+  (`GameAnim.moveTracker()` merkt sich, welcher Zug schon animiert wurde), Computer-Spieler in `game-bots.js`.
+- Mochi ist in Teile aufgeteilt, die nacheinander geladen werden und sich einen Scope teilen:
+  `mochi-core.js` (reine Logik), `mochi.js`, `mochi-care.js`, `mochi-games.js`, `mochi-shop.js`,
+  `mochi-social.js`, `mochi-start.js` (startet alles) sowie `mochi.css`, `mochi-world.css`,
+  `mochi-social.css`, `mochi-garden.css`.
+
 Live:
 https://bjkhhde-art.github.io/Projekt-Wir/
 

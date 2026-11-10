@@ -2,17 +2,15 @@
   /* The lock is a real login: the password signs this phone in to the shared Supabase account, and the
      database only answers signed-in members (see supabase/migrations/20261110120000_members_only_access.sql).
      Neither the password nor a hash of it lives in this public repository. */
-  const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
   /* the shared account (Supabase → Authentication → Users); example.com never receives mail */
   const LOGIN_EMAIL = "projekt-wir@example.com";
-  /* where supabase-js keeps the session – present means this phone is signed in */
-  const SESSION_KEY = "sb-lrzgcqoqcwicpuuuhaoj-auth-token";
+  /* where supabase-js keeps the session ("sb-<project>-auth-token") – present means this phone is signed in */
+  const SESSION_KEY = /^sb-[a-z0-9]+-auth-token$/;
   const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "gipfel.html"];
 
   function hasSession() {
     try {
-      return Boolean(localStorage.getItem(SESSION_KEY));
+      return Object.keys(localStorage).some(key => SESSION_KEY.test(key) && localStorage.getItem(key));
     } catch (error) {
       return false;
     }
@@ -35,10 +33,10 @@
   document.documentElement.style.visibility = "hidden";
 
   async function signIn(password) {
-    if (!window.supabase) return "offline";
+    /* supabaseClient comes from supabase-client.js, which loads after this file */
+    if (typeof supabaseClient === "undefined") return "offline";
     try {
-      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      const { error } = await client.auth.signInWithPassword({ email: LOGIN_EMAIL, password });
+      const { error } = await supabaseClient.auth.signInWithPassword({ email: LOGIN_EMAIL, password });
       if (!error) return "ok";
       if (error.code === "invalid_credentials" || error.status === 400) return "wrong";
       if (!error.status || error.name === "AuthRetryableFetchError") return "offline";

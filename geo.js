@@ -7,9 +7,7 @@ const scoreEl = document.getElementById("geoScore");
 const stageEl = document.getElementById("geoStage");
 const hintEl = document.getElementById("geoHint");
 
-const SUPABASE_URL = "https://lrzgcqoqcwicpuuuhaoj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uunR3UQ9rttiK8dG85IedQ__Tn1duVK";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const client = supabaseClient;
 
 let pool = null;
 let currentGeoGame = null;
