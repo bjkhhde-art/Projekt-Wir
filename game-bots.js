@@ -516,6 +516,8 @@ function murphyPlay(state, bot) {
 
   if (state.step === "give") {
     const best = murphyBestGive(M, state, bot, hand, state.trade.give);
+    /* one card from the deck and two can't be given without losing the last number card: draw a second one */
+    if (!best && state.trade.from === "deck" && state.trade.taken === 1) return M.drawMore(state, bot);
     const cards = best ? best.cards : hand.filter(M.isNumber).slice(0, state.trade.give);
     const piles = cards.map((_, i) => (i + state.round) % 2);
     return M.give(state, bot, cards, piles);
