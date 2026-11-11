@@ -5,7 +5,7 @@
    plus the action cards and the Murphy cards from murphy-karten.json.
    Everybody holds a secret Murphy card – a task the number cards in hand must fulfil EXACTLY.
    On your turn you trade one for two or two for one: either at the table (the hidden deck or the
-   two open piles) or with the Basar, a row of open cards that never holds more than seven.
+   two open piles) or with Mac, a row of open cards that never holds more than seven (state.basar).
    Red action cards act at once when drawn and end the turn; green ones are collected and can be
    played instead of a trade. Whoever fulfils their Murphy card keeps it, everybody else hands
    theirs back, all get a new one – the cards in hand stay. Three kept Murphy cards win. */
@@ -577,10 +577,10 @@ function takeBothOpen(state, person) {
 function takeBasar(state, person, cards) {
   assertTurn(state, person, "take");
   const chosen = Array.from(new Set(cards || []));
-  if (chosen.length !== 1 && chosen.length !== 2) throw new Error("Vom Basar nimmt man eine oder zwei Karten.");
-  chosen.forEach(card => { if (!state.basar.includes(card)) throw new Error("Diese Karte liegt nicht im Basar."); });
+  if (chosen.length !== 1 && chosen.length !== 2) throw new Error("Von Mac nimmt man eine oder zwei Karten.");
+  chosen.forEach(card => { if (!state.basar.includes(card)) throw new Error("Diese Karte hat Mac nicht."); });
   const give = chosen.length === 1 ? 2 : 1;
-  if (state.basar.length - chosen.length + give > BASAR_SIZE) throw new Error(`Der Basar hätte danach mehr als ${BASAR_SIZE} Karten – nimm zwei.`);
+  if (state.basar.length - chosen.length + give > BASAR_SIZE) throw new Error(`Mac hätte danach mehr als ${BASAR_SIZE} Karten – nimm zwei.`);
   if (chosen.length === 1) assertCanGiveTwo(state, person, 1);
   const next = begin(state);
   next.basar = next.basar.filter(c => !chosen.includes(c));
@@ -621,9 +621,13 @@ function give(state, person, cards, piles, rand = Math.random) {
 }
 
 /* a whole trade in one move: take = { from: "deck", count } | { from: "pile", pile, count } | { from: "both" } |
-   { from: "basar", cards }, then the chosen number cards go back to the same place. Taking one means giving two
-   and the other way round. Given cards at the table go onto the open piles one after the other (left, right). */
-function trade(state, person, take, giveCards, rand = Math.random) {
+   { from: "basar", cards } (Mac), then the chosen number cards go back to the same place. Taking one means giving
+   two and the other way round. At the table piles[i] says which open pile card i goes onto (0 left, 1 right). */
+function trade(state, person, take, giveCards, piles, rand = Math.random) {
+  if (typeof piles === "function") {
+    rand = piles;
+    piles = null;
+  }
   assertTurn(state, person, "take");
   const want = Array.from(new Set(giveCards || []));
   const count = take && take.from === "basar" ? (take.cards || []).length : take && take.from === "both" ? 2 : take && take.count;
@@ -640,7 +644,10 @@ function trade(state, person, take, giveCards, rand = Math.random) {
   else throw new Error("Von dort kann man nicht nehmen.");
   /* a blue card from the deck ended the turn (or waits for its target): nothing is given */
   if (taken.step !== "give" || taken.turnPerson !== person) return taken;
-  const given = give(taken, person, want, want.map((_, i) => i % 2), rand);
+  if (take.from !== "basar" && (!Array.isArray(piles) || piles.length !== want.length || piles.some(p => p !== 0 && p !== 1))) {
+    throw new Error("Wähle, auf welchen offenen Stapel du ablegst.");
+  }
+  const given = give(taken, person, want, take.from === "basar" ? null : piles, rand);
   given.lastMove = { ...given.lastMove, type: "trade", events: [...taken.lastMove.events, ...given.lastMove.events] };
   return given;
 }
@@ -674,11 +681,11 @@ function playAction(state, person, card, opts = {}, rand = Math.random) {
     if (!m || Number(m[2]) < 1 || Number(m[2]) > MAX_VALUE) throw new Error("Wähle Farbe und Zahl der Karte, die du forderst.");
   }
   if (spec.source) {
-    if (opts.source !== "basar" && opts.source !== "deck") throw new Error("Wähle: vom Stapel oder vom Basar.");
+    if (opts.source !== "basar" && opts.source !== "deck") throw new Error("Wähle: vom Stapel oder von Mac.");
     if (opts.source === "basar") {
       const chosen = Array.from(new Set(opts.cards || []));
       const need = Math.min(action.amount, state.basar.length);
-      if (chosen.length !== need || chosen.some(c => !state.basar.includes(c))) throw new Error(`Wähle ${need} ${need === 1 ? "Karte" : "Karten"} aus dem Basar.`);
+      if (chosen.length !== need || chosen.some(c => !state.basar.includes(c))) throw new Error(`Wähle ${need} ${need === 1 ? "Karte" : "Karten"} von Mac.`);
       opts.cards = chosen;
     }
   }
@@ -706,7 +713,7 @@ function chooseRule(state, person, action) {
     }
     case "basarAuffuellen": {
       const n = Math.min(Math.max(0, BASAR_SIZE - state.basar.length), spare);
-      return { min: n, max: n, text: n === 1 ? "Wähle genau 1 Zahlenkarte für den Basar." : `Wähle genau ${n} Zahlenkarten für den Basar.` };
+      return { min: n, max: n, text: n === 1 ? "Wähle genau 1 Zahlenkarte für Mac." : `Wähle genau ${n} Zahlenkarten für Mac.` };
     }
     case "abgeben": {
       const n = Math.min(action.amount, spare);

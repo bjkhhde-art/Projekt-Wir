@@ -13,7 +13,7 @@
     "  Ohne bedingung prüft das Spiel nicht selbst: dann tippt man „Erfüllt!“, wenn die Aufgabe stimmt.",
     "AKTIONSKARTEN: farbe \"blau\" = sofort, wenn gezogen; \"gruen\" = sammeln und statt eines Tauschs ausspielen. stueck = wie oft die Karte im Stapel ist.",
     "  wirkung (blau und grün): ziehen, alleZiehen, aussetzen, richtung, weitergeben, handtausch, handUndMurphyTausch, murphyTausch, murphyNeu, murphyWeiter, murphyOffen, klauen, alleKlauen, alleGeben, abgeben, ablegen (mit \"eineFarbe\": true nur eine Farbe)",
-    "  wirkung (nur grün): paarAbgeben, alleAblegen, basarAuffuellen, fordern, nehmen (vom Stapel oder aus dem Basar), doppelzug.  anzahl = wie viele Karten (bei ziehen, alleZiehen, weitergeben, klauen, abgeben, ablegen).",
+    "  wirkung (nur grün): paarAbgeben, alleAblegen, basarAuffuellen, fordern, nehmen (vom Stapel oder von Mac), doppelzug.  anzahl = wie viele Karten (bei ziehen, alleZiehen, weitergeben, klauen, abgeben, ablegen).",
     "  Grüne Karten: man wählt Ziel und Karten selbst. Blaue Karten mit Ziel: wer sie zieht, wählt die Person; Karten nehmen sie zufällig.",
     "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true = die Bilder blau-1.webp … gruen-11.webp werden gezeigt. rueckseite: Dateiname des Rückseiten-Bilds (sonst gezeichnet)."
   ],

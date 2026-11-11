@@ -100,12 +100,15 @@ ok((await isi.locator("#mgOwn .mg-murphy-text").textContent()).includes("4 Karte
 ok(await isi.locator(".mg-seg-btn, .mg-basar-take").count() === 0, "no buttons for one or two – the cards are tapped");
 ok(!(await benji.locator("#mgOpps").textContent()).includes("Zahlen"), "nobody sees how many number and action cards the others hold");
 
-/* one for two: tap the open Blau 7, then Blau 1 and Blau 2 – the trade happens with the last tap */
+/* one for two: tap the open Blau 7, then Blau 1 and Blau 2, then choose where they go */
 await isi.click("#mgPile0");
 ok(await isi.locator("#mgPile0 .mg-card.selected").count() === 1 && (await latest()).state.step === "take", "the open card is chosen, nothing happens yet");
 await isi.locator('#mgOwn [data-card="b1-0"]').click();
 ok((await latest()).state.step === "take", "one own card chosen: still waiting");
 await isi.locator('#mgOwn [data-card="b2-0"]').click();
+await until(async () => await isi.locator(".mg-drop-both").count() === 1, 3000, "pile choice");
+ok((await latest()).state.step === "take" && await isi.locator(".mg-drop-left").count() === 1 && await isi.locator(".mg-drop-right").count() === 1, "everything chosen: Isi picks the pile herself");
+await isi.locator(".mg-drop-both").click();
 await until(async () => (await latest()).state.phase === "round-over", 4000, "round over");
 const won = (await latest()).state;
 ok(won.won.Isi.join() === "m02" && won.piles[0].includes("b1-0") && won.piles[1].includes("b2-0") && !won.hands.Isi.includes("b1-0"), "one taken, two given: four Siebenen, Isi keeps her Murphy card");

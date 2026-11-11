@@ -24,7 +24,7 @@ const SORT_KEY = "mg_sort";
 let currentState = null;
 let cheeredGame = null;
 let lastSeq = null;
-/* what is chosen to take: from the hidden deck (0–2 cards), the open piles (per pile 0–2 of its top cards) or the Basar */
+/* what is chosen to take: from the hidden deck (0–2 cards), the open piles (per pile 0–2 of its top cards) or Mac (state.basar) */
 let deckSel = 0;
 let pileSel = [0, 0];
 let target = null;
@@ -213,7 +213,8 @@ function tryTrade() {
   const take = takeChoice();
   const count = takeCountOf(take);
   const give = selectedNumbers();
-  if (count && give.length === 3 - count) {
+  /* with Mac the cards go back to Mac; at the table the player chooses the pile (buttons in renderTake) */
+  if (count && give.length === 3 - count && take.from === "basar") {
     renderLocal();
     room.dispatch(M.trade, take, give);
     return;
@@ -504,11 +505,11 @@ function describe(e, state) {
       return "Die Karten sind verteilt – jeder hat eine Murphy-Karte.";
     case "take": {
       if (e.from === "deck") return mine ? `Du ziehst ${e.count} vom Stapel${e.cards.length ? `: ${cardsText(e.cards, state)}` : ""}.` : `${who} zieht ${e.count} vom Stapel.`;
-      const where = e.from === "basar" ? "aus dem Basar" : e.from === "both" ? "von beiden offenen Stapeln" : `vom ${e.pile === 0 ? "linken" : "rechten"} Stapel`;
+      const where = e.from === "basar" ? "von Mac" : e.from === "both" ? "von beiden offenen Stapeln" : `vom ${e.pile === 0 ? "linken" : "rechten"} Stapel`;
       return `${mine ? "Du nimmst" : `${who} nimmt`} ${cardsText(e.cards, state)} ${where}.`;
     }
     case "give":
-      return `${mine ? "Du gibst" : `${who} gibt`} ${cardsText(e.cards, state)} ${e.at === "basar" ? "in den Basar" : "ab"}.`;
+      return `${mine ? "Du gibst" : `${who} gibt`} ${cardsText(e.cards, state)} ${e.at === "basar" ? "an Mac" : "ab"}.`;
     case "action": {
       const action = M.actionOf(state, e.card);
       const aim = e.target ? ` → ${nameFor(e.target)}` : "";
@@ -622,14 +623,25 @@ function renderTake(state) {
     renderGreen(state, green);
     return;
   }
-  const count = takeCountOf(takeChoice());
+  const choice = takeChoice();
+  const count = takeCountOf(choice);
   const mine = selectedNumbers().length;
+  if (count && mine === 3 - count && choice.from !== "basar") {
+    /* everything chosen at the table: where do my cards go? */
+    statusEl.textContent = mine === 1 ? "Auf welchen offenen Stapel legst du deine Karte?" : "Wohin legst du deine zwei Karten?";
+    const cards = selectedNumbers();
+    const go = piles => room.dispatch(M.trade, choice, cards, piles);
+    actionsEl.appendChild(button("⬅ Linker Stapel", () => go(cards.map(() => 0)), "mg-drop-left"));
+    actionsEl.appendChild(button("Rechter Stapel ➡", () => go(cards.map(() => 1)), "mg-drop-right"));
+    if (mine === 2) actionsEl.appendChild(button("Je eine auf beide", () => go([0, 1]), "btn-secondary mg-drop-both"));
+    return;
+  }
   statusEl.textContent = state.tradesLeft > 1 ? "Doppelt tauschen – der erste Tausch:" : "Du bist dran: Tausche 1 gegen 2 oder 2 gegen 1.";
   const hint = document.createElement("p");
   hint.className = "mg-hint mg-trade-hint";
   hint.textContent = count || mine
     ? `Nehmen: ${count} · Abgeben: ${mine}${count ? ` – tippe noch ${Math.max(0, 3 - count - mine)} ${3 - count - mine === 1 ? "eigene Karte" : "eigene Karten"} an` : " – jetzt antippen, was du nimmst"}.`
-    : "Tippe an, was du nimmst (verdeckter Stapel, offene Stapel oder Basar) und welche eigenen Karten du abgibst.";
+    : "Tippe an, was du nimmst (verdeckter Stapel, offene Stapel oder Mac) und welche eigenen Karten du abgibst.";
   actionsEl.appendChild(hint);
   const greens = state.hands[me()].filter(c => M.isGreen(state, c));
   if (greens.length && !state.actionPlayed && state.tradesLeft === 1) {
@@ -707,10 +719,10 @@ function renderGreen(state, card) {
     const hint = document.createElement("p");
     hint.className = "mg-hint";
     const need = Math.min(action.amount, state.basar.length);
-    hint.textContent = `Für den Basar ${need} Karten dort antippen (gewählt: ${basarSel.size}).`;
+    hint.textContent = `Für Mac ${need} Karten bei Mac antippen (gewählt: ${basarSel.size}).`;
     box.appendChild(hint);
     box.appendChild(button(`${action.amount} vom Stapel 🍀`, () => play({ source: "deck" }), "mg-play mg-play-deck"));
-    box.appendChild(button("Aus dem Basar 🍀", () => play({ source: "basar", cards: [...basarSel] }), "mg-play mg-play-basar"));
+    box.appendChild(button("Von Mac 🍀", () => play({ source: "basar", cards: [...basarSel] }), "mg-play mg-play-basar"));
   } else if (spec.pile) {
     box.appendChild(button("Auf den linken Stapel 🍀", () => play({ pile: 0 }), "mg-play mg-play-left"));
     box.appendChild(button("Auf den rechten Stapel 🍀", () => play({ pile: 1 }), "mg-play mg-play-right"));
@@ -724,10 +736,10 @@ function renderGreen(state, card) {
 function renderGive(state) {
   const need = state.trade.give;
   const count = selectedNumbers().length;
-  const where = state.trade.at === "basar" ? "in den Basar" : "auf einen offenen Stapel";
+  const where = state.trade.at === "basar" ? "an Mac" : "auf einen offenen Stapel";
   statusEl.textContent = `Jetzt ${need === 1 ? "eine Zahlenkarte" : "zwei Zahlenkarten"} ${where} abgeben (gewählt: ${count}).`;
   if (state.trade.at === "basar") {
-    const el = button("In den Basar geben", () => giveSelected(state, null), "mg-give");
+    const el = button("An Mac geben", () => giveSelected(state, null), "mg-give");
     el.disabled = count !== need;
     actionsEl.appendChild(el);
     return;
