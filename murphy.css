@@ -63,6 +63,11 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* a card with its picture: the border in the card's colour stays, so the colour shows on small cards too */
+.mg-card.has-img {
+  background: #fffaf0;
+}
+
 .mg-card > img {
   position: absolute;
   inset: 0;
@@ -84,7 +89,7 @@
   font-size: calc(var(--w) * 0.22);
 }
 
-.mg-c-r { --ink: #d0343f; background: linear-gradient(165deg, #fff, #ffe1e3); }
+.mg-c-b { --ink: #1f6fd1; background: linear-gradient(165deg, #fff, #dfeaff); }
 .mg-c-y { --ink: #b88400; background: linear-gradient(165deg, #fff, #fff1c2); }
 .mg-c-g { --ink: #188a4f; background: linear-gradient(165deg, #fff, #d9f4e4); }
 

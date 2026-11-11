@@ -18,7 +18,7 @@ const statusEl = document.getElementById("mgStatus");
 const actionsEl = document.getElementById("mgActions");
 
 const CARD_DIR = "murphy-karten";
-const COLOUR_FILES = { r: "rot", y: "gelb", g: "gruen" };
+const COLOUR_FILES = { b: "blau", y: "gelb", g: "gruen" };
 const SORT_KEY = "mg_sort";
 
 let currentState = null;
@@ -93,7 +93,10 @@ function imageEl(src) {
   img.alt = "";
   img.draggable = false;
   /* a picture that is not uploaded yet: the drawn card underneath stays visible */
-  img.addEventListener("error", () => img.remove());
+  img.addEventListener("error", () => {
+    if (img.parentElement) img.parentElement.classList.remove("has-img");
+    img.remove();
+  });
   return img;
 }
 
@@ -107,7 +110,10 @@ function cardEl(card, state, width) {
     el.className = `mg-card mg-c-${colour}`;
     el.innerHTML = `<span class="mg-corner">${value}</span><span class="mg-v">${value}</span>`;
     el.setAttribute("aria-label", M.cardLabel(card));
-    if (state.rules.numberImages) el.appendChild(imageEl(`${COLOUR_FILES[colour]}-${value}.png`));
+    if (state.rules.numberImages) {
+      el.classList.add("has-img");
+      el.appendChild(imageEl(`${COLOUR_FILES[colour]}-${value}.webp`));
+    }
     return el;
   }
   const action = M.actionOf(state, card);
@@ -115,7 +121,10 @@ function cardEl(card, state, width) {
   el.innerHTML = `<span class="mg-act-icon">${action && action.colour === "gruen" ? "🍀" : "⚡"}</span><span class="mg-act-title">${escapeHtml(action ? action.title : "Aktion")}</span>`;
   el.setAttribute("aria-label", `${action && action.colour === "gruen" ? "Grüne" : "Rote"} Aktionskarte ${action ? action.title : ""}`);
   if (action && action.text) el.title = action.text;
-  if (action && action.image) el.appendChild(imageEl(action.image));
+  if (action && action.image) {
+    el.classList.add("has-img");
+    el.appendChild(imageEl(action.image));
+  }
   return el;
 }
 
@@ -125,7 +134,10 @@ function backEl(state, width) {
   if (width) el.style.setProperty("--w", `${width}px`);
   el.innerHTML = `<span class="mg-v">🍞</span>`;
   el.setAttribute("aria-label", "Verdeckte Karte");
-  if (state.rules.numberImages) el.appendChild(imageEl("rueckseite.png"));
+  if (state.rules.backImage) {
+    el.classList.add("has-img");
+    el.appendChild(imageEl(state.rules.backImage));
+  }
   return el;
 }
 

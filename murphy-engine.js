@@ -1,7 +1,7 @@
 /* Murphys Gesetz – a card-trading game for 2–4 players. Pure rules, no DOM:
    loaded as <script> in the browser, testable in Node via require.
 
-   72 number cards: 1–11 in Rot, Gelb and Grün (1–3 once, 4–6 twice, 7–11 three times per colour),
+   72 number cards: 1–11 in Blau, Gelb and Grün (1–3 once, 4–6 twice, 7–11 three times per colour),
    plus the action cards and the Murphy cards from murphy-karten.json.
    Everybody holds a secret Murphy card – a task the number cards in hand must fulfil EXACTLY.
    On your turn you trade one for two or two for one: either at the table (the hidden deck or the
@@ -14,9 +14,9 @@ const MurphyEngine = (() => {
 
 const MAX_PLAYERS = 4;
 const MAX_VALUE = 11;
-const COLOURS = ["r", "y", "g"];
-const COLOUR_NAMES = { r: "Rot", y: "Gelb", g: "Grün" };
-const COLOUR_KEYS = { rot: "r", gelb: "y", gruen: "g", "grün": "g" };
+const COLOURS = ["b", "y", "g"];
+const COLOUR_NAMES = { b: "Blau", y: "Gelb", g: "Grün" };
+const COLOUR_KEYS = { blau: "b", gelb: "y", gruen: "g", "grün": "g" };
 const BASAR_SIZE = 7;
 const FIRST_HAND = 8;
 const WIN_CARDS = 3;
@@ -24,7 +24,7 @@ const PILES = 2;
 /* 1–3 once, 4–6 twice, 7–11 three times in each colour */
 const copiesOf = value => (value <= 3 ? 1 : value <= 6 ? 2 : 3);
 
-/* ---------- cards: "r7-2" (Rot 7, third copy), "A.klauen.1" (second copy of the action card "klauen") ---------- */
+/* ---------- cards: "b7-2" (Blau 7, third copy), "A.klauen.1" (second copy of the action card "klauen") ---------- */
 
 function numberCards() {
   const cards = [];
@@ -45,7 +45,7 @@ function actionCards(rules) {
 }
 
 const isAction = card => typeof card === "string" && card.startsWith("A.");
-const isNumber = card => typeof card === "string" && !isAction(card) && /^[ryg]\d+-\d+$/.test(card);
+const isNumber = card => typeof card === "string" && !isAction(card) && /^[byg]\d+-\d+$/.test(card);
 const colourOf = card => (isNumber(card) ? card[0] : null);
 const valueOf = card => (isNumber(card) ? Number(card.slice(1, card.indexOf("-"))) : null);
 const actionIdOf = card => (isAction(card) ? card.split(".")[1] : null);
@@ -203,7 +203,7 @@ function parseCheck(check, where) {
       if (typeof value !== "boolean") throw new Error(`${at}: true oder false erwartet.`);
       if (value) out[key] = true;
     } else if (key === "farbe") {
-      if (!COLOUR_KEYS[value]) throw new Error(`${at}: „rot“, „gelb“ oder „gruen“ erwartet.`);
+      if (!COLOUR_KEYS[value]) throw new Error(`${at}: „blau“, „gelb“ oder „gruen“ erwartet.`);
       out.farbe = value === "grün" ? "gruen" : value;
     } else if (key === "werte") {
       if (!Array.isArray(value) || value.length === 0 || !value.every(v => Number.isInteger(v) && v >= 1 && v <= MAX_VALUE)) {
@@ -283,7 +283,7 @@ function parseCards(json) {
     return card;
   });
 
-  return { murphy, actions, winCards, numberImages: json.zahlenBilder === true };
+  return { murphy, actions, winCards, numberImages: json.zahlenBilder === true, backImage: cleanImage(json.rueckseite) };
 }
 
 /* the cards new games start with on this device (set by the page from murphy-karten.json) */

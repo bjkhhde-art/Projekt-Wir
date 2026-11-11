@@ -6,7 +6,7 @@
     "bild: Dateiname im Ordner murphy-karten/ (z. B. \"murphy-m01.png\"). Ohne bild zeigt das Spiel den Text.",
     "bedingung: was die Zahlenkarten auf der Hand GENAU erfüllen müssen (alle Angaben gelten zusammen). Grüne Aktionskarten auf der Hand zählen nicht.",
     "  anzahl / summe / farben / jedeFarbe / kleinste / groesste: eine Zahl (genau) oder {\"min\": 3, \"max\": 6}",
-    "  farbe: \"rot\", \"gelb\" oder \"gruen\" (nur diese Farbe)      werte: [1, 3, 5] (nur diese Zahlen)",
+    "  farbe: \"blau\", \"gelb\" oder \"gruen\" (nur diese Farbe)      werte: [1, 3, 5] (nur diese Zahlen)",
     "  verschieden: true (keine Zahl doppelt)   gleicheZahl: true (alle dieselbe Zahl)   reihe: true (Zahlen lückenlos hintereinander)",
     "  gerade: true / ungerade: true            gruppen: [3, 2] (z. B. Drilling + Paar)   farbGruppen: [3, 3] (zwei Farben mit je 3 Karten)",
     "  oder: [ {…}, {…} ] (eine der Möglichkeiten reicht)",
@@ -15,10 +15,11 @@
     "  wirkung (rot und grün): ziehen, alleZiehen, aussetzen, richtung, weitergeben, handtausch, murphyNeu, murphyWeiter, klauen, abgeben, ablegen",
     "  wirkung (nur grün): doppelzug.  anzahl = wie viele Karten (bei ziehen, alleZiehen, weitergeben, klauen, abgeben, ablegen).",
     "  Bei grünen Karten wählt man das Ziel (handtausch, klauen, abgeben) und bei abgeben/ablegen die Karten selbst; rote treffen immer den Nächsten und Zufallskarten.",
-    "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true, sobald rot-1.png … gruen-11.png und rueckseite.png hochgeladen sind."
+    "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true = die Bilder blau-1.webp … gruen-11.webp werden gezeigt. rueckseite: Dateiname des Rückseiten-Bilds (sonst gezeichnet)."
   ],
   "siegKarten": 3,
-  "zahlenBilder": false,
+  "zahlenBilder": true,
+  "rueckseite": null,
   "murphy": [
     { "id": "m01", "text": "Sammle Karten einer Farbe, die zusammen nicht mehr als 29 ergeben. Du brauchst mindestens 5.", "bedingung": { "farben": 1, "anzahl": { "min": 5 }, "summe": { "max": 29 } } },
     { "id": "m02", "text": "Genau 4 Karten mit derselben Zahl.", "bedingung": { "anzahl": 4, "gleicheZahl": true } },
@@ -35,7 +36,7 @@
     { "id": "m13", "text": "Nur Zahlen ab 8 – mindestens 5 Karten.", "bedingung": { "kleinste": { "min": 8 }, "anzahl": { "min": 5 } } },
     { "id": "m14", "text": "Höchstens 6 Karten, zusammen mindestens 50.", "bedingung": { "summe": { "min": 50 }, "anzahl": { "max": 6 } } },
     { "id": "m15", "text": "Genau 3 Karten, zusammen 25 bis 30.", "bedingung": { "anzahl": 3, "summe": { "min": 25, "max": 30 } } },
-    { "id": "m16", "text": "Nur rote Karten – mindestens 6.", "bedingung": { "farbe": "rot", "anzahl": { "min": 6 } } },
+    { "id": "m16", "text": "Nur blaue Karten – mindestens 6.", "bedingung": { "farbe": "blau", "anzahl": { "min": 6 } } },
     { "id": "m17", "text": "Nur grüne Karten, zusammen mindestens 40.", "bedingung": { "farbe": "gruen", "summe": { "min": 40 } } },
     { "id": "m18", "text": "Eine gelbe Reihe aus mindestens 4 Zahlen.", "bedingung": { "farbe": "gelb", "reihe": true, "anzahl": { "min": 4 } } },
     { "id": "m19", "text": "Zwei Farben mit je genau 3 Karten.", "bedingung": { "farbGruppen": [3, 3] } },
