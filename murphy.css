@@ -304,12 +304,16 @@
 
 /* ---------- Basar ---------- */
 
+/* Mac: his own clearly framed place at the table – warm colour, a name tag on the frame, a tray for his cards */
 .mg-basar {
-  margin: 0 0 12px;
-  padding: 8px 10px 10px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1.5px solid var(--surface-border);
+  --mac: #e0a23a;
+  position: relative;
+  margin: 22px 0 18px;
+  padding: 18px 10px 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0.14));
+  border: 2px solid var(--mac);
+  box-shadow: 0 4px 14px rgba(160, 100, 20, 0.12);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -319,17 +323,33 @@
 }
 
 .mg-basar-head {
+  position: absolute;
+  top: -13px;
+  left: 14px;
+  right: 14px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.mg-basar-head span,
+.mg-basar-head small {
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--mac);
+  color: #fff;
   font-weight: 800;
+  line-height: 1.3;
+  box-shadow: 0 2px 6px rgba(160, 100, 20, 0.2);
+}
+
+.mg-basar-head span {
   font-size: 14px;
 }
 
 .mg-basar-head small {
   font-size: 12px;
-  color: var(--text-muted);
 }
 
 .mg-basar-cards {
@@ -338,11 +358,31 @@
   justify-content: center;
   gap: 5px;
   min-height: 56px;
-  padding-top: 8px;
+  padding: 10px 6px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 3px rgba(120, 80, 20, 0.12);
 }
 
 .mg-basar-cards .mg-card {
   --w: 40px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mg-basar {
+    background: linear-gradient(180deg, rgba(224, 162, 58, 0.18), rgba(224, 162, 58, 0.08));
+  }
+  :root:not([data-theme="light"]) .mg-basar-cards {
+    background: rgba(0, 0, 0, 0.22);
+  }
+}
+
+:root[data-theme="dark"] .mg-basar {
+  background: linear-gradient(180deg, rgba(224, 162, 58, 0.18), rgba(224, 162, 58, 0.08));
+}
+
+:root[data-theme="dark"] .mg-basar-cards {
+  background: rgba(0, 0, 0, 0.22);
 }
 
 /* ---------- seats ---------- */
