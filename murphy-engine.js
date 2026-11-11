@@ -620,6 +620,31 @@ function give(state, person, cards, piles, rand = Math.random) {
   return recordMove(next, { type: "give", person });
 }
 
+/* a whole trade in one move: take = { from: "deck", count } | { from: "pile", pile, count } | { from: "both" } |
+   { from: "basar", cards }, then the chosen number cards go back to the same place. Taking one means giving two
+   and the other way round. Given cards at the table go onto the open piles one after the other (left, right). */
+function trade(state, person, take, giveCards, rand = Math.random) {
+  assertTurn(state, person, "take");
+  const want = Array.from(new Set(giveCards || []));
+  const count = take && take.from === "basar" ? (take.cards || []).length : take && take.from === "both" ? 2 : take && take.count;
+  if ((count !== 1 && count !== 2) || want.length !== 3 - count) throw new Error("Getauscht wird 1 gegen 2 oder 2 gegen 1.");
+  want.forEach(card => {
+    if (!state.hands[person].includes(card)) throw new Error("Diese Karte hast du nicht auf der Hand.");
+    if (!isNumber(card)) throw new Error("Abgeben kann man nur Zahlenkarten.");
+  });
+  let taken;
+  if (take.from === "deck") taken = takeDeck(state, person, count, rand);
+  else if (take.from === "pile") taken = takeOpen(state, person, take.pile, count);
+  else if (take.from === "both") taken = takeBothOpen(state, person);
+  else if (take.from === "basar") taken = takeBasar(state, person, take.cards);
+  else throw new Error("Von dort kann man nicht nehmen.");
+  /* a blue card from the deck ended the turn (or waits for its target): nothing is given */
+  if (taken.step !== "give" || taken.turnPerson !== person) return taken;
+  const given = give(taken, person, want, want.map((_, i) => i % 2), rand);
+  given.lastMove = { ...given.lastMove, type: "trade", events: [...taken.lastMove.events, ...given.lastMove.events] };
+  return given;
+}
+
 /* a green action card instead of a trade. opts: { target, cards } where the card asks for them */
 function playAction(state, person, card, opts = {}, rand = Math.random) {
   assertTurn(state, person, "take");
@@ -1045,6 +1070,7 @@ return {
   takeBothOpen,
   takeBasar,
   give,
+  trade,
   playAction,
   claimMurphy,
   nextRound,

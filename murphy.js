@@ -24,7 +24,9 @@ const SORT_KEY = "mg_sort";
 let currentState = null;
 let cheeredGame = null;
 let lastSeq = null;
-let takeCount = 2;
+/* what is chosen to take: from the hidden deck (0–2 cards), the open piles (per pile 0–2 of its top cards) or the Basar */
+let deckSel = 0;
+let pileSel = [0, 0];
 let target = null;
 const selected = new Set();
 const basarSel = new Set();
@@ -180,14 +182,41 @@ function pruneSelection(state) {
   const hand = state.hands[me()];
   [...selected].forEach(card => { if (!hand.includes(card)) selected.delete(card); });
   [...basarSel].forEach(card => { if (!state.basar.includes(card) || !taking(state)) basarSel.delete(card); });
+  if (!taking(state)) clearTakeSel();
+  pileSel = pileSel.map((n, i) => Math.min(n, state.piles[i].length));
   if (target && (!state.players.includes(target) || target === me())) target = null;
 }
 
-function toggle(set, card, limit) {
-  if (set.has(card)) set.delete(card);
-  else {
-    if (limit && set.size >= limit) set.delete(set.values().next().value);
-    set.add(card);
+function clearTakeSel() {
+  deckSel = 0;
+  pileSel = [0, 0];
+}
+
+/* what the chosen cards on the table add up to, as a move for MurphyEngine.trade – or null */
+function takeChoice() {
+  if (basarSel.size) return { from: "basar", cards: [...basarSel] };
+  if (deckSel) return { from: "deck", count: deckSel };
+  if (pileSel[0] === 1 && pileSel[1] === 1) return { from: "both" };
+  const i = pileSel.findIndex(n => n > 0);
+  return i >= 0 ? { from: "pile", pile: i, count: pileSel[i] } : null;
+}
+
+const takeCountOf = take => (!take ? 0 : take.from === "basar" ? take.cards.length : take.from === "both" ? 2 : take.count);
+
+/* one taken and two of mine chosen, or two and one: the trade happens right away */
+function tryTrade() {
+  const state = currentState;
+  if (!state || !taking(state) || selectedGreen(state).length) {
+    renderLocal();
+    return;
+  }
+  const take = takeChoice();
+  const count = takeCountOf(take);
+  const give = selectedNumbers();
+  if (count && give.length === 3 - count) {
+    renderLocal();
+    room.dispatch(M.trade, take, give);
+    return;
   }
   renderLocal();
 }
@@ -220,6 +249,7 @@ function renderBoard(game) {
   currentState = state;
   if (fresh) {
     basarSel.clear();
+    clearTakeSel();
     if (!giving(state)) selected.clear();
   }
   showRulesList(state.rules);
@@ -253,21 +283,33 @@ function renderTable(state) {
   deckCount.textContent = `${state.deck.length} Karten`;
   deckEl.classList.toggle("has-cards", state.deck.length > 1);
   deckEl.classList.toggle("can-take", take);
+  deckEl.classList.toggle("chosen", deckSel > 0);
+  if (deckSel) {
+    const badge = document.createElement("span");
+    badge.className = "mg-pick-count";
+    badge.textContent = `${deckSel}×`;
+    deckEl.appendChild(badge);
+  }
   deckEl.disabled = !take;
 
   state.piles.forEach((pile, i) => {
     const el = pileEls[i];
     el.innerHTML = "";
     const top = pile[pile.length - 1];
-    if (top) el.appendChild(cardEl(top, state));
+    if (top) {
+      const topEl = cardEl(top, state);
+      if (pileSel[i] >= 1) topEl.classList.add("selected");
+      el.appendChild(topEl);
+    }
     if (pile.length > 1) {
       const under = cardEl(pile[pile.length - 2], state, 30);
       under.classList.add("mg-under");
+      if (pileSel[i] === 2) under.classList.add("selected");
       el.appendChild(under);
     }
     el.classList.toggle("has-cards", pile.length > 1);
     pileCounts[i].textContent = `${i === 0 ? "links" : "rechts"} · ${pile.length}`;
-    const canTake = take && pile.length >= takeCount;
+    const canTake = take && pile.length > 0;
     const canDrop = atStack && selectedNumbers().length === state.trade.give;
     el.classList.toggle("can-take", canTake);
     el.classList.toggle("can-drop", canDrop);
@@ -288,7 +330,15 @@ function renderTable(state) {
       el.setAttribute("aria-pressed", String(basarSel.has(card)));
       const green = selectedGreen(state)[0];
       const many = green && M.actionOf(state, green).effect === "nehmen" ? M.actionOf(state, green).amount : 2;
-      const pick = () => toggle(basarSel, card, many);
+      const pick = () => {
+        clearTakeSel();
+        if (basarSel.has(card)) basarSel.delete(card);
+        else {
+          if (basarSel.size >= many) basarSel.delete(basarSel.values().next().value);
+          basarSel.add(card);
+        }
+        tryTrade();
+      };
       el.addEventListener("click", pick);
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
     }
@@ -299,15 +349,32 @@ function renderTable(state) {
   basarEl.parentElement.classList.toggle("can-drop", giving(state) && state.trade.at === "basar");
 }
 
+/* the hidden deck: each tap one more card (one, two, none again) */
 deckEl.addEventListener("click", () => {
-  if (currentState && taking(currentState)) room.dispatch(M.takeDeck, takeCount);
+  if (!currentState || !taking(currentState)) return;
+  basarSel.clear();
+  pileSel = [0, 0];
+  deckSel = (deckSel + 1) % 3;
+  tryTrade();
 });
 
+/* an open pile: first tap its top card, second tap the top two, third tap none; with the other pile one each */
 pileEls.forEach((el, i) => el.addEventListener("click", () => {
   const state = currentState;
   if (!state) return;
   if (taking(state)) {
-    room.dispatch(M.takeOpen, i, takeCount);
+    basarSel.clear();
+    deckSel = 0;
+    const other = 1 - i;
+    if (pileSel[i] === 0) {
+      if (pileSel[other] !== 1) pileSel[other] = 0;
+      pileSel[i] = 1;
+    } else if (pileSel[i] === 1 && pileSel[other] === 0 && state.piles[i].length >= 2) {
+      pileSel[i] = 2;
+    } else {
+      pileSel[i] = 0;
+    }
+    tryTrade();
     return;
   }
   if (giving(state) && state.trade.at === "stapel") giveSelected(state, [i, i]);
@@ -335,12 +402,10 @@ function fillOpponent(el, state, person) {
   el.className = `mg-seat mg-opp${badgeClass === "turn" ? " turn" : ""}`;
   el.dataset.person = person;
   const hand = state.hands[person];
-  const numbers = hand.filter(M.isNumber).length;
   el.innerHTML = `
     <div class="mg-seat-head">
       <span class="mg-seat-name">${escapeHtml(person)}</span>
       ${badgeText ? `<span class="mg-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ""}
-      <span class="mg-seat-info">${numbers} Zahlen${hand.length > numbers ? ` · ${hand.length - numbers} Aktion` : ""}</span>
     </div>
     <div class="mg-opp-row"><div class="mg-opp-hand"></div></div>`;
   if (state.phase === "play" && state.murphyOpen && state.murphyOpen[person] && state.murphy[person]) {
@@ -393,7 +458,9 @@ function fillOwn(state) {
       el.setAttribute("aria-pressed", String(selected.has(card)));
       const pick = () => {
         if (M.isGreen(state, card)) selectedGreen(state).filter(c => c !== card).forEach(c => selected.delete(c));
-        toggle(selected, card);
+        if (selected.has(card)) selected.delete(card);
+        else selected.add(card);
+        tryTrade();
       };
       el.addEventListener("click", pick);
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
@@ -555,31 +622,15 @@ function renderTake(state) {
     renderGreen(state, green);
     return;
   }
-  statusEl.textContent = state.tradesLeft > 1
-    ? "Doppelt tauschen: erst nehmen – vom Stapel, offen oder aus dem Basar."
-    : "Du bist dran: Erst nehmen – vom Stapel, offen oder aus dem Basar.";
-  const seg = document.createElement("div");
-  seg.className = "mg-seg";
-  seg.setAttribute("role", "radiogroup");
-  seg.setAttribute("aria-label", "Wie viele Karten nehmen");
-  [[2, "2 nehmen · 1 abgeben"], [1, "1 nehmen · 2 abgeben"]].forEach(([count, label]) => {
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = `mg-seg-btn${takeCount === count ? " on" : ""}`;
-    el.setAttribute("role", "radio");
-    el.setAttribute("aria-checked", String(takeCount === count));
-    el.dataset.count = String(count);
-    el.textContent = label;
-    el.addEventListener("click", () => { takeCount = count; renderLocal(); });
-    seg.appendChild(el);
-  });
-  actionsEl.appendChild(seg);
-  if (state.piles.every(pile => pile.length > 0)) {
-    actionsEl.appendChild(button("Je 1 von beiden offenen", () => room.dispatch(M.takeBothOpen), "btn-secondary"));
-  }
-  if (basarSel.size) {
-    actionsEl.appendChild(button(`${basarSel.size} aus dem Basar nehmen`, () => room.dispatch(M.takeBasar, [...basarSel]), "mg-basar-take"));
-  }
+  const count = takeCountOf(takeChoice());
+  const mine = selectedNumbers().length;
+  statusEl.textContent = state.tradesLeft > 1 ? "Doppelt tauschen – der erste Tausch:" : "Du bist dran: Tausche 1 gegen 2 oder 2 gegen 1.";
+  const hint = document.createElement("p");
+  hint.className = "mg-hint mg-trade-hint";
+  hint.textContent = count || mine
+    ? `Nehmen: ${count} · Abgeben: ${mine}${count ? ` – tippe noch ${Math.max(0, 3 - count - mine)} ${3 - count - mine === 1 ? "eigene Karte" : "eigene Karten"} an` : " – jetzt antippen, was du nimmst"}.`
+    : "Tippe an, was du nimmst (verdeckter Stapel, offene Stapel oder Basar) und welche eigenen Karten du abgibst.";
+  actionsEl.appendChild(hint);
   const greens = state.hands[me()].filter(c => M.isGreen(state, c));
   if (greens.length && !state.actionPlayed && state.tradesLeft === 1) {
     const hint = document.createElement("p");
