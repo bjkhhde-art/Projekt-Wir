@@ -136,7 +136,7 @@ ok(afterBasar.basar.includes("b9-0") && afterBasar.basar.length === 5 && afterBa
 
 /* Isi plays her green card instead of a trade */
 await until(async () => (await isi.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Isi's turn on her phone");
-ok((await isi.locator("#mgActions").textContent()).includes("grüne Aktionskarte"), "Isi is told she may play a green card");
+ok(!(await isi.locator("#mgActions").textContent()).includes("Tippe an"), "no small explanation text between Mac and the hand");
 await isi.locator('#mgOwn [data-card="A.alle-geben.0"]').click();
 ok((await isi.locator("#mgStatus").textContent()).includes("Jede Person gibt dir"), "the chosen green card explains itself");
 const benjiBefore = afterBasar.hands.Benji.length;

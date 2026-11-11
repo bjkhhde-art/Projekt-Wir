@@ -645,19 +645,6 @@ function renderTake(state) {
     return;
   }
   statusEl.textContent = state.tradesLeft > 1 ? "Doppelt tauschen – der erste Tausch:" : "Du bist dran: Tausche 1 gegen 2 oder 2 gegen 1.";
-  const hint = document.createElement("p");
-  hint.className = "mg-hint mg-trade-hint";
-  hint.textContent = count || mine
-    ? `Nehmen: ${count} · Abgeben: ${mine}${count ? ` – tippe noch ${Math.max(0, 3 - count - mine)} ${3 - count - mine === 1 ? "eigene Karte" : "eigene Karten"} an` : " – jetzt antippen, was du nimmst"}.`
-    : "Tippe an, was du nimmst (offene Stapel oder Mac) und welche eigenen Karten du abgibst. Ein Tipp auf den verdeckten Stapel zieht sofort eine Karte.";
-  actionsEl.appendChild(hint);
-  const greens = state.hands[me()].filter(c => M.isGreen(state, c));
-  if (greens.length && !state.actionPlayed && state.tradesLeft === 1) {
-    const hint = document.createElement("p");
-    hint.className = "mg-hint";
-    hint.textContent = "🍀 Statt zu tauschen kannst du eine grüne Aktionskarte antippen und ausspielen.";
-    actionsEl.appendChild(hint);
-  }
 }
 
 /* a blue card drawn from the deck hits somebody – the one who drew it chooses who */
@@ -761,12 +748,6 @@ function renderGive(state) {
     if (need === 2) actionsEl.appendChild(button("Je eine auf beide", () => giveSelected(state, [0, 1]), "btn-secondary mg-drop-both"));
     return;
   }
-  const hint = document.createElement("p");
-  hint.className = "mg-hint";
-  hint.textContent = canDrawMore(state)
-    ? "Tippe deine Karten an, die du abgibst – auch die gerade gezogene geht. Oder tippe nochmal auf den Stapel: dann 2 gezogen, 1 abgeben."
-    : "Tippe deine Karten an, die du abgibst – auch gerade gezogene gehen.";
-  actionsEl.appendChild(hint);
 }
 
 function renderSummary(state) {
