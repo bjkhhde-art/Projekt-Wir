@@ -215,7 +215,7 @@ function tryTrade() {
   const count = takeCountOf(take);
   const give = selectedNumbers();
   /* with Mac the cards go back to Mac; at the table the player chooses the pile (buttons in renderTake) */
-  if (count && give.length === 3 - count && take.from === "basar") {
+  if ((count === 1 || count === 2) && give.length === 3 - count && take.from === "basar") {
     renderLocal();
     room.dispatch(M.trade, take, give);
     return;
@@ -374,6 +374,11 @@ pileEls.forEach((el, i) => el.addEventListener("click", () => {
       pileSel[i] = 0;
     }
     tryTrade();
+    return;
+  }
+  /* cards drawn from the deck and the cards to give chosen: a tap on a pile puts them there */
+  if (giving(state) && state.trade.at === "stapel" && selectedNumbers().length === state.trade.give) {
+    giveSelected(state, selectedNumbers().map(() => i));
   }
 }));
 
@@ -534,8 +539,12 @@ function describe(e, state) {
       return "Alle geben weiter.";
     case "stolen":
       return e.target === me() ? `${who} nimmt dir ${e.cards.length === 1 ? "eine Karte" : `${e.cards.length} Karten`} weg!` : mine ? `Du bekommst ${cardsText(e.cards, state)}.` : `${who} nimmt ${nameFor(e.target)} etwas weg.`;
-    case "gift":
-      return `${mine ? "Du gibst" : `${who} gibt`} ${nameFor(e.target) === "Du" ? "dir" : nameFor(e.target)} ${cardsText(e.cards, state)}.`;
+    case "gift": {
+      /* which cards changed hands is only seen by the two people involved */
+      const seen = mine || e.target === me();
+      const what = seen ? cardsText(e.cards, state) : e.cards.length === 1 ? "eine Karte" : `${e.cards.length} Karten`;
+      return `${mine ? "Du gibst" : `${who} gibt`} ${e.target === me() ? "dir" : nameFor(e.target)} ${what}.`;
+    }
     case "dropped":
       return `${mine ? "Du legst" : `${who} legt`} ${cardsText(e.cards, state)} ab.`;
     case "skip":
@@ -619,6 +628,7 @@ function renderTake(state) {
     renderGreen(state, green);
     return;
   }
+  while (basarSel.size > 2) basarSel.delete(basarSel.values().next().value);
   const choice = takeChoice();
   const count = takeCountOf(choice);
   const mine = selectedNumbers().length;
@@ -725,7 +735,7 @@ function renderGreen(state, card) {
   } else {
     box.appendChild(button("Ausspielen 🍀", () => play(spec.wish ? { wish: `${wishColour}${wishValue}` } : {}), "mg-play"));
   }
-  box.appendChild(button("Doch nicht", () => { selected.delete(card); renderLocal(); }, "btn-secondary"));
+  box.appendChild(button("Doch nicht", () => { selected.delete(card); basarSel.clear(); renderLocal(); }, "btn-secondary"));
   actionsEl.appendChild(box);
 }
 
