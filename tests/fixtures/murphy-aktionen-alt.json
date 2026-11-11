@@ -1,0 +1,112 @@
+[
+ {
+  "id": "zieh-zwei",
+  "titel": "Zieh zwei",
+  "text": "Zieh sofort zwei Karten vom Stapel.",
+  "farbe": "blau",
+  "wirkung": "ziehen",
+  "anzahl": 2,
+  "stueck": 2
+ },
+ {
+  "id": "alle-ziehen",
+  "titel": "Alle ziehen",
+  "text": "Alle ziehen eine Karte vom Stapel.",
+  "farbe": "blau",
+  "wirkung": "alleZiehen",
+  "anzahl": 1,
+  "stueck": 1
+ },
+ {
+  "id": "weitergeben",
+  "titel": "Weitergeben",
+  "text": "Alle geben eine zufällige Zahlenkarte an den Nächsten weiter.",
+  "farbe": "blau",
+  "wirkung": "weitergeben",
+  "anzahl": 1,
+  "stueck": 2
+ },
+ {
+  "id": "tausch-zwang",
+  "titel": "Zwangstausch",
+  "text": "Tausche alle deine Zahlenkarten mit dem Nächsten.",
+  "farbe": "blau",
+  "wirkung": "handtausch",
+  "stueck": 1
+ },
+ {
+  "id": "murphy-weiter",
+  "titel": "Aufgaben weiter",
+  "text": "Alle geben ihre Murphy-Karte an den Nächsten weiter.",
+  "farbe": "blau",
+  "wirkung": "murphyWeiter",
+  "stueck": 1
+ },
+ {
+  "id": "aussetzen",
+  "titel": "Aussetzen",
+  "text": "Der Nächste setzt einmal aus.",
+  "farbe": "blau",
+  "wirkung": "aussetzen",
+  "stueck": 1
+ },
+ {
+  "id": "richtung",
+  "titel": "Richtungswechsel",
+  "text": "Ab jetzt geht es andersherum weiter.",
+  "farbe": "blau",
+  "wirkung": "richtung",
+  "stueck": 1
+ },
+ {
+  "id": "neue-aufgabe",
+  "titel": "Neue Aufgabe",
+  "text": "Leg deine Murphy-Karte zurück und nimm eine neue.",
+  "farbe": "gruen",
+  "wirkung": "murphyNeu",
+  "stueck": 2
+ },
+ {
+  "id": "klauen",
+  "titel": "Klauen",
+  "text": "Nimm einer Person deiner Wahl eine zufällige Zahlenkarte weg.",
+  "farbe": "gruen",
+  "wirkung": "klauen",
+  "anzahl": 1,
+  "stueck": 2
+ },
+ {
+  "id": "abgeben",
+  "titel": "Abgeben",
+  "text": "Gib einer Person deiner Wahl bis zu zwei Zahlenkarten.",
+  "farbe": "gruen",
+  "wirkung": "abgeben",
+  "anzahl": 2,
+  "stueck": 1
+ },
+ {
+  "id": "ablegen",
+  "titel": "Ablegen",
+  "text": "Leg bis zu zwei Zahlenkarten ab, ohne neue zu nehmen.",
+  "farbe": "gruen",
+  "wirkung": "ablegen",
+  "anzahl": 2,
+  "stueck": 1
+ },
+ {
+  "id": "doppelzug",
+  "titel": "Doppelt tauschen",
+  "text": "Du darfst in diesem Zug zweimal tauschen.",
+  "farbe": "gruen",
+  "wirkung": "doppelzug",
+  "stueck": 1
+ },
+ {
+  "id": "tausch-wahl",
+  "titel": "Handtausch",
+  "text": "Tausche alle deine Zahlenkarten mit einer Person deiner Wahl.",
+  "farbe": "gruen",
+  "wirkung": "handtausch",
+  "stueck": 1
+ }
+]
