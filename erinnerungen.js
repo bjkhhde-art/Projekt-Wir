@@ -31,6 +31,7 @@ const uploadPreviewList = document.getElementById("uploadPreviewList");
 const captionInput = document.getElementById("captionInput");
 const uploadImageBtn = document.getElementById("uploadImageBtn");
 const clearQueueBtn = document.getElementById("clearQueueBtn");
+const addMoreImagesBtn = document.getElementById("addMoreImagesBtn");
 
 const imageHint = document.getElementById("imageHint");
 const tripCountdown = document.getElementById("tripCountdown");
@@ -777,6 +778,7 @@ function renderUploadQueue() {
     return;
   }
 
+  const opening = uploadQueue.classList.contains("hidden");
   uploadQueue.classList.remove("hidden");
   uploadPreviewList.innerHTML = "";
 
@@ -798,6 +800,9 @@ function renderUploadQueue() {
 
     uploadPreviewList.appendChild(thumb);
   });
+
+  /* the popup appears right where the photos were picked – the caption can be typed at once */
+  if (opening) captionInput.focus({ preventScroll: true });
 }
 
 function clearUploadQueue() {
@@ -810,6 +815,8 @@ async function uploadQueuedImages() {
   if (!currentMemory || pendingFiles.length === 0) return;
 
   uploadImageBtn.disabled = true;
+  clearQueueBtn.disabled = true;
+  addMoreImagesBtn.disabled = true;
   uploadImageBtn.innerHTML = `<span class="spinner"></span> Lade ${pendingFiles.length} Bild(er) hoch…`;
 
   const caption = captionInput.value.trim();
@@ -846,6 +853,8 @@ async function uploadQueuedImages() {
   }
 
   uploadImageBtn.disabled = false;
+  clearQueueBtn.disabled = false;
+  addMoreImagesBtn.disabled = false;
   uploadImageBtn.textContent = "Hochladen";
 
   if (successCount > 0) {
@@ -1302,6 +1311,11 @@ galleryView.addEventListener("drop", event => {
 
 uploadImageBtn.addEventListener("click", uploadQueuedImages);
 clearQueueBtn.addEventListener("click", clearUploadQueue);
+addMoreImagesBtn.addEventListener("click", () => imageInput.click());
+captionInput.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !uploadImageBtn.disabled) uploadQueuedImages();
+  if (event.key === "Escape" && !uploadImageBtn.disabled) clearUploadQueue();
+});
 
 closeLightbox.addEventListener("click", closeImageLightbox);
 
