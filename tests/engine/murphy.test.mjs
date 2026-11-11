@@ -51,8 +51,8 @@ ok(numbers.filter(n => M.valueOf(n) === 2).length === 3 && numbers.filter(n => M
 ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the test cards: 17 action cards and 21 Murphy cards");
 ok(rules.actions.filter(a => a.colour === "blau").reduce((s, a) => s + a.copies, 0) === 9, "9 blue (instant) action cards, 8 green ones");
 const realRules = M.parseCards(real);
-ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.image), "the card file: 5 blue and 11 green action cards, each with its picture");
-ok(realRules.backImage === "rueckseite.webp" && realRules.numberImages, "the back and the number cards have pictures");
+ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.title && a.text), "the card file: 5 blue and 11 green action cards, each with title and text");
+ok(realRules.backImage === "rueckseite.webp" && !realRules.numberImages && realRules.actions.every(a => !a.image), "only the back is a picture – number and action cards are drawn");
 ok(M.parseCards({ ...real, aktionen: [{ id: "alt", farbe: "rot", wirkung: "ziehen" }] }).actions[0].colour === "blau", "an older file with \"rot\" still works: red means blue (instant)");
 
 /* ---------- murphy-karten.json ---------- */

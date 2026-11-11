@@ -19,6 +19,8 @@ const actionsEl = document.getElementById("mgActions");
 
 const CARD_DIR = "murphy-karten";
 const COLOUR_FILES = { b: "blau", y: "gelb", g: "gruen" };
+/* the sign of each colour's frame on the real cards: triangles, squares, circles */
+const COLOUR_SHAPES = { b: "▲", g: "■", y: "●" };
 const SORT_KEY = "mg_sort";
 
 let currentState = null;
@@ -110,7 +112,7 @@ function cardEl(card, state, width) {
     const colour = M.colourOf(card);
     const value = M.valueOf(card);
     el.className = `mg-card mg-c-${colour}`;
-    el.innerHTML = `<span class="mg-corner">${value}</span><span class="mg-v">${value}</span>`;
+    el.innerHTML = `<span class="mg-shape" aria-hidden="true">${COLOUR_SHAPES[colour]}</span><span class="mg-v">${value}</span>`;
     el.setAttribute("aria-label", M.cardLabel(card));
     if (state.rules.numberImages) {
       el.classList.add("has-img");

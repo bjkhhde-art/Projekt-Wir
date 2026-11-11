@@ -40,30 +40,57 @@
 
 /* ---------- cards ---------- */
 
+/* drawn like the cards of 6 nimmt!: a soft colour, the big number in the card's colour and on top the sign of the
+   colour's frame (▲ Blau, ■ Grün, ● Gelb), so the colour can be told apart without seeing colours */
 .mg-card {
   --w: 44px;
-  --ink: #3a3a4a;
+  --bg: #f1e9ff;
+  --ink: #7c4dcc;
   position: relative;
   flex: none;
   width: var(--w);
   height: calc(var(--w) * 1.4);
-  border-radius: calc(var(--w) * 0.16);
-  border: 2px solid var(--ink);
-  background: linear-gradient(165deg, #ffffff, #f4eefa);
+  container-type: inline-size;
+  border-radius: calc(var(--w) * 0.18);
+  border: 1.5px solid rgba(0, 0, 0, 0.07);
+  background: var(--bg);
   color: var(--ink);
-  display: grid;
-  place-items: center;
   overflow: hidden;
   font-family: var(--font-heading);
-  font-weight: 900;
   line-height: 1;
-  box-shadow: 0 2px 6px rgba(30, 20, 60, 0.18);
+  box-shadow: 0 2px 6px rgba(30, 20, 60, 0.16);
   user-select: none;
   -webkit-user-select: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* a card with its picture: the border in the card's colour stays, so the colour shows on small cards too */
+.mg-c-b { --bg: #ddeeff; --ink: #2f7fd0; }
+.mg-c-g { --bg: #dcf3e2; --ink: #1d9150; }
+.mg-c-y { --bg: #fff1bf; --ink: #c58500; }
+
+.mg-card .mg-shape {
+  position: absolute;
+  top: 8%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 24cqw;
+  line-height: 1;
+}
+
+.mg-card .mg-v {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 13%;
+  text-align: center;
+  font-size: 50cqw;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* a card shown as a picture (only the back now): the picture fills the card */
 .mg-card.has-img {
   background: #fffaf0;
 }
@@ -78,38 +105,28 @@
   -webkit-user-drag: none;
 }
 
-.mg-card .mg-v {
-  font-size: calc(var(--w) * 0.52);
-}
-
-.mg-card .mg-corner {
-  position: absolute;
-  top: calc(var(--w) * 0.06);
-  left: calc(var(--w) * 0.1);
-  font-size: calc(var(--w) * 0.22);
-}
-
-.mg-c-b { --ink: #1f6fd1; background: linear-gradient(165deg, #fff, #dfeaff); }
-.mg-c-y { --ink: #b88400; background: linear-gradient(165deg, #fff, #fff1c2); }
-.mg-c-g { --ink: #188a4f; background: linear-gradient(165deg, #fff, #d9f4e4); }
-
+/* action cards: blue ones act at once, green ones are collected */
 .mg-act {
-  align-content: center;
-  gap: calc(var(--w) * 0.06);
-  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* cqw on the card itself would measure the page, not the card – so its own spacing goes by --w */
+  gap: calc(var(--w) * 0.05);
+  padding: calc(var(--w) * 0.06);
   text-align: center;
 }
 
-.mg-act-blau { --ink: #2f6db3; background: linear-gradient(165deg, #f4f8ff, #c9dcff); }
-.mg-act-gruen { --ink: #16794a; background: linear-gradient(165deg, #f3fff7, #bfeccf); }
+.mg-act-blau { --bg: #e2e6ff; --ink: #3a4fb8; }
+.mg-act-gruen { --bg: #e3f5d6; --ink: #4a8a1c; }
 
 .mg-act-icon {
-  font-size: calc(var(--w) * 0.34);
+  font-size: 30cqw;
+  line-height: 1;
 }
 
 .mg-act-title {
-  font-family: var(--font-body, inherit);
-  font-size: calc(var(--w) * 0.17);
+  font-size: 17cqw;
   font-weight: 800;
   line-height: 1.05;
   overflow-wrap: break-word;
@@ -117,14 +134,15 @@
 }
 
 .mg-back {
-  --ink: #5b3a1d;
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.18) 0 4px, transparent 4px 9px),
-    linear-gradient(160deg, #f0a24f, #c0652d);
+  background: linear-gradient(140deg, #ffd36b, #f08a4b);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .mg-back .mg-v {
-  font-size: calc(var(--w) * 0.42);
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 42cqw;
 }
 
 .mg-card.pickable {
