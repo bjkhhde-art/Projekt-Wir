@@ -501,7 +501,8 @@ function assertTurn(state, person, step) {
 
 /* taking one card means giving two: afterwards at least one number card must be left */
 function assertCanGiveTwo(state, person, gainNumbers) {
-  if (numberCount(state, person) + gainNumbers - 2 < 1) throw new Error("Für „1 nehmen, 2 abgeben“ hast du zu wenige Zahlenkarten.");
+  /* the two given cards must be ones held before (taken cards stay), and one number card must be left */
+  if (numberCount(state, person) < 2 || numberCount(state, person) + gainNumbers - 2 < 1) throw new Error("Für „1 nehmen, 2 abgeben“ hast du zu wenige Zahlenkarten.");
 }
 
 function startGive(state, person, at, taken, from = at) {
@@ -635,8 +636,16 @@ function give(state, person, cards, piles, rand = Math.random) {
   chosen.forEach(card => {
     if (!state.hands[person].includes(card)) throw new Error("Diese Karte hast du nicht auf der Hand.");
     if (!isNumber(card)) throw new Error("Abgeben kann man nur Zahlenkarten.");
+    /* house rule: what was just taken in this trade stays – only cards held before can go */
+    if ((state.trade.cards || []).includes(card)) throw new Error("Gerade genommene Karten darfst du nicht gleich wieder abgeben.");
   });
   if (numberCount(state, person) - need < 1) throw new Error("Eine Zahlenkarte muss dir bleiben.");
+  const held = numbersIn(state.hands[person]).filter(c => !(state.trade.cards || []).includes(c)).length;
+  if (held < need) {
+    throw new Error(state.trade.from === "deck" && state.trade.taken === 1
+      ? "Du hast zu wenige alte Zahlenkarten für zwei – zieh noch eine Karte."
+      : "Du hast zu wenige alte Zahlenkarten zum Abgeben.");
+  }
   const targets = state.trade.at === "stapel" ? chosen.map((_, i) => (piles && piles[i] !== undefined ? piles[i] : (piles && piles[0]) || 0)) : null;
   if (targets && targets.some(p => p !== 0 && p !== 1)) throw new Error("Diesen Stapel gibt es nicht.");
   const next = begin(state);

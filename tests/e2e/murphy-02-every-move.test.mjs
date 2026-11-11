@@ -114,24 +114,25 @@ ok(await isi.locator('#mgOwn .mg-card.fresh[data-card="b1-1"]').count() === 1, "
 await isi.click("#mgDeck");
 await settled("drew two", s => s.trade && s.trade.taken === 2);
 await until(async () => await hand("y10-0").count() === 1, 3000, "second card shown");
-await hand("y10-0").click();
+ok(await isi.locator('#mgOwn .mg-card.locked[data-card="y10-0"]').count() === 1 && await isi.locator('#mgOwn .mg-card.pickable[data-card="y10-0"]').count() === 0, "house rule: the drawn cards can't be picked to give back");
+await hand("y2-0").click();
 await until(async () => await isi.locator(".mg-drop-right").count() === 1, 3000, "pile buttons after drawing");
 await isi.locator(".mg-drop-right").click();
-await settled("gave the drawn card", s => s.turnPerson === "Benji");
+await settled("gave an old card", s => s.turnPerson === "Benji");
 let s = (await latest()).state;
-ok(s.piles[1].slice(-1)[0] === "y10-0" && s.hands.Isi.includes("b1-1"), "deck: two drawn, the just drawn Gelb 10 goes straight onto the right pile");
+ok(s.piles[1].slice(-1)[0] === "y2-0" && s.hands.Isi.includes("b1-1") && s.hands.Isi.includes("y10-0"), "deck: two drawn and kept, Gelb 2 from before onto the right pile");
 
 /* the same, but a tap on the pile instead of the button */
 await scene({ hands: baseHands(), deck: ["y10-0"] }, "deck tap scene");
 await isi.click("#mgDeck");
 await settled("drew", s => s.step === "give");
 await until(async () => await hand("y10-0").count() === 1, 3000, "drawn");
-await hand("y10-0").click();
+await hand("g3-0").click();
 await hand("y2-0").click();
 await isi.click("#mgPile0");
 await settled("gave two", s => s.turnPerson === "Benji");
 s = (await latest()).state;
-ok(s.piles[0].slice(-2).sort().join() === "y10-0,y2-0", "deck: one drawn, two given by tapping the left pile");
+ok(s.piles[0].slice(-2).sort().join() === "g3-0,y2-0" && s.hands.Isi.includes("y10-0"), "deck: one drawn and kept, two old cards given by tapping the left pile");
 
 /* ---------- 2. the top two of an open pile ---------- */
 await scene({ hands: baseHands() }, "pile scene");

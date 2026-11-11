@@ -462,8 +462,14 @@ function fillOwn(state) {
   sortedHand(state, state.hands[person]).forEach(card => {
     const el = cardEl(card, state);
     if (fresh.has(card)) el.classList.add("fresh");
+    /* cards just taken in this trade stay (house rule): they can't be picked for giving */
+    const locked = giving(state) && (state.trade.cards || []).includes(card);
+    if (locked) {
+      el.classList.add("locked");
+      el.title = "Gerade genommen – bleibt bei dir";
+    }
     /* red action cards never stay in a hand; numbers and green ones can be picked */
-    if (active) {
+    if (active && !locked) {
       el.classList.add("pickable");
       el.setAttribute("role", "button");
       el.tabIndex = 0;
