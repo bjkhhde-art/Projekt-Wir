@@ -496,16 +496,39 @@ function assertCanGiveTwo(state, person, gainNumbers) {
   if (numberCount(state, person) + gainNumbers - 2 < 1) throw new Error("Für „1 nehmen, 2 abgeben“ hast du zu wenige Zahlenkarten.");
 }
 
-function startGive(state, person, at, taken) {
+function startGive(state, person, at, taken, from = at) {
   state.step = "give";
-  state.trade = { at, taken: taken.length, give: taken.length === 1 ? 2 : 1, cards: taken };
+  state.trade = { at, from, taken: taken.length, give: taken.length === 1 ? 2 : 1, cards: taken };
 }
 
-/* from the hidden deck: one or two cards. A red action card acts at once and ends the turn. */
+/* only green action cards came and the hand would run out of numbers: swap them for new cards.
+   Returns false when a blue card turned up instead (it acts and the turn is over). */
+function swapGreensIfStuck(state, person, kept, give, rand) {
+  let guard = 0;
+  while (numberCount(state, person) - give < 1 && guard++ < 50) {
+    const green = kept.find(c => isAction(c) && state.hands[person].includes(c));
+    if (!green) break;
+    state.hands[person].splice(state.hands[person].indexOf(green), 1);
+    state.actionPile.push(green);
+    kept.splice(kept.indexOf(green), 1);
+    const card = drawCard(state, rand);
+    if (!card) break;
+    event(state, { type: "swap-green", person, card: green });
+    if (isInstant(state, card)) {
+      resolveInstant(state, person, [card], rand);
+      return false;
+    }
+    state.hands[person].push(card);
+    kept.push(card);
+  }
+  return true;
+}
+
+/* from the hidden deck: one or two cards. A blue action card acts at once and ends the turn.
+   After one card a second can still be drawn (drawMore) – the drawn cards may be given straight back. */
 function takeDeck(state, person, count, rand = Math.random) {
   assertTurn(state, person, "take");
   if (count !== 1 && count !== 2) throw new Error("Vom Stapel nimmt man eine oder zwei Karten.");
-  if (count === 1) assertCanGiveTwo(state, person, 0);
   const next = begin(state);
   const drawn = [];
   for (let i = 0; i < count; i++) {
@@ -523,26 +546,31 @@ function takeDeck(state, person, count, rand = Math.random) {
     resolveInstant(next, person, reds, rand);
     return recordMove(next, { type: "take", person });
   }
-  /* only green action cards came and the hand would run out of numbers: swap them for new cards */
-  const give = count === 1 ? 2 : 1;
-  let guard = 0;
-  while (numberCount(next, person) - give < 1 && guard++ < 50) {
-    const green = kept.find(c => isAction(c) && next.hands[person].includes(c));
-    if (!green) break;
-    next.hands[person].splice(next.hands[person].indexOf(green), 1);
-    next.actionPile.push(green);
-    kept.splice(kept.indexOf(green), 1);
-    const card = drawCard(next, rand);
-    if (!card) break;
-    event(next, { type: "swap-green", person, card: green });
-    if (isInstant(next, card)) {
-      resolveInstant(next, person, [card], rand);
-      return recordMove(next, { type: "take", person });
-    }
-    next.hands[person].push(card);
-    kept.push(card);
+  /* with one card drawn a second one can still come, so only two drawn cards need the swap */
+  if (count === 2 && !swapGreensIfStuck(next, person, kept, 1, rand)) return recordMove(next, { type: "take", person });
+  startGive(next, person, "stapel", kept, "deck");
+  if (count === 1) next.trade.taken = 1;
+  return recordMove(next, { type: "take", person });
+}
+
+/* one card was drawn from the deck: draw a second one – then one card is given instead of two */
+function drawMore(state, person, rand = Math.random) {
+  assertTurn(state, person, "give");
+  if (state.trade.from !== "deck" || state.trade.taken !== 1) throw new Error("Vom Stapel kann man jetzt nicht mehr ziehen.");
+  const next = begin(state);
+  const card = drawCard(next, rand);
+  if (!card) throw new Error("Im Stapel sind keine Karten mehr.");
+  if (isInstant(next, card)) {
+    event(next, { type: "take", person, from: "deck", cards: [], count: 1 });
+    next.trade = null;
+    resolveInstant(next, person, [card], rand);
+    return recordMove(next, { type: "take", person });
   }
-  startGive(next, person, "stapel", kept);
+  next.hands[person].push(card);
+  event(next, { type: "take", person, from: "deck", cards: [card], count: 1 });
+  const kept = [...next.trade.cards, card];
+  if (!swapGreensIfStuck(next, person, kept, 1, rand)) return recordMove(next, { type: "take", person });
+  next.trade = { ...next.trade, taken: 2, give: 1, cards: kept };
   return recordMove(next, { type: "take", person });
 }
 
@@ -1076,6 +1104,7 @@ return {
   takeOpen,
   takeBothOpen,
   takeBasar,
+  drawMore,
   give,
   trade,
   playAction,
