@@ -60,7 +60,14 @@ const room = GameRoom.create({
   lobbyEl: document.getElementById("mgLobby"),
   boardEl,
   leaveBtn: document.getElementById("mgLeaveBtn"),
-  createState: players => M.createInitialState(players),
+  createState: (players, option) => M.createInitialState(players, Math.random, null, option),
+  /* when is the game over: who first has this many fulfilled Murphy cards */
+  startOptions: [1, 2, 3, 4, 5].map(n => ({
+    value: String(n),
+    label: n === 1 ? "1 Murphy-Karte" : `${n} Murphy-Karten`,
+    hint: n === 1 ? "Wer die erste erfüllt, gewinnt" : n === 3 ? `Wer zuerst ${n} erfüllt, gewinnt – wie in der Anleitung` : `Wer zuerst ${n} erfüllt, gewinnt`
+  })),
+  initialOption: "3",
   isFinished: state => state.phase === "finished",
   renderBoard
 });

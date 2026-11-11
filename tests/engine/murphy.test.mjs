@@ -261,6 +261,13 @@ ok(q.basar.join() === "g10-0" && q.hands.Isi.includes("y7-0"), "3 nehmen: three 
 q = M.playAction(real2("A.abgeben.0"), "Isi", "A.abgeben.0", { cards: ["b7-0", "b8-0"] });
 ok(q.hands.Benji.includes("b7-0") && q.hands.Benji.includes("b8-0"), "2 abgeben: two cards to Benji");
 
+/* ---------- how many Murphy cards win, chosen in the lobby ---------- */
+const five = M.createInitialState(["Isi", "Benji"], seeded(7), rules, "5");
+ok(five.rules.winCards === 5 && M.createInitialState(["Isi", "Benji"], seeded(7), rules).rules.winCards === 3, "the lobby choice (5) wins over the card file (3)");
+ok(M.createInitialState(["Isi", "Benji"], seeded(7), rules, "99").rules.winCards === 3, "an impossible choice is ignored");
+const fiveDone = { ...five, phase: "finished", result: { winner: "Isi" } };
+ok(M.newGame(fiveDone, "Isi", seeded(8)).rules.winCards === 5, "a new game keeps the chosen 5");
+
 /* ---------- computer players ---------- */
 ok(Bots.murphy.play(fresh(), "Niemand") === null, "a bot never plays for anybody else");
 for (let game = 0; game < 12; game++) {

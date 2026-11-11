@@ -465,10 +465,18 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
   return recordMove(state, { type: "deal", round: state.round });
 }
 
-/* createInitialState(players, rand?, rules?) – rules from parseCards(), otherwise the device's */
-function createInitialState(players, rand = Math.random, rules = null) {
+/* createInitialState(players, rand?, rules?, winCards?) – rules from parseCards(), otherwise the device's;
+   winCards (chosen in the lobby) overrides how many fulfilled Murphy cards win */
+function createInitialState(players, rand = Math.random, rules = null, winCards = null) {
   if (!Array.isArray(players) || players.length < 2 || players.length > MAX_PLAYERS) throw new Error("Das Spiel braucht 2 bis 4 Personen.");
-  return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand, rules);
+  return newGameState(players, null, 1, Math.floor(rand() * players.length), 0, rand, withWinCards(rules || configuredRules, winCards));
+}
+
+const MAX_WIN_CARDS = 10;
+function withWinCards(rules, winCards) {
+  const n = Number(winCards);
+  if (!rules || !Number.isInteger(n) || n < 1 || n > MAX_WIN_CARDS) return rules;
+  return { ...rules, winCards: n };
 }
 
 function startTurn(state, person) {
@@ -1051,8 +1059,9 @@ function nextRound(state, person, rand = Math.random) {
 
 function newGame(state, person, rand = Math.random) {
   if (state.phase !== "finished") throw new Error("Die Partie läuft noch.");
-  /* a new game takes the cards as they are now in murphy-karten.json – otherwise those of the last game */
-  const rules = configuredRules || state.rules;
+  /* a new game takes the cards as they are now in murphy-karten.json – otherwise those of the last game –
+     and keeps the number of Murphy cards to win chosen in the lobby */
+  const rules = withWinCards(configuredRules || state.rules, state.rules.winCards);
   return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand, rules);
 }
 
