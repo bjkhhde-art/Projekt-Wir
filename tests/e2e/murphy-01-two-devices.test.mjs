@@ -147,7 +147,7 @@ ok(stolen.hands.Benji.length === benjiBefore - 1 && stolen.actionPile.includes("
 await until(async () => (await benji.locator("#mgEvent").textContent()).includes("Alle geben dir"), 4000, "Benji sees it");
 ok(true, "Benji sees what Isi played");
 
-/* Benji draws from the deck card by card and gives a drawn card straight back */
+/* Benji draws from the deck card by card; the drawn cards stay, he gives one he held before */
 await until(async () => (await benji.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Benji's turn again");
 await benji.click("#mgDeck");
 await until(async () => (await latest()).state.step === "give", 4000, "Benji drew one");
@@ -157,7 +157,8 @@ const drawnCard = one.trade.cards[0];
 await benji.click("#mgDeck");
 await until(async () => (await latest()).state.trade && (await latest()).state.trade.taken === 2, 4000, "Benji drew two");
 const twoDrawn = (await latest()).state;
-const giveBack = twoDrawn.trade.cards.find(c => /^[byg]\d+-\d+$/.test(c)) || twoDrawn.hands.Benji.find(c => /^[byg]\d+-\d+$/.test(c));
+/* house rule: the drawn cards stay – Benji gives one he held before */
+const giveBack = twoDrawn.hands.Benji.find(c => /^[byg]\d+-\d+$/.test(c) && !twoDrawn.trade.cards.includes(c));
 await benji.locator(`#mgOwn [data-card="${giveBack}"]`).click();
 await until(async () => await benji.locator(".mg-drop-right").count() === 1, 3000, "pile buttons");
 await benji.locator(".mg-drop-right").click();

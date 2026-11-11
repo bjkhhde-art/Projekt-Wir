@@ -100,8 +100,9 @@ throwsWith(() => M.takeOpen(s, "Benji", 0, 1), /Isi ist am Zug/, "only the one w
 let t = M.takeOpen(s, "Isi", 0, 2);
 ok(t.hands.Isi.includes("g6-0") && t.hands.Isi.includes("g5-0") && t.piles[0].length === 0 && t.step === "give" && t.trade.give === 1, "two from an open pile → give one");
 throwsWith(() => M.give(t, "Isi", ["b1-0", "b2-0"], [0, 0]), /genau eine/, "two for one means giving exactly one");
-t = M.give(t, "Isi", ["g6-0"], [1]);
-ok(t.piles[1].slice(-1)[0] === "g6-0" && t.turnPerson === "Benji" && t.step === "take", "a card just taken may go straight back; then it is Benji's turn");
+throwsWith(() => M.give(t, "Isi", ["g6-0"], [1]), /Gerade genommene/, "house rule: a card just taken may not go straight back");
+t = M.give(t, "Isi", ["b1-0"], [1]);
+ok(t.piles[1].slice(-1)[0] === "b1-0" && t.turnPerson === "Benji" && t.step === "take", "a card held before goes; then it is Benji's turn");
 t = M.takeBothOpen(table(hands, { piles: [["g5-0"], ["b10-0"]] }), "Isi");
 ok(t.hands.Isi.includes("g5-0") && t.hands.Isi.includes("b10-0") && t.trade.give === 1, "one from each open pile");
 t = M.takeOpen(table(hands, { piles: [["g5-0"], ["b10-0"]] }), "Isi", 1, 1);
@@ -123,16 +124,17 @@ throwsWith(() => M.trade(table(hands, { basar: ["b4-0"] }), "Isi", { from: "basa
 t = M.trade(table(hands, { piles: [["g5-0"], ["b10-0"]], deck: ["A.aussetzen.0", "y11-0"] }), "Isi", { from: "deck", count: 2 }, ["b1-0"], [0]);
 ok(t.hands.Isi.includes("b1-0") && t.trade === null, "trade from the deck: a blue card ends the turn, nothing is given");
 
-/* the hidden deck, card by card: see the card, draw another or give it straight back */
+/* the hidden deck, card by card: see the card, draw another – but drawn cards stay (house rule) */
 t = M.takeDeck(table(hands, { piles: [["g5-0"], ["b10-0"]], deck: ["y11-0", "g11-0"] }), "Isi", 1);
 ok(t.step === "give" && t.trade.taken === 1 && t.trade.give === 2 && t.hands.Isi.includes("y11-0"), "one card from the deck: Isi sees it, two to give");
-const back = M.give(t, "Isi", ["y11-0", "b1-0"], [0, 1]);
-ok(back.piles[0].slice(-1)[0] === "y11-0" && back.turnPerson === "Benji", "the card just drawn goes straight back onto a pile");
+throwsWith(() => M.give(t, "Isi", ["y11-0", "b1-0"], [0, 1]), /Gerade genommene/, "house rule: the card just drawn may not go straight back");
+const back = M.give(t, "Isi", ["b1-0", "b2-0"], [0, 1]);
+ok(back.piles[1].slice(-1)[0] === "b2-0" && back.hands.Isi.includes("y11-0") && back.turnPerson === "Benji", "two cards held before go, the drawn one stays");
 t = M.drawMore(t, "Isi");
 ok(t.trade.taken === 2 && t.trade.give === 1 && t.hands.Isi.includes("g11-0"), "a second tap: two drawn, one to give");
 throwsWith(() => M.drawMore(t, "Isi"), /nicht mehr ziehen/, "no third card");
 t = M.takeDeck(table({ Isi: ["b1-0"], Benji: ["y5-0"] }, { piles: [["g5-0"], ["b10-0"]], deck: ["y11-0", "g11-0"] }), "Isi", 1);
-throwsWith(() => M.give(t, "Isi", ["y11-0", "b1-0"], [0, 0]), /muss dir bleiben/, "with two number cards, giving two is not possible …");
+throwsWith(() => M.give(t, "Isi", ["y11-0", "b1-0"], [0, 0]), /Gerade genommene/, "with one old number card, giving two is not possible …");
 ok(M.give(M.drawMore(t, "Isi"), "Isi", ["b1-0"], [0]).turnPerson === "Benji", "… so Isi draws a second card and gives one");
 t = M.drawMore(M.takeDeck(table(hands, { piles: [["g5-0"], ["b10-0"]], deck: ["y11-0", "A.aussetzen.0"] }), "Isi", 1), "Isi");
 ok(t.trade === null && t.hands.Isi.includes("y11-0") && t.actionPile.includes("A.aussetzen.0"), "a blue card as the second card acts and ends the turn");

@@ -466,8 +466,9 @@ function murphyGap(M, state, bot, hand) {
 }
 
 /* the number cards to give away that leave the best hand (one number card always stays) */
-function murphyBestGive(M, state, bot, hand, count) {
-  const nums = hand.filter(M.isNumber);
+function murphyBestGive(M, state, bot, hand, count, locked = []) {
+  /* cards just taken in this trade may not be given back (house rule) */
+  const nums = hand.filter(c => M.isNumber(c) && !locked.includes(c));
   let best = null;
   const consider = combo => {
     const rest = hand.filter(c => !combo.includes(c));
@@ -493,7 +494,7 @@ function murphyDeckGuess(M, state, bot, count) {
       const card = pool[Math.floor(Math.random() * pool.length)];
       if (!picked.includes(card)) picked.push(card);
     }
-    const best = murphyBestGive(M, state, bot, [...state.hands[bot], ...picked], count === 1 ? 2 : 1);
+    const best = murphyBestGive(M, state, bot, [...state.hands[bot], ...picked], count === 1 ? 2 : 1, picked);
     total += best ? best.gap : 100;
   }
   return total / MURPHY_SAMPLES;
@@ -515,10 +516,11 @@ function murphyPlay(state, bot) {
   }
 
   if (state.step === "give") {
-    const best = murphyBestGive(M, state, bot, hand, state.trade.give);
+    const taken = state.trade.cards || [];
+    const best = murphyBestGive(M, state, bot, hand, state.trade.give, taken);
     /* one card from the deck and two can't be given without losing the last number card: draw a second one */
     if (!best && state.trade.from === "deck" && state.trade.taken === 1) return M.drawMore(state, bot);
-    const cards = best ? best.cards : hand.filter(M.isNumber).slice(0, state.trade.give);
+    const cards = best ? best.cards : hand.filter(c => M.isNumber(c) && !taken.includes(c)).slice(0, state.trade.give);
     const piles = cards.map((_, i) => (i + state.round) % 2);
     return M.give(state, bot, cards, piles);
   }
@@ -531,7 +533,7 @@ function murphyPlay(state, bot) {
 
   const known = [];
   const tryTake = (taken, run) => {
-    const best = murphyBestGive(M, state, bot, [...hand, ...taken], taken.length === 1 ? 2 : 1);
+    const best = murphyBestGive(M, state, bot, [...hand, ...taken], taken.length === 1 ? 2 : 1, taken);
     if (best) known.push({ gap: best.gap, run });
   };
   state.piles.forEach((pile, i) => {
