@@ -66,16 +66,6 @@
 
         <input id="imageInput" type="file" accept="image/*" multiple hidden>
 
-        <div id="uploadQueue" class="upload-queue hidden">
-          <div id="uploadPreviewList" class="upload-preview-list"></div>
-          <label>Beschriftung (optional, gilt für alle)</label>
-          <input id="captionInput" type="text" placeholder="z. B. Sonnenuntergang am Strand">
-          <div class="modal-buttons">
-            <button id="uploadImageBtn" class="btn">Hochladen</button>
-            <button id="clearQueueBtn" class="btn btn-secondary">Auswahl leeren</button>
-          </div>
-        </div>
-
         <p id="imageHint" class="image-hint hidden">Tipp: Bild lange gedrückt halten zum Bearbeiten</p>
         <div id="imageGrid" class="image-grid"></div>
       </section>
@@ -115,6 +105,20 @@
       <div class="modal-buttons">
         <button id="saveMemoryBtn" class="btn">Erinnerung erstellen</button>
         <button id="closeMemoryModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="uploadQueue" class="modal hidden">
+    <div class="modal-box upload-queue" role="dialog" aria-modal="true" aria-labelledby="uploadQueueTitle">
+      <h2 id="uploadQueueTitle">Bilder hochladen</h2>
+      <div id="uploadPreviewList" class="upload-preview-list"></div>
+      <button id="addMoreImagesBtn" class="btn btn-sm btn-secondary upload-add-more" type="button">＋ Weitere Bilder</button>
+      <label for="captionInput">Beschriftung (optional, gilt für alle)</label>
+      <input id="captionInput" type="text" maxlength="120" placeholder="z. B. Sonnenuntergang am Strand">
+      <div class="modal-buttons">
+        <button id="uploadImageBtn" class="btn" type="button">Hochladen</button>
+        <button id="clearQueueBtn" class="btn btn-secondary" type="button">Abbrechen</button>
       </div>
     </div>
   </div>

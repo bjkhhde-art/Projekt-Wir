@@ -50,6 +50,11 @@ await choose([
   { name: "zwei.png", mimeType: "image/png", buffer: png },
   { name: "drei.png", mimeType: "image/png", buffer: png }
 ]);
+ok(await page.locator("#captionInput").isVisible() && await page.locator("#captionInput").evaluate(el => {
+  const box = el.getBoundingClientRect();
+  return document.activeElement === el && box.top >= 0 && box.bottom <= innerHeight;
+}), "the chosen photos open a popup with the caption field ready – no scrolling up");
+await page.screenshot({ path: process.env.SHOT_PATH || "/dev/null" }).catch(() => {});
 await page.evaluate(() => { window.__mockUploadFailures = 1; });
 await page.click("#uploadImageBtn");
 await wait(1200);
