@@ -15,10 +15,10 @@
     "  wirkung (blau und grün): ziehen, alleZiehen, aussetzen, richtung, weitergeben, handtausch, handUndMurphyTausch, murphyTausch, murphyNeu, murphyWeiter, murphyOffen, klauen, alleKlauen, alleGeben, abgeben, ablegen (mit \"eineFarbe\": true nur eine Farbe)",
     "  wirkung (nur grün): paarAbgeben, alleAblegen, basarAuffuellen, fordern, nehmen (vom Stapel oder von Mac), doppelzug.  anzahl = wie viele Karten (bei ziehen, alleZiehen, weitergeben, klauen, abgeben, ablegen).",
     "  Grüne Karten: man wählt Ziel und Karten selbst. Blaue Karten mit Ziel: wer sie zieht, wählt die Person; Karten nehmen sie zufällig.",
-    "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true = die Bilder blau-1.webp … gruen-11.webp werden gezeigt. rueckseite: Dateiname des Rückseiten-Bilds (sonst gezeichnet)."
+    "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true = statt der gezeichneten Zahlenkarten die Fotos blau-1.webp … gruen-11.webp zeigen (bild bei Aktionskarten genauso). rueckseite: Dateiname des Rückseiten-Bilds (sonst gezeichnet)."
   ],
   "siegKarten": 3,
-  "zahlenBilder": true,
+  "zahlenBilder": false,
   "rueckseite": "rueckseite.webp",
   "murphy": [
     { "id": "m01", "text": "Sammle Karten einer Farbe, die zusammen nicht mehr als 29 ergeben. Du brauchst mindestens 5.", "bedingung": { "farben": 1, "anzahl": { "min": 5 }, "summe": { "max": 29 } } },
@@ -44,21 +44,21 @@
     { "id": "m21", "text": "Mindestens 4 Karten, die zusammen genau 21 ergeben.", "bedingung": { "summe": 21, "anzahl": { "min": 4 } } }
   ],
   "aktionen": [
-    {"id": "alle-klauen", "titel": "Von allen eine", "text": "Ziehe von jeder Person eine Handkarte.", "farbe": "blau", "wirkung": "alleKlauen", "stueck": 1, "bild": "aktion-alle-klauen.webp"},
-    {"id": "zieh-drei", "titel": "3 ziehen", "text": "Ziehe 3 Karten vom Nachziehstapel.", "farbe": "blau", "wirkung": "ziehen", "anzahl": 3, "stueck": 1, "bild": "aktion-zieh-drei.webp"},
-    {"id": "neue-aufgabe", "titel": "Neue Murphykarte", "text": "Ziehe eine neue Murphykarte und leg die alte ab.", "farbe": "blau", "wirkung": "murphyNeu", "stueck": 1, "bild": "aktion-neue-aufgabe.webp"},
-    {"id": "tausch-alles-blau", "titel": "Alles tauschen", "text": "Tausche deine Handkarten und deine Murphykarte mit einer Person.", "farbe": "blau", "wirkung": "handUndMurphyTausch", "stueck": 1, "bild": "aktion-tausch-alles-blau.webp"},
-    {"id": "murphy-offen", "titel": "Murphy offen", "text": "Lege deine Murphykarte offen auf den Tisch. (Sollte diese zu einem späteren Zeitpunkt getauscht werden, darf die Karte wieder verdeckt werden.)", "farbe": "blau", "wirkung": "murphyOffen", "stueck": 1, "bild": "aktion-murphy-offen.webp"},
-    {"id": "nimm-drei", "titel": "3 nehmen", "text": "Nimm 3 Karten von Mac oder dem Nachziehstapel.", "farbe": "gruen", "wirkung": "nehmen", "anzahl": 3, "stueck": 1, "bild": "aktion-nimm-drei.webp"},
-    {"id": "paar-abgeben", "titel": "Paar abgeben", "text": "Gib einer Person 2 gleiche Zahlenkarten aus deiner Hand (gleiche Zahl und gleiche Farbe).", "farbe": "gruen", "wirkung": "paarAbgeben", "stueck": 1, "bild": "aktion-paar-abgeben.webp"},
-    {"id": "ablegen-farbe", "titel": "Farbe ablegen", "text": "Lege bis zu 5 Zahlenkarten einer Farbe auf einen oder beide Ablagestapel.", "farbe": "gruen", "wirkung": "ablegen", "anzahl": 5, "eineFarbe": true, "stueck": 1, "bild": "aktion-ablegen-farbe.webp"},
-    {"id": "abgeben", "titel": "2 abgeben", "text": "Gib 2 Zahlenkarten aus deiner Hand an eine oder mehrere Personen.", "farbe": "gruen", "wirkung": "abgeben", "anzahl": 2, "stueck": 1, "bild": "aktion-abgeben.webp"},
-    {"id": "alle-geben", "titel": "Alle geben dir", "text": "Jede Person gibt dir eine der eigenen Handkarten.", "farbe": "gruen", "wirkung": "alleGeben", "stueck": 1, "bild": "aktion-alle-geben.webp"},
-    {"id": "alle-ablegen", "titel": "Alle legen ab", "text": "Beginnend bei der aktiven Person legen alle eine Zahlenkarte auf einen der Ablagestapel.", "farbe": "gruen", "wirkung": "alleAblegen", "stueck": 1, "bild": "aktion-alle-ablegen.webp"},
-    {"id": "alle-ziehen", "titel": "Alle ziehen", "text": "Beginnend bei der aktiven Person ziehen alle eine Karte vom verdeckten Stapel.", "farbe": "gruen", "wirkung": "alleZiehen", "anzahl": 1, "stueck": 1, "bild": "aktion-alle-ziehen.webp"},
-    {"id": "fordern", "titel": "Fordern", "text": "Fordere von einer Person eine bestimmte Zahlenkarte (z. B. eine blaue 5). Die Person hat sie nicht? Dumm gelaufen.", "farbe": "gruen", "wirkung": "fordern", "stueck": 1, "bild": "aktion-fordern.webp"},
-    {"id": "tausch-alles", "titel": "Alles tauschen", "text": "Tausche deine Handkarten und deine Murphykarte mit einer Person.", "farbe": "gruen", "wirkung": "handUndMurphyTausch", "stueck": 1, "bild": "aktion-tausch-alles.webp"},
-    {"id": "basar-auffuellen", "titel": "Mac auffüllen", "text": "Lege so viele Zahlenkarten bei Mac ab, dass er wieder 7 hat.", "farbe": "gruen", "wirkung": "basarAuffuellen", "stueck": 1, "bild": "aktion-basar-auffuellen.webp"},
-    {"id": "murphy-tausch", "titel": "Murphy tauschen", "text": "Tausche deine Murphykarte mit einer Person.", "farbe": "gruen", "wirkung": "murphyTausch", "stueck": 1, "bild": "aktion-murphy-tausch.webp"}
+    {"id": "alle-klauen", "titel": "Von allen eine", "text": "Ziehe von jeder Person eine Handkarte.", "farbe": "blau", "wirkung": "alleKlauen", "stueck": 1},
+    {"id": "zieh-drei", "titel": "3 ziehen", "text": "Ziehe 3 Karten vom Nachziehstapel.", "farbe": "blau", "wirkung": "ziehen", "anzahl": 3, "stueck": 1},
+    {"id": "neue-aufgabe", "titel": "Neue Murphykarte", "text": "Ziehe eine neue Murphykarte und leg die alte ab.", "farbe": "blau", "wirkung": "murphyNeu", "stueck": 1},
+    {"id": "tausch-alles-blau", "titel": "Alles tauschen", "text": "Tausche deine Handkarten und deine Murphykarte mit einer Person.", "farbe": "blau", "wirkung": "handUndMurphyTausch", "stueck": 1},
+    {"id": "murphy-offen", "titel": "Murphy offen", "text": "Lege deine Murphykarte offen auf den Tisch. (Sollte diese zu einem späteren Zeitpunkt getauscht werden, darf die Karte wieder verdeckt werden.)", "farbe": "blau", "wirkung": "murphyOffen", "stueck": 1},
+    {"id": "nimm-drei", "titel": "3 nehmen", "text": "Nimm 3 Karten von Mac oder dem Nachziehstapel.", "farbe": "gruen", "wirkung": "nehmen", "anzahl": 3, "stueck": 1},
+    {"id": "paar-abgeben", "titel": "Paar abgeben", "text": "Gib einer Person 2 gleiche Zahlenkarten aus deiner Hand (gleiche Zahl und gleiche Farbe).", "farbe": "gruen", "wirkung": "paarAbgeben", "stueck": 1},
+    {"id": "ablegen-farbe", "titel": "Farbe ablegen", "text": "Lege bis zu 5 Zahlenkarten einer Farbe auf einen oder beide Ablagestapel.", "farbe": "gruen", "wirkung": "ablegen", "anzahl": 5, "eineFarbe": true, "stueck": 1},
+    {"id": "abgeben", "titel": "2 abgeben", "text": "Gib 2 Zahlenkarten aus deiner Hand an eine oder mehrere Personen.", "farbe": "gruen", "wirkung": "abgeben", "anzahl": 2, "stueck": 1},
+    {"id": "alle-geben", "titel": "Alle geben dir", "text": "Jede Person gibt dir eine der eigenen Handkarten.", "farbe": "gruen", "wirkung": "alleGeben", "stueck": 1},
+    {"id": "alle-ablegen", "titel": "Alle legen ab", "text": "Beginnend bei der aktiven Person legen alle eine Zahlenkarte auf einen der Ablagestapel.", "farbe": "gruen", "wirkung": "alleAblegen", "stueck": 1},
+    {"id": "alle-ziehen", "titel": "Alle ziehen", "text": "Beginnend bei der aktiven Person ziehen alle eine Karte vom verdeckten Stapel.", "farbe": "gruen", "wirkung": "alleZiehen", "anzahl": 1, "stueck": 1},
+    {"id": "fordern", "titel": "Fordern", "text": "Fordere von einer Person eine bestimmte Zahlenkarte (z. B. eine blaue 5). Die Person hat sie nicht? Dumm gelaufen.", "farbe": "gruen", "wirkung": "fordern", "stueck": 1},
+    {"id": "tausch-alles", "titel": "Alles tauschen", "text": "Tausche deine Handkarten und deine Murphykarte mit einer Person.", "farbe": "gruen", "wirkung": "handUndMurphyTausch", "stueck": 1},
+    {"id": "basar-auffuellen", "titel": "Mac auffüllen", "text": "Lege so viele Zahlenkarten bei Mac ab, dass er wieder 7 hat.", "farbe": "gruen", "wirkung": "basarAuffuellen", "stueck": 1},
+    {"id": "murphy-tausch", "titel": "Murphy tauschen", "text": "Tausche deine Murphykarte mit einer Person.", "farbe": "gruen", "wirkung": "murphyTausch", "stueck": 1}
   ]
 }
