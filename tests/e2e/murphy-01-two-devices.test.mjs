@@ -147,6 +147,23 @@ ok(stolen.hands.Benji.length === benjiBefore - 1 && stolen.actionPile.includes("
 await until(async () => (await benji.locator("#mgEvent").textContent()).includes("Alle geben dir"), 4000, "Benji sees it");
 ok(true, "Benji sees what Isi played");
 
+/* Benji draws from the deck card by card and gives a drawn card straight back */
+await until(async () => (await benji.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Benji's turn again");
+await benji.click("#mgDeck");
+await until(async () => (await latest()).state.step === "give", 4000, "Benji drew one");
+const one = (await latest()).state;
+ok(one.trade.taken === 1 && one.trade.from === "deck", "a tap on the deck draws one card at once");
+const drawnCard = one.trade.cards[0];
+await benji.click("#mgDeck");
+await until(async () => (await latest()).state.trade && (await latest()).state.trade.taken === 2, 4000, "Benji drew two");
+const twoDrawn = (await latest()).state;
+const giveBack = twoDrawn.trade.cards.find(c => /^[byg]\d+-\d+$/.test(c)) || twoDrawn.hands.Benji.find(c => /^[byg]\d+-\d+$/.test(c));
+await benji.locator(`#mgOwn [data-card="${giveBack}"]`).click();
+await until(async () => await benji.locator(".mg-drop-right").count() === 1, 3000, "pile buttons");
+await benji.locator(".mg-drop-right").click();
+await until(async () => (await latest()).state.turnPerson === "Isi", 4000, "Benji gave");
+ok((await latest()).state.piles[1].slice(-1)[0] === giveBack, `second tap draws another; the chosen card (${giveBack}, drawn: ${drawnCard}) lands on the right pile`);
+
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 await browser.close();
 console.log(`\n${n} assertions passed (murphy: two devices)`);
