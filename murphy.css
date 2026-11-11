@@ -707,19 +707,65 @@ body:has(#mgBoard.mg-crowd:not(.hidden)) .page-subtitle {
   display: none;
 }
 
+/* the other players side by side in one row */
 .mg-crowd .mg-opps {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 6px;
 }
 
 .mg-crowd .mg-seat.mg-opp {
-  padding: 7px 10px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.mg-crowd .mg-opp .mg-seat-head {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.mg-crowd .mg-opp .mg-seat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.mg-crowd .mg-opp .mg-badge {
+  flex: none;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.mg-crowd .mg-opp-hand {
+  flex-wrap: nowrap;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mg-crowd .mg-opp-hand .mg-back + .mg-back {
+  margin-left: -8px;
+}
+
+.mg-crowd .mg-opp .mg-murphy.small {
+  margin: 0 0 4px;
+  padding: 4px 6px;
+}
+
+.mg-crowd .mg-opp .mg-murphy.small .mg-murphy-head {
+  display: none;
+}
+
+.mg-crowd .mg-opp .mg-murphy.small .mg-murphy-text {
+  font-size: 11px;
 }
 
 .mg-crowd .mg-score {
   /* the back arrow sits top left once the title is hidden */
   padding-left: 52px;
   justify-content: flex-start;
-  margin-bottom: 8px;
+  gap: 4px 6px;
+  margin-bottom: 6px;
   font-size: 12px;
 }
 
@@ -727,12 +773,105 @@ body:has(#mgBoard.mg-crowd:not(.hidden)) .page-subtitle {
   padding: 3px 8px;
 }
 
-.mg-crowd .mg-opps .mg-seat-head {
-  margin-bottom: 4px;
+/* table, Mac, messages and the own seat a size smaller */
+.mg-crowd .mg-table {
+  gap: 10px;
+  margin: 8px 0 4px;
 }
 
-.mg-crowd .mg-table {
-  margin: 8px 0 6px;
+.mg-crowd .mg-pile {
+  width: 46px;
+  height: 64px;
+}
+
+.mg-crowd .mg-pile .mg-card {
+  --w: 46px;
+}
+
+.mg-crowd .mg-pile .mg-card.mg-under {
+  --w: 24px;
+}
+
+.mg-crowd .mg-pile-count {
+  font-size: 10.5px;
+}
+
+.mg-crowd .mg-basar {
+  margin: 16px 0 8px;
+  padding: 14px 8px 8px;
+}
+
+.mg-crowd .mg-basar-head {
+  top: -12px;
+}
+
+.mg-crowd .mg-basar-head span {
+  font-size: 13px;
+}
+
+.mg-crowd .mg-basar-cards {
+  min-height: 0;
+  gap: 4px;
+  padding: 6px 4px;
+}
+
+.mg-crowd .mg-basar-cards .mg-card {
+  --w: 36px;
+}
+
+.mg-crowd .mg-event {
+  margin-bottom: 2px;
+  font-size: 12px;
+}
+
+.mg-crowd .mg-event .big {
+  font-size: 15px;
+}
+
+.mg-crowd .mg-status {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  min-height: 0;
+}
+
+.mg-crowd .mg-actions {
+  margin-bottom: 8px;
+}
+
+.mg-crowd .mg-own {
+  padding: 8px 10px;
+}
+
+.mg-crowd .mg-own .mg-seat-head {
+  margin-bottom: 6px;
+}
+
+.mg-crowd .mg-own .mg-sort {
+  padding: 2px 8px;
+}
+
+.mg-crowd .mg-murphy {
+  min-height: 0;
+  gap: 2px;
+  padding: 7px 10px 8px;
+}
+
+.mg-crowd .mg-murphy-head {
+  font-size: 10px;
+}
+
+.mg-crowd .mg-murphy-text {
+  font-size: 14px;
+}
+
+.mg-crowd .mg-hand {
+  gap: 7px 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.mg-crowd .mg-hand .mg-card {
+  --w: 38px;
 }
 
 .mg-wish {

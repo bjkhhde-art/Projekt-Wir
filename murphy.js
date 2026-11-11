@@ -421,7 +421,8 @@ function fillOpponent(el, state, person) {
   if (reveal) {
     sortedHand(state, hand).forEach(card => handEl.appendChild(cardEl(card, state, 22)));
   } else {
-    hand.forEach(() => handEl.appendChild(backEl(state, 18)));
+    const small = state.players.length >= 3;
+    hand.forEach(() => handEl.appendChild(backEl(state, small ? 13 : 18)));
   }
 }
 
@@ -564,7 +565,8 @@ function describe(e, state) {
 
 function renderEvents(state) {
   const events = (state.lastMove && state.lastMove.events) || [];
-  const lines = events.map(e => describe(e, state)).filter(Boolean).slice(-3);
+  /* with three or four players only the last two lines, so the table fits on one screen */
+  const lines = events.map(e => describe(e, state)).filter(Boolean).slice(state.players.length >= 3 ? -2 : -3);
   eventEl.innerHTML = lines.map(line => typeof line === "string"
     ? `<span>${escapeHtml(line)}</span>`
     : `<span class="big pop">${escapeHtml(line.text)}</span>`).join("");
