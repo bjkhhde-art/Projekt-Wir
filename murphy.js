@@ -117,9 +117,9 @@ function cardEl(card, state, width) {
     return el;
   }
   const action = M.actionOf(state, card);
-  el.className = `mg-card mg-act mg-act-${action ? action.colour : "rot"}`;
+  el.className = `mg-card mg-act mg-act-${action ? action.colour : "blau"}`;
   el.innerHTML = `<span class="mg-act-icon">${action && action.colour === "gruen" ? "🍀" : "⚡"}</span><span class="mg-act-title">${escapeHtml(action ? action.title : "Aktion")}</span>`;
-  el.setAttribute("aria-label", `${action && action.colour === "gruen" ? "Grüne" : "Rote"} Aktionskarte ${action ? action.title : ""}`);
+  el.setAttribute("aria-label", `${action && action.colour === "gruen" ? "Grüne" : "Blaue"} Aktionskarte ${action ? action.title : ""}`);
   if (action && action.text) el.title = action.text;
   if (action && action.image) {
     el.classList.add("has-img");
@@ -286,7 +286,9 @@ function renderTable(state) {
       el.setAttribute("role", "button");
       el.tabIndex = 0;
       el.setAttribute("aria-pressed", String(basarSel.has(card)));
-      const pick = () => toggle(basarSel, card, 2);
+      const green = selectedGreen(state)[0];
+      const many = green && M.actionOf(state, green).effect === "nehmen" ? M.actionOf(state, green).amount : 2;
+      const pick = () => toggle(basarSel, card, many);
       el.addEventListener("click", pick);
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
     }
@@ -341,6 +343,10 @@ function fillOpponent(el, state, person) {
       <span class="mg-seat-info">${numbers} Zahlen${hand.length > numbers ? ` · ${hand.length - numbers} Aktion` : ""}</span>
     </div>
     <div class="mg-opp-row"><div class="mg-opp-hand"></div></div>`;
+  if (state.phase === "play" && state.murphyOpen && state.murphyOpen[person] && state.murphy[person]) {
+    /* laid open with "Murphy offen" – everybody can read it */
+    el.appendChild(murphyEl(state, state.murphy[person], true));
+  }
   const handEl = el.querySelector(".mg-opp-hand");
   const reveal = state.phase !== "play" && state.lastRound && state.lastRound.winner === person;
   if (reveal) {
@@ -441,6 +447,18 @@ function describe(e, state) {
       const aim = e.target ? ` → ${nameFor(e.target)}` : "";
       return { big: true, text: `${e.red ? "⚡" : "🍀"} ${mine ? "Du" : who}: ${action ? action.title : "Aktion"}${aim}` };
     }
+    case "choose-target":
+      return mine ? `⚡ ${M.cardLabel(e.card, state)}: Wähle, wen sie trifft.` : `${who} wählt, wen ${M.cardLabel(e.card, state)} trifft …`;
+    case "to-basar":
+      return `${mine ? "Du legst" : `${who} legt`} ${cardsText(e.cards, state)} zu Mac.`;
+    case "wish": {
+      const [, colour, value] = /^([byg])(\d+)$/.exec(e.wish) || [];
+      const wish = `${M.COLOUR_NAMES[colour] || ""} ${value || ""}`.trim();
+      const from = e.target === me() ? "dir" : nameFor(e.target);
+      return e.got
+        ? `${mine ? "Du forderst" : `${who} fordert`} ${wish} von ${from} – ${e.target === me() ? "du hast" : "hat"} sie!`
+        : { big: true, text: `${mine ? "Du forderst" : `${who} fordert`} ${wish} von ${from} – nicht da. Dumm gelaufen!` };
+    }
     case "aside":
       return `${mine ? "Du ziehst" : `${who} zieht`} ${M.cardLabel(e.card, state)} – sie wirkt hier nicht und kommt weg.`;
     case "swap-green":
@@ -524,6 +542,10 @@ function renderControls(state) {
     renderGive(state);
     return;
   }
+  if (state.step === "target") {
+    renderTarget(state);
+    return;
+  }
   renderTake(state);
 }
 
@@ -567,6 +589,21 @@ function renderTake(state) {
   }
 }
 
+/* a blue card drawn from the deck hits somebody – the one who drew it chooses who */
+function renderTarget(state) {
+  const card = state.pending && state.pending.card;
+  const action = card ? M.actionOf(state, card) : null;
+  statusEl.textContent = action ? `⚡ ${action.title}: ${action.text} Wen trifft es?` : "Wen trifft es?";
+  const row = document.createElement("div");
+  row.className = "mg-targets";
+  state.players.filter(p => p !== me()).forEach(p => row.appendChild(button(p, () => room.dispatch(M.chooseTarget, p), "mg-target-pick")));
+  actionsEl.appendChild(row);
+}
+
+const COLOUR_CHOICES = [["b", "Blau"], ["g", "Grün"], ["y", "Gelb"]];
+let wishColour = "b";
+let wishValue = 5;
+
 function renderGreen(state, card) {
   const action = M.actionOf(state, card);
   const spec = M.EFFECTS[action.effect];
@@ -574,6 +611,13 @@ function renderGreen(state, card) {
   const box = document.createElement("div");
   box.className = "mg-green";
   const others = state.players.filter(p => p !== me());
+  const play = opts => {
+    if (spec.target && !target) {
+      showToast("Wähle zuerst eine Person.", "error");
+      return;
+    }
+    room.dispatch(M.playAction, card, { target, cards: selectedNumbers(), ...opts });
+  };
   if (spec.target) {
     if (others.length === 1) target = others[0];
     const row = document.createElement("div");
@@ -588,16 +632,40 @@ function renderGreen(state, card) {
   if (spec.choose) {
     const hint = document.createElement("p");
     hint.className = "mg-hint";
-    hint.textContent = `Wähle dazu 1 bis ${action.amount} Zahlenkarten (gewählt: ${selectedNumbers().length}).`;
+    hint.textContent = `${M.chooseRule(state, me(), action).text} Karten auf der Hand antippen (gewählt: ${selectedNumbers().length}).`;
     box.appendChild(hint);
   }
-  box.appendChild(button("Ausspielen 🍀", () => {
-    if (spec.target && !target) {
-      showToast("Wähle zuerst eine Person.", "error");
-      return;
-    }
-    room.dispatch(M.playAction, card, { target, cards: selectedNumbers() });
-  }, "mg-play"));
+  if (spec.wish) {
+    /* which card to ask for: colour and number */
+    const row = document.createElement("div");
+    row.className = "mg-wish";
+    const colour = document.createElement("select");
+    colour.className = "mg-wish-colour";
+    colour.setAttribute("aria-label", "Farbe");
+    colour.innerHTML = COLOUR_CHOICES.map(([v, l]) => `<option value="${v}"${v === wishColour ? " selected" : ""}>${l}</option>`).join("");
+    colour.addEventListener("change", () => { wishColour = colour.value; });
+    const value = document.createElement("select");
+    value.className = "mg-wish-value";
+    value.setAttribute("aria-label", "Zahl");
+    value.innerHTML = Array.from({ length: M.MAX_VALUE }, (_, i) => `<option value="${i + 1}"${i + 1 === wishValue ? " selected" : ""}>${i + 1}</option>`).join("");
+    value.addEventListener("change", () => { wishValue = Number(value.value); });
+    row.append(colour, value);
+    box.appendChild(row);
+  }
+  if (spec.source) {
+    const hint = document.createElement("p");
+    hint.className = "mg-hint";
+    const need = Math.min(action.amount, state.basar.length);
+    hint.textContent = `Für den Basar ${need} Karten dort antippen (gewählt: ${basarSel.size}).`;
+    box.appendChild(hint);
+    box.appendChild(button(`${action.amount} vom Stapel 🍀`, () => play({ source: "deck" }), "mg-play mg-play-deck"));
+    box.appendChild(button("Aus dem Basar 🍀", () => play({ source: "basar", cards: [...basarSel] }), "mg-play mg-play-basar"));
+  } else if (spec.pile) {
+    box.appendChild(button("Auf den linken Stapel 🍀", () => play({ pile: 0 }), "mg-play mg-play-left"));
+    box.appendChild(button("Auf den rechten Stapel 🍀", () => play({ pile: 1 }), "mg-play mg-play-right"));
+  } else {
+    box.appendChild(button("Ausspielen 🍀", () => play(spec.wish ? { wish: `${wishColour}${wishValue}` } : {}), "mg-play"));
+  }
   box.appendChild(button("Doch nicht", () => { selected.delete(card); renderLocal(); }, "btn-secondary"));
   actionsEl.appendChild(box);
 }

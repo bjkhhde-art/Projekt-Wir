@@ -88,12 +88,12 @@ async function stage(build) {
 }
 await stage({
   turn: "Isi",
-  hands: { Isi: ["b7-0", "g7-0", "y7-0", "b1-0", "b2-0", "A.klauen.0"], Benji: ["y5-0", "y6-0", "g3-0", "b9-0"] },
+  hands: { Isi: ["b7-0", "g7-0", "y7-0", "b1-0", "b2-0", "A.alle-geben.0"], Benji: ["y5-0", "y6-0", "g3-0", "b9-0"] },
   basar: ["b4-0", "b5-0", "b6-0", "g4-0", "g5-0", "g6-0"],
   piles: [["b7-1"], ["y3-0"]],
   murphy: { Isi: "m02", Benji: "m03" }
 });
-await until(async () => await isi.locator('#mgOwn [data-card="A.klauen.0"]').count() === 1 && await isi.locator('#mgPile0 [data-card="b7-1"]').count() === 1, 5000, "stacked state");
+await until(async () => await isi.locator('#mgOwn [data-card="A.alle-geben.0"]').count() === 1 && await isi.locator('#mgPile0 [data-card="b7-1"]').count() === 1, 5000, "stacked state");
 await until(async () => (await benji.locator("#mgStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#mgStatus").textContent()).includes("Du bist dran"), "Isi is asked to take first");
 ok((await isi.locator("#mgOwn .mg-murphy-text").textContent()).includes("4 Karten mit derselben Zahl"), "her task: four of the same number");
@@ -139,14 +139,14 @@ ok(afterBasar.basar.includes("b9-0") && afterBasar.basar.length === 5 && afterBa
 /* Isi plays her green card instead of a trade */
 await until(async () => (await isi.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Isi's turn on her phone");
 ok((await isi.locator("#mgActions").textContent()).includes("grüne Aktionskarte"), "Isi is told she may play a green card");
-await isi.locator('#mgOwn [data-card="A.klauen.0"]').click();
-ok((await isi.locator("#mgStatus").textContent()).includes("Klauen"), "the chosen green card explains itself");
+await isi.locator('#mgOwn [data-card="A.alle-geben.0"]').click();
+ok((await isi.locator("#mgStatus").textContent()).includes("Jede Person gibt dir"), "the chosen green card explains itself");
 const benjiBefore = afterBasar.hands.Benji.length;
 await isi.locator(".mg-play").click();
 await until(async () => (await latest()).state.turnPerson === "Benji", 4000, "played");
 const stolen = (await latest()).state;
-ok(stolen.hands.Benji.length === benjiBefore - 1 && stolen.actionPile.includes("A.klauen.0"), "Klauen: Benji lost a card, the green card is on the action pile");
-await until(async () => (await benji.locator("#mgEvent").textContent()).includes("Klauen"), 4000, "Benji sees it");
+ok(stolen.hands.Benji.length === benjiBefore - 1 && stolen.actionPile.includes("A.alle-geben.0"), "Alle geben dir: Benji gave Isi a card, the green card is on the action pile");
+await until(async () => (await benji.locator("#mgEvent").textContent()).includes("Alle geben dir"), 4000, "Benji sees it");
 ok(true, "Benji sees what Isi played");
 
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));

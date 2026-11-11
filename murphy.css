@@ -100,7 +100,7 @@
   text-align: center;
 }
 
-.mg-act-rot { --ink: #c62a3b; background: linear-gradient(165deg, #fff4f4, #ffc9cf); }
+.mg-act-blau { --ink: #2f6db3; background: linear-gradient(165deg, #f4f8ff, #c9dcff); }
 .mg-act-gruen { --ink: #16794a; background: linear-gradient(165deg, #f3fff7, #bfeccf); }
 
 .mg-act-icon {
@@ -675,4 +675,26 @@ body:has(#mgBoard.mg-crowd:not(.hidden)) .page-subtitle {
 
 .mg-crowd .mg-table {
   margin: 8px 0 6px;
+}
+
+.mg-wish {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.mg-wish select {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.mg-opp .mg-murphy.small {
+  margin: 0 0 8px;
 }

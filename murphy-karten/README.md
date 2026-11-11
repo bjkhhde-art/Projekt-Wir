@@ -47,20 +47,25 @@ Die Bilder sind schon da: `blau-1.webp` … `blau-11.webp`, `gruen-1.webp` … `
 | `murphy-m20.webp` | m20 | Nur noch eine einzige Karte: eine 11. |
 | `murphy-m21.webp` | m21 | Mindestens 4 Karten, die zusammen genau 21 ergeben. |
 
-## Aktionskarten (vorgeschlagene Dateinamen)
+## Aktionskarten (alle mit Bild)
 
-| Datei | id | Farbe | Titel |
+| Datei | id | Farbe | Text |
 |---|---|---|---|
-| `aktion-zieh-zwei.webp` | zieh-zwei | rot | Zieh zwei (2×) |
-| `aktion-alle-ziehen.webp` | alle-ziehen | rot | Alle ziehen (1×) |
-| `aktion-weitergeben.webp` | weitergeben | rot | Weitergeben (2×) |
-| `aktion-tausch-zwang.webp` | tausch-zwang | rot | Zwangstausch (1×) |
-| `aktion-murphy-weiter.webp` | murphy-weiter | rot | Aufgaben weiter (1×) |
-| `aktion-aussetzen.webp` | aussetzen | rot | Aussetzen (1×) |
-| `aktion-richtung.webp` | richtung | rot | Richtungswechsel (1×) |
-| `aktion-neue-aufgabe.webp` | neue-aufgabe | gruen | Neue Aufgabe (2×) |
-| `aktion-klauen.webp` | klauen | gruen | Klauen (2×) |
-| `aktion-abgeben.webp` | abgeben | gruen | Abgeben (1×) |
-| `aktion-ablegen.webp` | ablegen | gruen | Ablegen (1×) |
-| `aktion-doppelzug.webp` | doppelzug | gruen | Doppelt tauschen (1×) |
-| `aktion-tausch-wahl.webp` | tausch-wahl | gruen | Handtausch (1×) |
+| `aktion-alle-klauen.webp` | alle-klauen | blau (sofort) | Ziehe von jeder Person eine Handkarte. |
+| `aktion-zieh-drei.webp` | zieh-drei | blau (sofort) | Ziehe 3 Karten vom Nachziehstapel. |
+| `aktion-neue-aufgabe.webp` | neue-aufgabe | blau (sofort) | Ziehe eine neue Murphykarte und leg die alte ab. |
+| `aktion-tausch-alles-blau.webp` | tausch-alles-blau | blau (sofort) | Tausche deine Handkarten und deine Murphykarte mit einer Person. |
+| `aktion-murphy-offen.webp` | murphy-offen | blau (sofort) | Lege deine Murphykarte offen auf den Tisch. (Sollte diese zu einem späteren Zeitpunkt getauscht werden, darf die Karte wieder verdeckt werden.) |
+| `aktion-nimm-drei.webp` | nimm-drei | grün (sammeln) | Nimm 3 Karten von Mac oder dem Nachziehstapel. |
+| `aktion-paar-abgeben.webp` | paar-abgeben | grün (sammeln) | Gib einer Person 2 gleiche Zahlenkarten aus deiner Hand (gleiche Zahl und gleiche Farbe). |
+| `aktion-ablegen-farbe.webp` | ablegen-farbe | grün (sammeln) | Lege bis zu 5 Zahlenkarten einer Farbe auf einen oder beide Ablagestapel. |
+| `aktion-abgeben.webp` | abgeben | grün (sammeln) | Gib 2 Zahlenkarten aus deiner Hand an eine oder mehrere Personen. |
+| `aktion-alle-geben.webp` | alle-geben | grün (sammeln) | Jede Person gibt dir eine der eigenen Handkarten. |
+| `aktion-alle-ablegen.webp` | alle-ablegen | grün (sammeln) | Beginnend bei der aktiven Person legen alle eine Zahlenkarte auf einen der Ablagestapel. |
+| `aktion-alle-ziehen.webp` | alle-ziehen | grün (sammeln) | Beginnend bei der aktiven Person ziehen alle eine Karte vom verdeckten Stapel. |
+| `aktion-fordern.webp` | fordern | grün (sammeln) | Fordere von einer Person eine bestimmte Zahlenkarte (z. B. eine blaue 5). Die Person hat sie nicht? Dumm gelaufen. |
+| `aktion-tausch-alles.webp` | tausch-alles | grün (sammeln) | Tausche deine Handkarten und deine Murphykarte mit einer Person. |
+| `aktion-basar-auffuellen.webp` | basar-auffuellen | grün (sammeln) | Lege so viele Zahlenkarten bei Mac ab, dass er wieder 7 hat. |
+| `aktion-murphy-tausch.webp` | murphy-tausch | grün (sammeln) | Tausche deine Murphykarte mit einer Person. |
+
+Die Rückseite ist `rueckseite.webp`.

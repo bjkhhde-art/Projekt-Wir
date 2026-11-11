@@ -508,6 +508,12 @@ function murphyPlay(state, bot) {
   if (!state.players.includes(bot) || state.phase !== "play" || state.turnPerson !== bot) return null;
   const hand = state.hands[bot];
 
+  /* a blue card drawn hits somebody: the bot picks the one with the fewest cards */
+  if (state.step === "target") {
+    const others = state.players.filter(p => p !== bot).sort((a, b) => state.hands[a].length - state.hands[b].length);
+    return M.chooseTarget(state, bot, others[0]);
+  }
+
   if (state.step === "give") {
     const best = murphyBestGive(M, state, bot, hand, state.trade.give);
     const cards = best ? best.cards : hand.filter(M.isNumber).slice(0, state.trade.give);

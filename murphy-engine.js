@@ -55,7 +55,8 @@ function actionOf(state, card) {
   return id ? state.rules.actions.find(a => a.id === id) || null : null;
 }
 
-const isRed = (state, card) => Boolean(actionOf(state, card) && actionOf(state, card).colour === "rot");
+/* blue action cards act at once when drawn ("sofort"), green ones are collected and played instead of a trade */
+const isInstant = (state, card) => Boolean(actionOf(state, card) && actionOf(state, card).colour === "blau");
 const isGreen = (state, card) => Boolean(actionOf(state, card) && actionOf(state, card).colour === "gruen");
 
 function murphyOf(state, id) {
@@ -158,6 +159,9 @@ function fulfils(check, cards) {
 
 /* ---------- murphy-karten.json ---------- */
 
+/* what an action card can do. target: hits one person (chosen; for a blue card with more than two players the
+   one who drew it chooses), choose: the player picks number cards, pile: onto an open pile, greenOnly: needs a choice
+   that a blue card drawn from the deck cannot make */
 const EFFECTS = {
   ziehen: { amount: 2 },
   alleZiehen: { amount: 1 },
@@ -165,11 +169,21 @@ const EFFECTS = {
   richtung: {},
   weitergeben: { amount: 1 },
   handtausch: { target: true },
+  handUndMurphyTausch: { target: true },
+  murphyTausch: { target: true },
   murphyNeu: {},
   murphyWeiter: {},
+  murphyOffen: {},
   klauen: { amount: 1, target: true },
+  alleKlauen: {},
+  alleGeben: {},
   abgeben: { amount: 2, target: true, choose: true },
-  ablegen: { amount: 2, choose: true },
+  paarAbgeben: { target: true, choose: true, greenOnly: true },
+  ablegen: { amount: 2, choose: true, pile: true },
+  alleAblegen: { choose: true, pile: true, greenOnly: true },
+  basarAuffuellen: { choose: true, greenOnly: true },
+  fordern: { target: true, wish: true, greenOnly: true },
+  nehmen: { amount: 3, source: true, greenOnly: true },
   doppelzug: { greenOnly: true }
 };
 const ID_PATTERN = /^[a-z0-9-]{1,30}$/;
@@ -260,8 +274,9 @@ function parseCards(json) {
     const id = parseId(a.id, where, actionIds);
     const effect = EFFECTS[a.wirkung];
     if (!effect) throw new Error(`${where}: „wirkung“ muss eins davon sein: ${Object.keys(EFFECTS).join(", ")}.`);
-    const colour = a.farbe === "grün" ? "gruen" : a.farbe;
-    if (colour !== "rot" && colour !== "gruen") throw new Error(`${where}: „farbe“ muss „rot“ oder „gruen“ sein.`);
+    /* "rot" is still understood for blue: older card files called the instant cards red */
+    const colour = a.farbe === "grün" ? "gruen" : a.farbe === "rot" ? "blau" : a.farbe;
+    if (colour !== "blau" && colour !== "gruen") throw new Error(`${where}: „farbe“ muss „blau“ (sofort) oder „gruen“ (sammeln) sein.`);
     if (effect.greenOnly && colour !== "gruen") throw new Error(`${where}: „${a.wirkung}“ geht nur als grüne Karte.`);
     const copies = a.stueck === undefined ? 1 : a.stueck;
     if (!Number.isInteger(copies) || copies < 1 || copies > 10) throw new Error(`${where}: „stueck“ muss von 1 bis 10 gehen.`);
@@ -278,6 +293,7 @@ function parseCards(json) {
       if (!Number.isInteger(amount) || amount < 1 || amount > 5) throw new Error(`${where}: „anzahl“ muss von 1 bis 5 gehen.`);
       card.amount = amount;
     }
+    if (a.eineFarbe === true) card.sameColour = true;
     const image = cleanImage(a.bild);
     if (image) card.image = image;
     return card;
@@ -362,7 +378,7 @@ function drawInto(state, person, count, rand, why) {
   for (let tries = 0; got.length < count && tries < 200; tries++) {
     const card = drawCard(state, rand);
     if (!card) break;
-    if (isRed(state, card)) {
+    if (isInstant(state, card)) {
       state.actionPile.push(card);
       event(state, { type: "aside", person, card });
       continue;
@@ -425,6 +441,8 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
     events: []
   };
   state.murphy = perPlayer(players, () => dealMurphy(state, rand));
+  /* a Murphy card laid open on the table ("Lege deine Murphykarte offen …") – hidden again once it changes */
+  state.murphyOpen = perPlayer(players, () => false);
 
   /* the one after the dealer gets 8 cards, the next 9, and so on; red action cards are put aside and replaced */
   const n = players.length;
@@ -433,7 +451,7 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
     const size = FIRST_HAND + k - 1;
     while (state.hands[person].length < size) {
       const card = drawCard(state, rand);
-      if (isRed(state, card)) state.actionPile.push(card);
+      if (isInstant(state, card)) state.actionPile.push(card);
       else state.hands[person].push(card);
     }
   }
@@ -467,6 +485,8 @@ function assertTurn(state, person, step) {
   if (!state.players.includes(person)) throw new Error("Du spielst in dieser Runde nicht mit.");
   if (state.phase !== "play") throw new Error("Die Runde ist vorbei.");
   if (state.turnPerson !== person) throw new Error(`${state.turnPerson} ist am Zug.`);
+  if (state.step === "target" && step !== "target") throw new Error("Wähle zuerst, wen die Aktionskarte trifft.");
+  if (step === "target" && state.step !== "target") throw new Error("Gerade ist keine Person zu wählen.");
   if (step === "take" && state.step !== "take") throw new Error("Gib zuerst deine Karten ab.");
   if (step === "give" && state.step !== "give") throw new Error("Nimm zuerst Karten.");
 }
@@ -494,14 +514,13 @@ function takeDeck(state, person, count, rand = Math.random) {
     drawn.push(card);
   }
   if (drawn.length < count) throw new Error("Im Stapel sind nicht mehr genug Karten.");
-  const reds = drawn.filter(c => isRed(next, c));
-  const kept = drawn.filter(c => !isRed(next, c));
+  const reds = drawn.filter(c => isInstant(next, c));
+  const kept = drawn.filter(c => !isInstant(next, c));
   next.hands[person].push(...kept);
   event(next, { type: "take", person, from: "deck", cards: kept, count });
 
   if (reds.length) {
-    reds.forEach(card => playEffect(next, person, card, {}, rand));
-    finishTurn(next, person, rand);
+    resolveInstant(next, person, reds, rand);
     return recordMove(next, { type: "take", person });
   }
   /* only green action cards came and the hand would run out of numbers: swap them for new cards */
@@ -516,9 +535,8 @@ function takeDeck(state, person, count, rand = Math.random) {
     const card = drawCard(next, rand);
     if (!card) break;
     event(next, { type: "swap-green", person, card: green });
-    if (isRed(next, card)) {
-      playEffect(next, person, card, {}, rand);
-      finishTurn(next, person, rand);
+    if (isInstant(next, card)) {
+      resolveInstant(next, person, [card], rand);
       return recordMove(next, { type: "take", person });
     }
     next.hands[person].push(card);
@@ -610,15 +628,34 @@ function playAction(state, person, card, opts = {}, rand = Math.random) {
   if (state.actionPlayed || state.tradesLeft > 1) throw new Error("In diesem Zug wurde schon eine Aktionskarte gespielt.");
   const action = actionOf(state, card);
   const spec = EFFECTS[action.effect];
+  opts = { ...opts };
   if (spec.target) {
-    if (!opts.target && state.players.length === 2) opts = { ...opts, target: state.players.find(p => p !== person) };
+    if (!opts.target && state.players.length === 2) opts.target = state.players.find(p => p !== person);
     if (!state.players.includes(opts.target) || opts.target === person) throw new Error("Wähle eine andere Person.");
   }
   if (spec.choose) {
     const chosen = Array.from(new Set(opts.cards || []));
-    if (chosen.length < 1 || chosen.length > action.amount) throw new Error(`Wähle 1 bis ${action.amount} Zahlenkarten.`);
     chosen.forEach(c => { if (!state.hands[person].includes(c) || !isNumber(c)) throw new Error("Wähle Zahlenkarten von deiner Hand."); });
-    if (numberCount(state, person) - chosen.length < 1) throw new Error("Eine Zahlenkarte muss dir bleiben.");
+    const { min, max, text } = chooseRule(state, person, action);
+    if (chosen.length < min || chosen.length > max) throw new Error(text);
+    if (chosen.length && numberCount(state, person) - chosen.length < 1) throw new Error("Eine Zahlenkarte muss dir bleiben.");
+    if (action.effect === "paarAbgeben" && chosen[0].split("-")[0] !== chosen[1].split("-")[0]) throw new Error("Die zwei Karten müssen gleich sein – gleiche Zahl und gleiche Farbe.");
+    if (action.sameColour && new Set(chosen.map(colourOf)).size > 1) throw new Error("Alle Karten müssen dieselbe Farbe haben.");
+    opts.cards = chosen;
+  }
+  if (spec.pile && opts.pile !== 0 && opts.pile !== 1) opts.pile = 0;
+  if (spec.wish) {
+    const m = /^([byg])(\d+)$/.exec(opts.wish || "");
+    if (!m || Number(m[2]) < 1 || Number(m[2]) > MAX_VALUE) throw new Error("Wähle Farbe und Zahl der Karte, die du forderst.");
+  }
+  if (spec.source) {
+    if (opts.source !== "basar" && opts.source !== "deck") throw new Error("Wähle: vom Stapel oder vom Basar.");
+    if (opts.source === "basar") {
+      const chosen = Array.from(new Set(opts.cards || []));
+      const need = Math.min(action.amount, state.basar.length);
+      if (chosen.length !== need || chosen.some(c => !state.basar.includes(c))) throw new Error(`Wähle ${need} ${need === 1 ? "Karte" : "Karten"} aus dem Basar.`);
+      opts.cards = chosen;
+    }
   }
   const next = begin(state);
   next.hands[person].splice(next.hands[person].indexOf(card), 1);
@@ -632,11 +669,87 @@ function playAction(state, person, card, opts = {}, rand = Math.random) {
   return recordMove(next, { type: "action", person });
 }
 
-/* what an action card does. Red cards hit the next person and random cards, green ones the choice in opts. */
+/* how many number cards a green card wants chosen (one number card always stays in hand) */
+function chooseRule(state, person, action) {
+  const spare = Math.max(0, numberCount(state, person) - 1);
+  switch (action.effect) {
+    case "paarAbgeben":
+      return { min: 2, max: 2, text: "Wähle 2 gleiche Zahlenkarten (gleiche Zahl und gleiche Farbe)." };
+    case "alleAblegen": {
+      const n = Math.min(1, spare);
+      return { min: n, max: n, text: "Wähle eine Zahlenkarte zum Ablegen." };
+    }
+    case "basarAuffuellen": {
+      const n = Math.min(Math.max(0, BASAR_SIZE - state.basar.length), spare);
+      return { min: n, max: n, text: n === 1 ? "Wähle genau 1 Zahlenkarte für den Basar." : `Wähle genau ${n} Zahlenkarten für den Basar.` };
+    }
+    case "abgeben": {
+      const n = Math.min(action.amount, spare);
+      return { min: n, max: n, text: n === 1 ? "Wähle 1 Zahlenkarte zum Abgeben." : `Wähle ${n} Zahlenkarten zum Abgeben.` };
+    }
+    default:
+      return { min: 1, max: action.amount, text: `Wähle 1 bis ${action.amount} Zahlenkarten.` };
+  }
+}
+
+/* the number card a player is happiest to let go of: the one that leaves the hand closest to the own Murphy card */
+function worstNumber(state, person) {
+  const hand = state.hands[person];
+  const nums = numbersIn(hand);
+  if (nums.length <= 1) return null;
+  const check = murphyCheck(state, person);
+  let best = null;
+  let bestGap = Infinity;
+  nums.forEach(card => {
+    const gap = check ? taskDistance(check, hand.filter(c => c !== card)) : -valueOf(card);
+    if (gap < bestGap) { best = card; bestGap = gap; }
+  });
+  return best;
+}
+
+function setMurphy(state, person, id) {
+  state.murphy[person] = id;
+  if (state.murphyOpen) state.murphyOpen[person] = false;
+}
+
+/* blue cards drawn from the deck act one after the other; one that hits a chosen person waits for the choice */
+function resolveInstant(state, person, cards, rand) {
+  const queue = cards.slice();
+  while (queue.length) {
+    const card = queue.shift();
+    if (EFFECTS[actionOf(state, card).effect].target && state.players.length > 2) {
+      state.step = "target";
+      state.trade = null;
+      state.pending = { card, queue };
+      event(state, { type: "choose-target", person, card });
+      return;
+    }
+    playEffect(state, person, card, {}, rand);
+  }
+  state.pending = null;
+  finishTurn(state, person, rand);
+}
+
+/* who a blue card drawn from the deck hits, when it is up to the one who drew it */
+function chooseTarget(state, person, target, rand = Math.random) {
+  assertTurn(state, person, "target");
+  if (!state.players.includes(target) || target === person) throw new Error("Wähle eine andere Person.");
+  const next = begin(state);
+  const { card, queue } = next.pending;
+  next.pending = null;
+  next.step = null;
+  playEffect(next, person, card, { target }, rand);
+  resolveInstant(next, person, queue, rand);
+  return recordMove(next, { type: "target", person });
+}
+
+/* what an action card does. Blue cards drawn from the deck pick random cards (and, with two players, the other one);
+   green ones do what was chosen in opts. */
 function playEffect(state, person, card, opts, rand) {
   const action = actionOf(state, card);
-  const red = action.colour === "rot";
-  const target = red ? nextOf(state, person) : opts.target;
+  const red = action.colour === "blau";
+  const others = state.players.filter(p => p !== person);
+  const target = opts.target || (red ? (others.length === 1 ? others[0] : nextOf(state, person)) : null);
   state.actionPile.push(card);
   event(state, { type: "action", person, card, red, target: EFFECTS[action.effect].target ? target : null });
   switch (action.effect) {
@@ -665,15 +778,99 @@ function playEffect(state, person, card, opts, rand) {
       state.hands[target] = [...state.hands[target].filter(c => !isNumber(c)), ...mine];
       break;
     }
+    case "handUndMurphyTausch": {
+      const mine = state.hands[person];
+      state.hands[person] = state.hands[target];
+      state.hands[target] = mine;
+      const myMurphy = state.murphy[person];
+      setMurphy(state, person, state.murphy[target]);
+      setMurphy(state, target, myMurphy);
+      break;
+    }
+    case "murphyTausch": {
+      const myMurphy = state.murphy[person];
+      setMurphy(state, person, state.murphy[target]);
+      setMurphy(state, target, myMurphy);
+      break;
+    }
     case "murphyNeu": {
       const old = state.murphy[person];
       if (old) state.murphyBack.push(old);
-      state.murphy[person] = dealMurphy(state, rand);
+      setMurphy(state, person, dealMurphy(state, rand));
       break;
     }
     case "murphyWeiter": {
       const before = { ...state.murphy };
-      state.players.forEach(p => { state.murphy[nextOf(state, p)] = before[p]; });
+      state.players.forEach(p => setMurphy(state, nextOf(state, p), before[p]));
+      break;
+    }
+    case "murphyOffen":
+      if (state.murphyOpen) state.murphyOpen[person] = true;
+      break;
+    case "alleKlauen":
+      /* from every other person one card of their hand, unseen */
+      others.forEach(p => {
+        const hand = state.hands[p];
+        if (!hand.length) return;
+        const got = hand.splice(Math.floor(rand() * hand.length), 1);
+        state.hands[person].push(...got);
+        event(state, { type: "stolen", person, target: p, cards: got });
+      });
+      break;
+    case "alleGeben":
+      /* everybody hands over the card they need least */
+      others.forEach(p => {
+        const card = worstNumber(state, p) || state.hands[p].find(c => isAction(c));
+        if (!card) return;
+        state.hands[p].splice(state.hands[p].indexOf(card), 1);
+        state.hands[person].push(card);
+        event(state, { type: "gift", person: p, target: person, cards: [card] });
+      });
+      break;
+    case "alleAblegen": {
+      /* starting with the active person, everybody lays one number card on a discard pile */
+      const pile = opts.pile === 1 ? 1 : 0;
+      const order = [person];
+      for (let p = nextOf(state, person); p !== person; p = nextOf(state, p)) order.push(p);
+      order.forEach(p => {
+        const card = p === person ? (opts.cards || [])[0] : worstNumber(state, p);
+        if (!card) return;
+        state.hands[p].splice(state.hands[p].indexOf(card), 1);
+        state.piles[pile].push(card);
+        event(state, { type: "dropped", person: p, cards: [card], pile });
+      });
+      break;
+    }
+    case "paarAbgeben": {
+      opts.cards.forEach(c => state.hands[person].splice(state.hands[person].indexOf(c), 1));
+      state.hands[target].push(...opts.cards);
+      event(state, { type: "gift", person, target, cards: opts.cards.slice() });
+      break;
+    }
+    case "basarAuffuellen": {
+      (opts.cards || []).forEach(c => state.hands[person].splice(state.hands[person].indexOf(c), 1));
+      state.basar.push(...(opts.cards || []));
+      event(state, { type: "to-basar", person, cards: (opts.cards || []).slice() });
+      break;
+    }
+    case "fordern": {
+      const wish = opts.wish;
+      const card = state.hands[target].find(c => isNumber(c) && c.split("-")[0] === wish);
+      if (card) {
+        state.hands[target].splice(state.hands[target].indexOf(card), 1);
+        state.hands[person].push(card);
+      }
+      event(state, { type: "wish", person, target, wish, got: Boolean(card) });
+      break;
+    }
+    case "nehmen": {
+      if (opts.source === "basar") {
+        state.basar = state.basar.filter(c => !opts.cards.includes(c));
+        state.hands[person].push(...opts.cards);
+        event(state, { type: "take", person, from: "basar", cards: opts.cards.slice() });
+      } else {
+        drawInto(state, person, action.amount, rand, "action");
+      }
       break;
     }
     case "klauen": {
@@ -685,8 +882,12 @@ function playEffect(state, person, card, opts, rand) {
     case "abgeben": {
       const cards = red ? takeRandomNumbers(state, person, action.amount, rand) : opts.cards.slice();
       if (!red) cards.forEach(c => state.hands[person].splice(state.hands[person].indexOf(c), 1));
-      state.hands[target].push(...cards);
-      event(state, { type: "gift", person, target, cards });
+      /* "an eine oder mehrere Personen": opts.targets[i] for card i, otherwise all to the target */
+      cards.forEach((c, i) => {
+        const to = opts.targets && others.includes(opts.targets[i]) ? opts.targets[i] : target;
+        state.hands[to].push(c);
+        event(state, { type: "gift", person, target: to, cards: [c] });
+      });
       break;
     }
     case "ablegen": {
@@ -758,6 +959,7 @@ function winRound(state, winner) {
   state.lastRound = { round: state.round, winner, card, cards: state.hands[winner].slice(), missed: { ...state.murphy } };
   delete state.lastRound.missed[winner];
   state.murphy = perPlayer(state.players, () => null);
+  state.murphyOpen = perPlayer(state.players, () => false);
   state.turnPerson = null;
   state.step = null;
   state.trade = null;
@@ -794,11 +996,13 @@ function newGame(state, person, rand = Math.random) {
   return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand, rules);
 }
 
-/* every card is somewhere: deck, open piles, played actions, Basar or a hand */
+/* every card is somewhere: deck, open piles, played actions, Basar, a hand or waiting to act */
 function countCards(state) {
   const hands = state.players.reduce((sum, p) => sum + state.hands[p].length, 0);
   const piles = state.piles.reduce((sum, pile) => sum + pile.length, 0);
-  return state.deck.length + piles + state.actionPile.length + state.basar.length + hands;
+  /* a blue card waiting for its target (and any drawn with it) is in between */
+  const pending = state.pending ? 1 + state.pending.queue.length : 0;
+  return state.deck.length + piles + state.actionPile.length + state.basar.length + hands + pending;
 }
 
 function totalCards(rules) {
@@ -820,7 +1024,10 @@ return {
   useRules,
   isAction,
   isNumber,
-  isRed,
+  isInstant,
+  chooseTarget,
+  chooseRule,
+  worstNumber,
   isGreen,
   colourOf,
   valueOf,

@@ -3,7 +3,10 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const M = require("../../murphy-engine.js");
 const Bots = require("../../game-bots.js");
-const json = require("../../murphy-karten.json");
+const real = require("../../murphy-karten.json");
+/* the rules of the effects are tested with a fixed list of action cards (the first placeholders), so these tests
+   stay the same when the card file changes; the real cards are tested further down */
+const json = { ...real, aktionen: require("../fixtures/murphy-aktionen-alt.json") };
 
 let assertions = 0;
 function ok(cond, msg) { assert.ok(cond, msg); assertions++; console.log("PASS:", msg); }
@@ -19,12 +22,12 @@ function seeded(seed) {
   };
 }
 const rules = M.parseCards(json);
-const fresh = (players = ["Isi", "Benji"], seed = 1) => M.createInitialState(players, seeded(seed), rules);
+const fresh = (players = ["Isi", "Benji"], seed = 1, r = rules) => M.createInitialState(players, seeded(seed), r);
 /* a hand-made table: Isi is to take; deck lists cards in the order they will be drawn */
-function table(hands, extra = {}) {
-  const s = fresh(Object.keys(hands));
+function table(hands, extra = {}, r = rules) {
+  const s = fresh(Object.keys(hands), 1, r);
   const placed = new Set([...Object.values(hands).flat(), ...(extra.deck || []), ...(extra.basar || []), ...(extra.piles || []).flat()]);
-  const rest = [...M.numberCards(), ...M.actionCards(rules)].filter(c => !placed.has(c));
+  const rest = [...M.numberCards(), ...M.actionCards(r)].filter(c => !placed.has(c));
   s.hands = JSON.parse(JSON.stringify(hands));
   s.basar = extra.basar || [];
   s.piles = extra.piles || [[], []];
@@ -45,15 +48,19 @@ ok(numbers.length === 72 && new Set(numbers).size === 72, "72 different number c
 ok(["b", "y", "g"].every(c => numbers.filter(n => M.colourOf(n) === c).length === 24), "24 per colour");
 ok(numbers.filter(n => M.valueOf(n) === 2).length === 3 && numbers.filter(n => M.valueOf(n) === 5).length === 6 && numbers.filter(n => M.valueOf(n) === 9).length === 9,
   "1–3 once, 4–6 twice, 7–11 three times per colour");
-ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the card file has 17 action cards and 21 Murphy cards");
-ok(rules.actions.filter(a => a.colour === "rot").reduce((s, a) => s + a.copies, 0) === 9, "9 red action cards, 8 green ones");
+ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the test cards: 17 action cards and 21 Murphy cards");
+ok(rules.actions.filter(a => a.colour === "blau").reduce((s, a) => s + a.copies, 0) === 9, "9 blue (instant) action cards, 8 green ones");
+const realRules = M.parseCards(real);
+ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.image), "the card file: 5 blue and 11 green action cards, each with its picture");
+ok(realRules.backImage === "rueckseite.webp" && realRules.numberImages, "the back and the number cards have pictures");
+ok(M.parseCards({ ...real, aktionen: [{ id: "alt", farbe: "rot", wirkung: "ziehen" }] }).actions[0].colour === "blau", "an older file with \"rot\" still works: red means blue (instant)");
 
 /* ---------- murphy-karten.json ---------- */
 const withMurphy = list => ({ ...json, murphy: list });
 throwsWith(() => M.parseCards(withMurphy([...json.murphy, { id: "m01", text: "doppelt" }])), /zweimal/, "a Murphy id twice is refused");
 throwsWith(() => M.parseCards(withMurphy([{ id: "x1", text: "t", bedingung: { quatsch: 1 } }, ...json.murphy])), /quatsch/, "an unknown condition says which word it does not know");
 throwsWith(() => M.parseCards(withMurphy([{ id: "x1", text: "t", bedingung: { farbe: "lila" } }, ...json.murphy])), /blau/, "an unknown colour is refused");
-throwsWith(() => M.parseCards({ ...json, aktionen: [{ id: "a", farbe: "rot", wirkung: "doppelzug" }] }), /nur als grüne/, "doppelzug only as a green card");
+throwsWith(() => M.parseCards({ ...json, aktionen: [{ id: "a", farbe: "blau", wirkung: "doppelzug" }] }), /nur als grüne/, "doppelzug only as a green card");
 throwsWith(() => M.parseCards({ ...json, aktionen: [{ id: "a", farbe: "rot", wirkung: "fliegen" }] }), /wirkung/, "an unknown effect is refused");
 const fewer = M.parseCards(withMurphy(json.murphy.map((m, i) => (i < 3 ? { ...m, aktiv: false } : m))));
 ok(fewer.murphy.length === 18 && !fewer.murphy.some(m => m.id === "m01"), "\"aktiv\": false takes a Murphy card out without deleting it");
@@ -80,7 +87,7 @@ const total = M.totalCards(rules);
 ok(M.countCards(s0) === total, "every card is somewhere after the deal");
 const sizes = [1, 2, 3].map(k => s0.hands[s0.players[(s0.dealer + k) % 3]].length);
 ok(sizes[0] === 8 && sizes[1] === 9 && sizes[2] === 10, `8, 9, 10 cards from the dealer's left (${sizes})`);
-ok(s0.players.every(p => s0.hands[p].every(c => !M.isRed(s0, c))), "no red action card stays in a hand");
+ok(s0.players.every(p => s0.hands[p].every(c => !M.isInstant(s0, c))), "no blue action card stays in a hand");
 ok(s0.basar.length === 7 && s0.basar.every(M.isNumber) && s0.piles.every(p => p.length === 1 && M.isNumber(p[0])), "Basar of 7 and two open piles, numbers only");
 ok(s0.players.every(p => s0.murphy[p]) && new Set(Object.values(s0.murphy)).size === 3, "everybody has their own Murphy card");
 ok(s0.turnPerson === s0.players[(s0.dealer + 1) % 3] && s0.step === "take", "the one after the dealer begins by taking");
@@ -179,11 +186,60 @@ ok(again.phase === "play" && again.gameNo === 2 && again.wins.Isi === 1 && again
 const manual = { ...done, rules: added, murphy: { ...done.murphy, Benji: "neu-1" } };
 ok(M.claimMurphy(manual, "Benji").lastRound.winner === "Benji", "a card without condition is claimed with 'Erfüllt!'");
 
+
+/* ---------- the real action cards ---------- */
+const R = realRules;
+const three = { Isi: ["b1-0", "b2-0", "b3-0", "g9-0"], Benji: ["y5-0", "y6-0", "g3-0"], Lea: ["g1-0", "g2-0", "A.fordern.0"] };
+const real3 = (hands, extra = {}) => table(JSON.parse(JSON.stringify(hands)), { piles: [["g5-0"], ["b10-0"]], ...extra }, R);
+let q = real3(three, { deck: ["A.tausch-alles-blau.0", "b11-0"], murphy: { Isi: "m01", Benji: "m03", Lea: "m04" } });
+q = M.takeDeck(q, "Isi", 2);
+ok(q.step === "target" && q.turnPerson === "Isi" && M.countCards(q) === M.totalCards(R), "blue 'Alles tauschen' with three players: Isi first chooses who");
+throwsWith(() => M.takeDeck(q, "Isi", 2), /wen die Aktionskarte trifft/, "nothing else until the choice is made");
+q = M.chooseTarget(q, "Isi", "Lea");
+ok(q.hands.Lea.includes("b1-0") && q.hands.Lea.includes("b11-0") && q.hands.Isi.includes("A.fordern.0") && q.murphy.Isi === "m04" && q.murphy.Lea === "m01", "hands and Murphy cards change places with Lea");
+ok(q.turnPerson === "Benji" && q.step === "take", "then the turn is over");
+q = M.takeDeck(real3(three, { deck: ["A.murphy-offen.0", "b11-0"], murphy: { Isi: "m01", Benji: "m03", Lea: "m04" } }), "Isi", 2);
+ok(q.murphyOpen.Isi === true, "Murphy offen: Isi's task lies open");
+const swapped = M.playAction({ ...q, turnPerson: "Lea", step: "take", hands: { ...q.hands, Lea: [...q.hands.Lea, "A.murphy-tausch.0"] } }, "Lea", "A.murphy-tausch.0", { target: "Isi" });
+ok(swapped.murphy.Lea === "m01" && swapped.murphyOpen.Lea === false && swapped.murphyOpen.Isi === false, "once swapped, the card is hidden again");
+q = M.takeDeck(real3(three, { deck: ["A.alle-klauen.0", "b11-0"] }), "Isi", 2);
+ok(q.hands.Benji.length === 2 && q.hands.Lea.length === 2 && q.hands.Isi.length === 7, "Von allen eine: one card from Benji and one from Lea");
+q = M.takeDeck(real3(three, { deck: ["A.zieh-drei.0", "b11-0", "y11-0", "g11-0", "b8-0"] }), "Isi", 2);
+ok(q.hands.Isi.length === 8 && q.hands.Isi.includes("y11-0"), "3 ziehen: three more cards from the deck (4 + the other drawn card + 3)");
+
+const two = { Isi: ["b4-0", "b4-1", "b7-0", "b8-0", "y2-0"], Benji: ["y5-0", "g5-0", "b9-0"] };
+const real2 = (card, extra = {}) => real3({ Isi: [...two.Isi, card], Benji: two.Benji.slice() }, extra);
+q = real2("A.paar-abgeben.0");
+throwsWith(() => M.playAction(q, "Isi", "A.paar-abgeben.0", { cards: ["b7-0", "b8-0"] }), /gleich/, "Paar abgeben: the two cards must be the same");
+q = M.playAction(q, "Isi", "A.paar-abgeben.0", { cards: ["b4-0", "b4-1"] });
+ok(q.hands.Benji.includes("b4-0") && q.hands.Benji.includes("b4-1"), "Paar abgeben: two Blau 4 to Benji");
+q = real2("A.ablegen-farbe.0");
+throwsWith(() => M.playAction(q, "Isi", "A.ablegen-farbe.0", { cards: ["b7-0", "y2-0"] }), /dieselbe Farbe/, "Farbe ablegen: only one colour");
+q = M.playAction(q, "Isi", "A.ablegen-farbe.0", { cards: ["b4-0", "b7-0", "b8-0"], pile: 1 });
+ok(q.piles[1].slice(-3).join() === "b4-0,b7-0,b8-0", "Farbe ablegen: three blue cards onto the right pile");
+q = M.playAction(real2("A.alle-geben.0", { murphy: { Isi: "m01", Benji: "m16" } }), "Isi", "A.alle-geben.0", {});
+ok(q.hands.Benji.length === 2 && q.hands.Benji.includes("b9-0") && !q.hands.Isi.includes("b9-0"), "Alle geben dir: Benji (only blue) keeps his Blau 9 and gives a card he does not need");
+q = M.playAction(real2("A.alle-ablegen.0"), "Isi", "A.alle-ablegen.0", { cards: ["y2-0"], pile: 0 });
+ok(q.piles[0].length === 3 && q.piles[0][1] === "y2-0" && q.hands.Benji.length === 2, "Alle legen ab: Isi first, then Benji, onto the chosen pile");
+q = M.playAction(real2("A.fordern.0"), "Isi", "A.fordern.0", { wish: "g5" });
+ok(q.hands.Isi.includes("g5-0") && q.lastMove.events.some(e => e.type === "wish" && e.got), "Fordern: Benji has the Grün 5 and must give it");
+q = M.playAction(real2("A.fordern.0"), "Isi", "A.fordern.0", { wish: "g6" });
+ok(q.hands.Benji.length === 3 && q.lastMove.events.some(e => e.type === "wish" && !e.got), "Fordern: no Grün 6 – dumm gelaufen");
+q = real2("A.basar-auffuellen.0", { basar: ["g7-0", "g8-0", "g10-0", "y7-0"] });
+throwsWith(() => M.playAction(q, "Isi", "A.basar-auffuellen.0", { cards: ["b7-0"] }), /genau 3/, "Mac auffüllen: exactly as many as Mac is missing");
+q = M.playAction(q, "Isi", "A.basar-auffuellen.0", { cards: ["b7-0", "b8-0", "y2-0"] });
+ok(q.basar.length === 7, "Mac auffüllen: Mac has 7 again");
+q = real2("A.nimm-drei.0", { basar: ["g7-0", "g8-0", "g10-0", "y7-0"] });
+q = M.playAction(q, "Isi", "A.nimm-drei.0", { source: "basar", cards: ["g7-0", "g8-0", "y7-0"] });
+ok(q.basar.join() === "g10-0" && q.hands.Isi.includes("y7-0"), "3 nehmen: three from Mac");
+q = M.playAction(real2("A.abgeben.0"), "Isi", "A.abgeben.0", { cards: ["b7-0", "b8-0"] });
+ok(q.hands.Benji.includes("b7-0") && q.hands.Benji.includes("b8-0"), "2 abgeben: two cards to Benji");
+
 /* ---------- computer players ---------- */
 ok(Bots.murphy.play(fresh(), "Niemand") === null, "a bot never plays for anybody else");
 for (let game = 0; game < 12; game++) {
   const players = game % 3 === 0 ? ["Udiou", "Klausi"] : game % 3 === 1 ? ["Udiou", "Klausi", "Isi"] : ["Udiou", "Klausi", "Isi", "Benji"];
-  let st = M.createInitialState(players, seeded(100 + game), rules);
+  let st = M.createInitialState(players, seeded(100 + game), game % 2 ? rules : realRules);
   const count = M.countCards(st);
   let moves = 0;
   while (st.phase !== "finished" && moves < 4000) {
