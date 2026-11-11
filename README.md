@@ -9,7 +9,7 @@ Gemeinsame Couple-App (installierbar, mit Login, Push-Benachrichtigungen und Dar
 - 💌 **Briefe** – Kurznachrichten als Umschläge, zum Öffnen antippen & hochwischen
 - 🎬 **Watchlist** – Filme und Serien mit Filter, Gesehen-Status und Serienfortschritt
 - 🍰 **Mochi** – gemeinsames Haustier mit Pflege, Shop, Garten, Minispielen, Wünschen und Nachrichten
-- 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10 und Geo-Guesser, live auf zwei Handys; Freunde per
+- 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10, Murphys Gesetz und Geo-Guesser, live auf zwei Handys; Freunde per
   Einladungslink und die Computer-Spieler Udiou und Klausi können mitspielen; Emoji-Reaktionen
 - 💬 **Gesprächsfragen** – über 5.000 Fragen nach Kategorie
 - 📊 **Chat-Wrapped** – WhatsApp-Export hochladen: Statistiken, Awards, Wortwolke, Zitate, „Wer hat's
@@ -38,6 +38,8 @@ Buttons, Modals, Toasts) und werden von jeder Seite eingebunden.
 
 - `supabase-client.js` ist die eine Verbindung zu Supabase (`supabaseClient`). Jede Seite lädt sie direkt
   nach supabase-js, die Seitenskripte benutzen nur noch `supabaseClient`.
+- Murphys Gesetz: Murphy- und Aktionskarten stehen in `murphy-karten.json` (hinzufügen, entnehmen oder mit
+  `"aktiv": false` parken; Anleitung oben in der Datei), die Kartenbilder in `murphy-karten/`.
 - Spiele: Regeln in `*-engine.js`, Lobby/Sync/Gäste in `game-room.js`, Animationen in `game-anim.js`
   (`GameAnim.moveTracker()` merkt sich, welcher Zug schon animiert wurde), Computer-Spieler in `game-bots.js`.
 - Mochi ist in Teile aufgeteilt, die nacheinander geladen werden und sich einen Scope teilen:

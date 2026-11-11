@@ -1,0 +1,649 @@
+/* Murphys Gesetz for 2–4 players. Lobby, invites, bots, moves and live sync come from game-room.js.
+   The Murphy and action cards come from murphy-karten.json, their pictures from murphy-karten/. */
+const M = MurphyEngine;
+
+const boardEl = document.getElementById("mgBoard");
+const scoreEl = document.getElementById("mgScore");
+const oppsEl = document.getElementById("mgOpps");
+const ownEl = document.getElementById("mgOwn");
+const deckEl = document.getElementById("mgDeck");
+const deckCount = document.getElementById("mgDeckCount");
+const pileEls = [document.getElementById("mgPile0"), document.getElementById("mgPile1")];
+const pileCounts = [document.getElementById("mgPile0Count"), document.getElementById("mgPile1Count")];
+const actionPileEl = document.getElementById("mgActionPile");
+const basarEl = document.getElementById("mgBasar");
+const basarCount = document.getElementById("mgBasarCount");
+const eventEl = document.getElementById("mgEvent");
+const statusEl = document.getElementById("mgStatus");
+const actionsEl = document.getElementById("mgActions");
+
+const CARD_DIR = "murphy-karten";
+const COLOUR_FILES = { r: "rot", y: "gelb", g: "gruen" };
+const SORT_KEY = "mg_sort";
+
+let currentState = null;
+let cheeredGame = null;
+let lastSeq = null;
+let takeCount = 2;
+let target = null;
+const selected = new Set();
+const basarSel = new Set();
+let sortBy = readSort();
+const seatEls = new Map();
+
+function readSort() {
+  try {
+    return localStorage.getItem(SORT_KEY) === "colour" ? "colour" : "value";
+  } catch (error) {
+    return "value";
+  }
+}
+
+function storeSort(value) {
+  try {
+    localStorage.setItem(SORT_KEY, value);
+  } catch (error) {
+    /* then only for this visit */
+  }
+}
+
+const room = GameRoom.create({
+  table: "murphy_games",
+  bot: GameBots.murphy,
+  title: "Murphys Gesetz",
+  icon: "🍞",
+  url: "murphy.html",
+  lobbyEl: document.getElementById("mgLobby"),
+  boardEl,
+  leaveBtn: document.getElementById("mgLeaveBtn"),
+  createState: players => M.createInitialState(players),
+  isFinished: state => state.phase === "finished",
+  renderBoard
+});
+
+const me = () => room.person;
+const nameFor = person => (person === me() ? "Du" : person);
+const seated = state => state.players.includes(me());
+
+/* the rules list: every Murphy card that is in the game */
+function showRulesList(rules) {
+  document.getElementById("mgRulesWin").textContent = String(rules.winCards);
+  document.getElementById("mgRulesList").innerHTML = rules.murphy.map(m => `<li>${escapeHtml(m.text)}</li>`).join("");
+}
+
+/* the cards for new games come from murphy-karten.json (editable on GitHub); the game starts once they are there */
+fetch("murphy-karten.json", { cache: "no-cache" })
+  .then(response => (response.ok ? response.json() : Promise.reject(new Error(`murphy-karten.json: ${response.status}`))))
+  .then(json => {
+    const rules = M.parseCards(json);
+    M.useRules(rules);
+    if (!currentState) showRulesList(rules);
+  })
+  .catch(error => {
+    console.warn("murphy-karten.json wird nicht benutzt:", error.message);
+    showToast(`murphy-karten.json: ${error.message}`, "error");
+  })
+  .finally(() => room.start());
+
+/* ---------- cards ---------- */
+
+function imageEl(src) {
+  const img = document.createElement("img");
+  img.src = `${CARD_DIR}/${src}`;
+  img.alt = "";
+  img.draggable = false;
+  /* a picture that is not uploaded yet: the drawn card underneath stays visible */
+  img.addEventListener("error", () => img.remove());
+  return img;
+}
+
+function cardEl(card, state, width) {
+  const el = document.createElement("div");
+  if (width) el.style.setProperty("--w", `${width}px`);
+  el.dataset.card = card;
+  if (M.isNumber(card)) {
+    const colour = M.colourOf(card);
+    const value = M.valueOf(card);
+    el.className = `mg-card mg-c-${colour}`;
+    el.innerHTML = `<span class="mg-corner">${value}</span><span class="mg-v">${value}</span>`;
+    el.setAttribute("aria-label", M.cardLabel(card));
+    if (state.rules.numberImages) el.appendChild(imageEl(`${COLOUR_FILES[colour]}-${value}.png`));
+    return el;
+  }
+  const action = M.actionOf(state, card);
+  el.className = `mg-card mg-act mg-act-${action ? action.colour : "rot"}`;
+  el.innerHTML = `<span class="mg-act-icon">${action && action.colour === "gruen" ? "🍀" : "⚡"}</span><span class="mg-act-title">${escapeHtml(action ? action.title : "Aktion")}</span>`;
+  el.setAttribute("aria-label", `${action && action.colour === "gruen" ? "Grüne" : "Rote"} Aktionskarte ${action ? action.title : ""}`);
+  if (action && action.text) el.title = action.text;
+  if (action && action.image) el.appendChild(imageEl(action.image));
+  return el;
+}
+
+function backEl(state, width) {
+  const el = document.createElement("div");
+  el.className = "mg-card mg-back";
+  if (width) el.style.setProperty("--w", `${width}px`);
+  el.innerHTML = `<span class="mg-v">🍞</span>`;
+  el.setAttribute("aria-label", "Verdeckte Karte");
+  if (state.rules.numberImages) el.appendChild(imageEl("rueckseite.png"));
+  return el;
+}
+
+function murphyEl(state, id, small) {
+  const card = M.murphyOf(state, id);
+  const el = document.createElement("div");
+  el.className = `mg-murphy${small ? " small" : ""}`;
+  if (!card) {
+    el.classList.add("empty");
+    el.textContent = "keine Murphy-Karte";
+    return el;
+  }
+  el.innerHTML = `<span class="mg-murphy-head">Murphy-Karte</span><span class="mg-murphy-text">${escapeHtml(card.text)}</span>`;
+  if (card.image) el.appendChild(imageEl(card.image));
+  return el;
+}
+
+function sortedHand(state, hand) {
+  const rank = card => (M.isNumber(card) ? 0 : M.isGreen(state, card) ? 1 : 2);
+  const colourIndex = card => M.COLOURS.indexOf(M.colourOf(card));
+  return hand.slice().sort((a, b) => rank(a) - rank(b)
+    || (sortBy === "colour" ? colourIndex(a) - colourIndex(b) || M.valueOf(a) - M.valueOf(b) : M.valueOf(a) - M.valueOf(b) || colourIndex(a) - colourIndex(b))
+    || a.localeCompare(b));
+}
+
+/* ---------- what I may do right now ---------- */
+
+const myTurn = state => state.phase === "play" && state.turnPerson === me();
+const taking = state => myTurn(state) && state.step === "take";
+const giving = state => myTurn(state) && state.step === "give";
+const selectedNumbers = () => [...selected].filter(M.isNumber);
+const selectedGreen = state => [...selected].filter(c => M.isGreen(state, c));
+
+function pruneSelection(state) {
+  if (state.phase !== "play" || !seated(state)) {
+    selected.clear();
+    basarSel.clear();
+    return;
+  }
+  const hand = state.hands[me()];
+  [...selected].forEach(card => { if (!hand.includes(card)) selected.delete(card); });
+  [...basarSel].forEach(card => { if (!state.basar.includes(card) || !taking(state)) basarSel.delete(card); });
+  if (target && (!state.players.includes(target) || target === me())) target = null;
+}
+
+function toggle(set, card, limit) {
+  if (set.has(card)) set.delete(card);
+  else {
+    if (limit && set.size >= limit) set.delete(set.values().next().value);
+    set.add(card);
+  }
+  renderLocal();
+}
+
+/* a tap that only changes the selection: redraw without anything else */
+function renderLocal() {
+  if (!currentState) return;
+  renderTable(currentState);
+  renderSeats(currentState);
+  renderControls(currentState);
+}
+
+/* the cards I just got are marked in my hand until my next move */
+function freshCards(state) {
+  if (!state.lastMove || !seated(state)) return new Set();
+  const mine = (state.lastMove.events || []).filter(e => e.person === me() && (e.type === "take" || e.type === "draw" || e.type === "stolen"));
+  const got = new Set(mine.flatMap(e => e.cards || []));
+  (state.lastMove.events || []).forEach(e => {
+    if ((e.type === "gift" && e.target === me())) e.cards.forEach(c => got.add(c));
+  });
+  return got;
+}
+
+/* ---------- board ---------- */
+
+function renderBoard(game) {
+  const state = game.state;
+  const fresh = state.lastMove && state.lastMove.seq !== lastSeq;
+  lastSeq = state.lastMove ? state.lastMove.seq : null;
+  currentState = state;
+  if (fresh) {
+    basarSel.clear();
+    if (!giving(state)) selected.clear();
+  }
+  showRulesList(state.rules);
+  pruneSelection(state);
+  boardEl.classList.toggle("mg-crowd", state.players.length >= 3);
+  boardEl.classList.toggle("mg-over", state.phase !== "play");
+  renderScore(state);
+  renderTable(state);
+  renderSeats(state);
+  renderEvents(state);
+  renderControls(state);
+  if (fresh) shakeHit(state);
+}
+
+function renderScore(state) {
+  const chips = state.players.map(p => {
+    const won = state.won[p].length;
+    return `<span class="mg-chip${p === me() ? " me" : ""}">${escapeHtml(nameFor(p))} <strong>${"🍞".repeat(won) || "–"}</strong><small>${won}/${state.rules.winCards}</small></span>`;
+  }).join("");
+  const wins = state.players.some(p => state.wins[p] > 0)
+    ? `<span class="mg-chip">Siege: ${state.players.map(p => `${escapeHtml(nameFor(p))} ${state.wins[p] || 0}`).join(" · ")}</span>`
+    : "";
+  scoreEl.innerHTML = `<span class="mg-chip">Runde <strong>${state.round}</strong></span>${chips}${wins}`;
+}
+
+function renderTable(state) {
+  const take = taking(state);
+  const atStack = giving(state) && state.trade.at === "stapel";
+  deckEl.innerHTML = "";
+  if (state.deck.length) deckEl.appendChild(backEl(state));
+  deckCount.textContent = `${state.deck.length} Karten`;
+  deckEl.classList.toggle("has-cards", state.deck.length > 1);
+  deckEl.classList.toggle("can-take", take);
+  deckEl.disabled = !take;
+
+  state.piles.forEach((pile, i) => {
+    const el = pileEls[i];
+    el.innerHTML = "";
+    const top = pile[pile.length - 1];
+    if (top) el.appendChild(cardEl(top, state));
+    if (pile.length > 1) {
+      const under = cardEl(pile[pile.length - 2], state, 30);
+      under.classList.add("mg-under");
+      el.appendChild(under);
+    }
+    el.classList.toggle("has-cards", pile.length > 1);
+    pileCounts[i].textContent = `${i === 0 ? "links" : "rechts"} · ${pile.length}`;
+    const canTake = take && pile.length >= takeCount;
+    const canDrop = atStack && selectedNumbers().length === state.trade.give;
+    el.classList.toggle("can-take", canTake);
+    el.classList.toggle("can-drop", canDrop);
+    el.disabled = !(canTake || canDrop);
+  });
+
+  actionPileEl.innerHTML = "";
+  const lastAction = state.actionPile[state.actionPile.length - 1];
+  if (lastAction) actionPileEl.appendChild(cardEl(lastAction, state));
+
+  basarEl.innerHTML = "";
+  state.basar.forEach(card => {
+    const el = cardEl(card, state);
+    if (take) {
+      el.classList.add("pickable");
+      el.setAttribute("role", "button");
+      el.tabIndex = 0;
+      el.setAttribute("aria-pressed", String(basarSel.has(card)));
+      const pick = () => toggle(basarSel, card, 2);
+      el.addEventListener("click", pick);
+      el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    }
+    if (basarSel.has(card)) el.classList.add("selected");
+    basarEl.appendChild(el);
+  });
+  basarCount.textContent = `${state.basar.length} / ${M.BASAR_SIZE}`;
+  basarEl.parentElement.classList.toggle("can-drop", giving(state) && state.trade.at === "basar");
+}
+
+deckEl.addEventListener("click", () => {
+  if (currentState && taking(currentState)) room.dispatch(M.takeDeck, takeCount);
+});
+
+pileEls.forEach((el, i) => el.addEventListener("click", () => {
+  const state = currentState;
+  if (!state) return;
+  if (taking(state)) {
+    room.dispatch(M.takeOpen, i, takeCount);
+    return;
+  }
+  if (giving(state) && state.trade.at === "stapel") giveSelected(state, [i, i]);
+}));
+
+function giveSelected(state, piles) {
+  const cards = selectedNumbers();
+  const need = state.trade.give;
+  if (cards.length !== need) {
+    showToast(need === 1 ? "Wähle genau eine Zahlenkarte." : "Wähle genau zwei Zahlenkarten.", "error");
+    return;
+  }
+  room.dispatch(M.give, cards, piles);
+}
+
+function badgeFor(state, person) {
+  if (state.phase !== "play") return state.lastRound && state.lastRound.winner === person ? ["won", "erfüllt 🍞"] : ["", ""];
+  if (state.turnPerson === person) return ["turn", "am Zug"];
+  if (state.skip[person]) return ["skip", "setzt aus ⛔"];
+  return ["", ""];
+}
+
+function fillOpponent(el, state, person) {
+  const [badgeClass, badgeText] = badgeFor(state, person);
+  el.className = `mg-seat mg-opp${badgeClass === "turn" ? " turn" : ""}`;
+  el.dataset.person = person;
+  const hand = state.hands[person];
+  const numbers = hand.filter(M.isNumber).length;
+  el.innerHTML = `
+    <div class="mg-seat-head">
+      <span class="mg-seat-name">${escapeHtml(person)}</span>
+      ${badgeText ? `<span class="mg-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ""}
+      <span class="mg-seat-info">${numbers} Zahlen${hand.length > numbers ? ` · ${hand.length - numbers} Aktion` : ""}</span>
+    </div>
+    <div class="mg-opp-row"><div class="mg-opp-hand"></div></div>`;
+  const handEl = el.querySelector(".mg-opp-hand");
+  const reveal = state.phase !== "play" && state.lastRound && state.lastRound.winner === person;
+  if (reveal) {
+    sortedHand(state, hand).forEach(card => handEl.appendChild(cardEl(card, state, 22)));
+  } else {
+    hand.forEach(() => handEl.appendChild(backEl(state, 18)));
+  }
+}
+
+function fillOwn(state) {
+  const person = me();
+  const [badgeClass, badgeText] = badgeFor(state, person);
+  ownEl.className = `mg-seat mg-own${badgeClass === "turn" ? " turn" : ""}`;
+  ownEl.innerHTML = `
+    <div class="mg-seat-head">
+      <span class="mg-seat-name">Du</span>
+      ${badgeText ? `<span class="mg-badge ${badgeClass}">${escapeHtml(badgeText)}</span>` : ""}
+      <button type="button" class="mg-sort" id="mgSort" aria-label="Hand sortieren">${sortBy === "colour" ? "Farbe" : "Zahl"} ⇅</button>
+    </div>`;
+  ownEl.querySelector("#mgSort").addEventListener("click", () => {
+    sortBy = sortBy === "colour" ? "value" : "colour";
+    storeSort(sortBy);
+    renderLocal();
+  });
+  if (state.phase === "play") {
+    const task = document.createElement("div");
+    task.className = "mg-task";
+    task.appendChild(murphyEl(state, state.murphy[person]));
+    ownEl.appendChild(task);
+  }
+
+  const handEl = document.createElement("div");
+  handEl.className = "mg-hand";
+  const active = state.phase === "play";
+  const fresh = freshCards(state);
+  sortedHand(state, state.hands[person]).forEach(card => {
+    const el = cardEl(card, state);
+    if (fresh.has(card)) el.classList.add("fresh");
+    /* red action cards never stay in a hand; numbers and green ones can be picked */
+    if (active) {
+      el.classList.add("pickable");
+      el.setAttribute("role", "button");
+      el.tabIndex = 0;
+      el.setAttribute("aria-pressed", String(selected.has(card)));
+      const pick = () => {
+        if (M.isGreen(state, card)) selectedGreen(state).filter(c => c !== card).forEach(c => selected.delete(c));
+        toggle(selected, card);
+      };
+      el.addEventListener("click", pick);
+      el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    }
+    if (selected.has(card)) el.classList.add("selected");
+    handEl.appendChild(el);
+  });
+  ownEl.appendChild(handEl);
+}
+
+function renderSeats(state) {
+  const others = room.others(state);
+  const key = others.join("|");
+  if (oppsEl.dataset.key !== key) {
+    oppsEl.dataset.key = key;
+    oppsEl.innerHTML = "";
+    seatEls.clear();
+    others.forEach(person => {
+      const el = document.createElement("section");
+      el.setAttribute("aria-label", `Karten von ${person}`);
+      oppsEl.appendChild(el);
+      seatEls.set(person, el);
+    });
+  }
+  others.forEach(person => fillOpponent(seatEls.get(person), state, person));
+  ownEl.hidden = !seated(state);
+  if (seated(state)) fillOwn(state);
+}
+
+/* ---------- what just happened ---------- */
+
+function cardsText(cards, state) {
+  return cards.map(c => M.cardLabel(c, state)).join(", ");
+}
+
+function describe(e, state) {
+  const who = nameFor(e.person);
+  const mine = e.person === me();
+  switch (e.type) {
+    case "deal":
+      return "Die Karten sind verteilt – jeder hat eine Murphy-Karte.";
+    case "take": {
+      if (e.from === "deck") return mine ? `Du ziehst ${e.count} vom Stapel${e.cards.length ? `: ${cardsText(e.cards, state)}` : ""}.` : `${who} zieht ${e.count} vom Stapel.`;
+      const where = e.from === "basar" ? "aus dem Basar" : e.from === "both" ? "von beiden offenen Stapeln" : `vom ${e.pile === 0 ? "linken" : "rechten"} Stapel`;
+      return `${mine ? "Du nimmst" : `${who} nimmt`} ${cardsText(e.cards, state)} ${where}.`;
+    }
+    case "give":
+      return `${mine ? "Du gibst" : `${who} gibt`} ${cardsText(e.cards, state)} ${e.at === "basar" ? "in den Basar" : "ab"}.`;
+    case "action": {
+      const action = M.actionOf(state, e.card);
+      const aim = e.target ? ` → ${nameFor(e.target)}` : "";
+      return { big: true, text: `${e.red ? "⚡" : "🍀"} ${mine ? "Du" : who}: ${action ? action.title : "Aktion"}${aim}` };
+    }
+    case "aside":
+      return `${mine ? "Du ziehst" : `${who} zieht`} ${M.cardLabel(e.card, state)} – sie wirkt hier nicht und kommt weg.`;
+    case "swap-green":
+      return `${mine ? "Deine" : `${who}s`} ${M.cardLabel(e.card, state)} wird gegen eine neue Karte getauscht.`;
+    case "draw":
+      if (e.why === "refill") return `${mine ? "Du ziehst" : `${who} zieht`} nach, bis wieder eine Zahl auf der Hand ist.`;
+      return mine ? `Du bekommst ${cardsText(e.cards, state)}.` : `${who} zieht ${e.cards.length === 1 ? "eine Karte" : `${e.cards.length} Karten`}.`;
+    case "passed":
+      return "Alle geben weiter.";
+    case "stolen":
+      return e.target === me() ? `${who} nimmt dir ${e.cards.length === 1 ? "eine Karte" : `${e.cards.length} Karten`} weg!` : mine ? `Du bekommst ${cardsText(e.cards, state)}.` : `${who} nimmt ${nameFor(e.target)} etwas weg.`;
+    case "gift":
+      return `${mine ? "Du gibst" : `${who} gibt`} ${nameFor(e.target) === "Du" ? "dir" : nameFor(e.target)} ${cardsText(e.cards, state)}.`;
+    case "dropped":
+      return `${mine ? "Du legst" : `${who} legt`} ${cardsText(e.cards, state)} ab.`;
+    case "skip":
+      return mine ? "⛔ Du setzt diesmal aus." : `⛔ ${who} setzt aus.`;
+    case "reshuffle":
+      return "Der Stapel wird neu gemischt.";
+    case "murphy":
+      return { big: true, text: mine ? "🍞 Du hast deine Murphy-Karte erfüllt!" : `🍞 ${who} hat die Murphy-Karte erfüllt – dumm gelaufen!` };
+    case "new-murphy":
+      return "Neue Runde – alle haben eine neue Murphy-Karte.";
+    default:
+      return null;
+  }
+}
+
+function renderEvents(state) {
+  const events = (state.lastMove && state.lastMove.events) || [];
+  const lines = events.map(e => describe(e, state)).filter(Boolean).slice(-3);
+  eventEl.innerHTML = lines.map(line => typeof line === "string"
+    ? `<span>${escapeHtml(line)}</span>`
+    : `<span class="big pop">${escapeHtml(line.text)}</span>`).join("");
+}
+
+function shakeHit(state) {
+  const events = (state.lastMove && state.lastMove.events) || [];
+  events.forEach(e => {
+    const hit = e.type === "skip" ? e.person : e.type === "stolen" || (e.type === "action" && e.target) ? e.target : null;
+    if (!hit) return;
+    const seat = hit === me() ? ownEl : seatEls.get(hit);
+    if (seat) {
+      seat.classList.remove("mg-shake");
+      void seat.offsetWidth;
+      seat.classList.add("mg-shake");
+    }
+  });
+  if (events.some(e => e.type === "murphy" && e.person === me())) celebrate(24);
+}
+
+/* ---------- status line and buttons ---------- */
+
+function button(label, onClick, className = "") {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = `btn mg-btn ${className}`;
+  el.textContent = label;
+  el.addEventListener("click", onClick);
+  return el;
+}
+
+function renderControls(state) {
+  actionsEl.innerHTML = "";
+  if (state.phase !== "play") {
+    renderSummary(state);
+    return;
+  }
+  if (seated(state) && !M.murphyCheck(state, me()) && state.murphy[me()]) {
+    /* a Murphy card the game cannot check: whoever fulfils it says so */
+    actionsEl.appendChild(button("Murphy erfüllt! 🍞", () => room.dispatch(M.claimMurphy), "btn-secondary mg-claim"));
+  }
+  const turn = state.turnPerson;
+  if (turn !== me()) {
+    statusEl.textContent = seated(state) && state.skip[me()]
+      ? `${turn} ist dran – du setzt danach aus ⛔`
+      : M.nextOf(state, turn) === me() ? `${turn} ist dran – danach du.` : `${turn} ist dran …`;
+    return;
+  }
+  if (state.step === "give") {
+    renderGive(state);
+    return;
+  }
+  renderTake(state);
+}
+
+function renderTake(state) {
+  const green = selectedGreen(state)[0];
+  if (green) {
+    renderGreen(state, green);
+    return;
+  }
+  statusEl.textContent = state.tradesLeft > 1
+    ? "Doppelt tauschen: erst nehmen – vom Stapel, offen oder aus dem Basar."
+    : "Du bist dran: Erst nehmen – vom Stapel, offen oder aus dem Basar.";
+  const seg = document.createElement("div");
+  seg.className = "mg-seg";
+  seg.setAttribute("role", "radiogroup");
+  seg.setAttribute("aria-label", "Wie viele Karten nehmen");
+  [[2, "2 nehmen · 1 abgeben"], [1, "1 nehmen · 2 abgeben"]].forEach(([count, label]) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `mg-seg-btn${takeCount === count ? " on" : ""}`;
+    el.setAttribute("role", "radio");
+    el.setAttribute("aria-checked", String(takeCount === count));
+    el.dataset.count = String(count);
+    el.textContent = label;
+    el.addEventListener("click", () => { takeCount = count; renderLocal(); });
+    seg.appendChild(el);
+  });
+  actionsEl.appendChild(seg);
+  if (state.piles.every(pile => pile.length > 0)) {
+    actionsEl.appendChild(button("Je 1 von beiden offenen", () => room.dispatch(M.takeBothOpen), "btn-secondary"));
+  }
+  if (basarSel.size) {
+    actionsEl.appendChild(button(`${basarSel.size} aus dem Basar nehmen`, () => room.dispatch(M.takeBasar, [...basarSel]), "mg-basar-take"));
+  }
+  const greens = state.hands[me()].filter(c => M.isGreen(state, c));
+  if (greens.length && !state.actionPlayed && state.tradesLeft === 1) {
+    const hint = document.createElement("p");
+    hint.className = "mg-hint";
+    hint.textContent = "🍀 Statt zu tauschen kannst du eine grüne Aktionskarte antippen und ausspielen.";
+    actionsEl.appendChild(hint);
+  }
+}
+
+function renderGreen(state, card) {
+  const action = M.actionOf(state, card);
+  const spec = M.EFFECTS[action.effect];
+  statusEl.textContent = `🍀 ${action.title}: ${action.text}`;
+  const box = document.createElement("div");
+  box.className = "mg-green";
+  const others = state.players.filter(p => p !== me());
+  if (spec.target) {
+    if (others.length === 1) target = others[0];
+    const row = document.createElement("div");
+    row.className = "mg-targets";
+    others.forEach(p => {
+      const el = button(p, () => { target = p; renderLocal(); }, `btn-secondary mg-target${target === p ? " on" : ""}`);
+      el.setAttribute("aria-pressed", String(target === p));
+      row.appendChild(el);
+    });
+    box.appendChild(row);
+  }
+  if (spec.choose) {
+    const hint = document.createElement("p");
+    hint.className = "mg-hint";
+    hint.textContent = `Wähle dazu 1 bis ${action.amount} Zahlenkarten (gewählt: ${selectedNumbers().length}).`;
+    box.appendChild(hint);
+  }
+  box.appendChild(button("Ausspielen 🍀", () => {
+    if (spec.target && !target) {
+      showToast("Wähle zuerst eine Person.", "error");
+      return;
+    }
+    room.dispatch(M.playAction, card, { target, cards: selectedNumbers() });
+  }, "mg-play"));
+  box.appendChild(button("Doch nicht", () => { selected.delete(card); renderLocal(); }, "btn-secondary"));
+  actionsEl.appendChild(box);
+}
+
+function renderGive(state) {
+  const need = state.trade.give;
+  const count = selectedNumbers().length;
+  const where = state.trade.at === "basar" ? "in den Basar" : "auf einen offenen Stapel";
+  statusEl.textContent = `Jetzt ${need === 1 ? "eine Zahlenkarte" : "zwei Zahlenkarten"} ${where} abgeben (gewählt: ${count}).`;
+  if (state.trade.at === "basar") {
+    const el = button("In den Basar geben", () => giveSelected(state, null), "mg-give");
+    el.disabled = count !== need;
+    actionsEl.appendChild(el);
+    return;
+  }
+  const hint = document.createElement("p");
+  hint.className = "mg-hint";
+  hint.textContent = count === need ? "Tippe auf den linken oder rechten offenen Stapel." : "Karten auf der Hand antippen.";
+  actionsEl.appendChild(hint);
+  if (need === 2) {
+    const both = button("Je eine auf beide Stapel", () => giveSelected(state, [0, 1]), "btn-secondary");
+    both.disabled = count !== need;
+    actionsEl.appendChild(both);
+  }
+}
+
+function renderSummary(state) {
+  const finished = state.phase === "finished";
+  const last = state.lastRound;
+  if (!last) return;
+  const winnerName = nameFor(last.winner);
+  statusEl.textContent = finished ? describeWinners(state.result, me()) : `${winnerName === "Du" ? "Du hast" : `${winnerName} hat`} die Murphy-Karte erfüllt!`;
+  const box = document.createElement("div");
+  box.className = "mg-summary";
+  const card = M.murphyOf(state, last.card);
+  const missed = Object.entries(last.missed || {}).filter(([, id]) => id).map(([p, id]) => {
+    const m = M.murphyOf(state, id);
+    return `<li><strong>${escapeHtml(nameFor(p))}</strong>: ${escapeHtml(m ? m.text : "")}</li>`;
+  }).join("");
+  box.innerHTML = `
+    <h3>${finished ? "Endstand 🏆" : `Runde ${last.round}: Dumm gelaufen!`}</h3>
+    <div class="mg-proof"></div>
+    ${missed ? `<p class="mg-missed-title">Diese Aufgaben gehen zurück:</p><ul class="mg-missed">${missed}</ul>` : ""}
+    <div class="mg-next"></div>`;
+  const proof = box.querySelector(".mg-proof");
+  proof.appendChild(murphyEl(state, last.card, true));
+  const cards = document.createElement("div");
+  cards.className = "mg-proof-cards";
+  sortedHand(state, last.cards).filter(M.isNumber).forEach(c => cards.appendChild(cardEl(c, state, 30)));
+  proof.appendChild(cards);
+  if (!card) proof.hidden = true;
+  actionsEl.appendChild(box);
+  room.renderReady(box.querySelector(".mg-next"), state, finished
+    ? { label: "Neue Partie 🍞", nextFn: M.newGame }
+    : { label: "Nächste Runde ▶", nextFn: M.nextRound });
+  const cheerKey = `${state.gameNo}`;
+  if (finished && state.result && state.result.winner === me() && cheeredGame !== cheerKey) {
+    cheeredGame = cheerKey;
+    celebrate(30);
+  }
+}

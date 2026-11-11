@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>I + B | Murphys Gesetz</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fdf5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191220" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Projekt Wir">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="game-room.css">
+  <link rel="stylesheet" href="murphy.css">
+  <script src="theme.js"></script>
+  <script src="pin-lock.js"></script>
+</head>
+<body data-nav="games.html">
+
+  <main class="page page-with-back">
+    <a href="games.html" class="page-back" aria-label="Zurück zu den Spielen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <h1 class="page-title">Murphys Gesetz</h1>
+    <p class="page-subtitle">🍞 Was schiefgehen kann, geht schief – tauschen, bis die Aufgabe passt</p>
+
+    <div id="mgLobby"></div>
+
+    <div id="mgBoard" class="mg-board hidden">
+
+      <div class="mg-score" id="mgScore"></div>
+
+      <div class="mg-opps" id="mgOpps"></div>
+
+      <div class="mg-table">
+        <div class="mg-pile-wrap">
+          <button type="button" class="mg-pile" id="mgDeck" aria-label="Vom verdeckten Stapel nehmen"></button>
+          <span class="mg-pile-count" id="mgDeckCount"></span>
+        </div>
+        <div class="mg-pile-wrap">
+          <button type="button" class="mg-pile" id="mgPile0" data-pile="0" aria-label="Linker offener Stapel"></button>
+          <span class="mg-pile-count" id="mgPile0Count">offen</span>
+        </div>
+        <div class="mg-pile-wrap">
+          <button type="button" class="mg-pile" id="mgPile1" data-pile="1" aria-label="Rechter offener Stapel"></button>
+          <span class="mg-pile-count" id="mgPile1Count">offen</span>
+        </div>
+        <div class="mg-pile-wrap">
+          <div class="mg-pile mg-action-pile" id="mgActionPile" aria-label="Gespielte Aktionskarten"></div>
+          <span class="mg-pile-count">Aktionen</span>
+        </div>
+      </div>
+
+      <section class="mg-basar" aria-label="Basar">
+        <div class="mg-basar-head"><span>🛍️ Basar</span><small id="mgBasarCount"></small></div>
+        <div class="mg-basar-cards" id="mgBasar"></div>
+      </section>
+
+      <div class="mg-event" id="mgEvent" aria-live="polite"></div>
+      <p class="mg-status" id="mgStatus"></p>
+
+      <div class="mg-actions" id="mgActions"></div>
+
+      <section class="mg-seat mg-own" id="mgOwn" aria-label="Deine Karten"></section>
+
+      <div class="gr-leave">
+        <button type="button" id="mgLeaveBtn" class="gr-leave-btn">Spiel beenden</button>
+      </div>
+    </div>
+
+    <details class="mg-rules card" id="mgRules">
+      <summary>So wird gespielt</summary>
+      <p>Jede Person hat eine geheime <strong>Murphy-Karte</strong> mit einer Aufgabe. Erfüllt ist sie erst, wenn die <strong>Zahlenkarten auf deiner Hand genau</strong> die Aufgabe erfüllen – alle anderen Zahlenkarten musst du vorher loswerden. Grüne Aktionskarten auf der Hand stören nicht.</p>
+      <p>Die Zahlenkarten gehen von 1 bis 11 in Rot, Gelb und Grün (1–3 je einmal, 4–6 je zweimal, 7–11 je dreimal pro Farbe). Zu Beginn bekommt die erste Person 8 Karten, die nächste 9, dann 10 und 11.</p>
+      <p>Wer dran ist, <strong>tauscht eins zu zwei oder zwei zu eins</strong>: erst nehmen, dann abgeben – immer am selben Ort. Am <strong>Stapel</strong> nimmst du vom verdeckten Stapel, von einem offenen Stapel (oberste oder oberste zwei) oder von beiden offenen je eine, und legst auf einen oder beide offenen Stapel ab. Beim <strong>Basar</strong> nimmst du offene Karten und gibst dort ab – er hat danach nie mehr als 7 Karten. Eine gerade genommene Karte darf gleich wieder abgegeben werden; eine Zahlenkarte muss dir immer bleiben.</p>
+      <p><strong>Rote Aktionskarten</strong> wirken sofort, wenn du sie vom Stapel ziehst, und beenden deinen Zug. <strong>Grüne</strong> sammelst du und spielst sie statt eines Tauschs aus.</p>
+      <p>Wer die Aufgabe erfüllt, behält die Murphy-Karte – alle anderen geben ihre zurück. Dumm gelaufen! Alle bekommen eine neue Aufgabe, die Karten auf der Hand bleiben. Wer zuerst <span id="mgRulesWin">3</span> Murphy-Karten hat, gewinnt.</p>
+      <ol class="mg-rules-list" id="mgRulesList"></ol>
+    </details>
+  </main>
+
+  <div id="personModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Wer bist du? 💗</h2>
+      <p class="push-modal-text">Damit wir wissen, wer welche Karten hat.</p>
+      <div class="push-person-choice">
+        <button class="btn person-choice-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary person-choice-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Hauptnavigation">
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+    <a href="kpis.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">KPIs</span></a>
+    <a href="wir.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Wir</span></a>
+    <a href="ziele.html" class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">ToDos</span></a>
+    <a href="reise.html" class="nav-item"><span class="nav-icon">✈️</span><span class="nav-label">Reisen</span></a>
+    <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span class="nav-label">Spiele</span></a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+  <script src="supabase-client.js"></script>
+  <script src="shared.js"></script>
+  <script src="murphy-engine.js"></script>
+  <script src="game-bots.js"></script>
+  <script src="bot-names.js"></script>
+  <script src="game-room.js"></script>
+  <script src="murphy.js"></script>
+</body>
+</html>
