@@ -6,7 +6,7 @@
   const LOGIN_EMAIL = "projekt-wir@example.com";
   /* where supabase-js keeps the session ("sb-<project>-auth-token") – present means this phone is signed in */
   const SESSION_KEY = /^sb-[a-z0-9]+-auth-token$/;
-  const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "gipfel.html"];
+  const GAME_PAGES = ["cabo.html", "nimmt.html", "qwixx.html", "flip7.html", "gipfel.html", "murphy.html"];
 
   function hasSession() {
     try {

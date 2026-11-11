@@ -1,4 +1,4 @@
-/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7 and Phasenjagd.
+/* Udiou and Klausi 🤖 – the computer players for Cabo, 6 nimmt!, Qwixx, Flip 7, Phasenjagd and Murphys Gesetz.
 
    Both play by the same rules; each bot is { play(state, name) → next state or null, delay(state) → ms, reaction?(before, after, name) }.
    play() only uses what a careful human at the table could know: in Cabo the bot keeps its own
@@ -7,7 +7,7 @@
 
 const GameBots = (() => {
 
-const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js", GipfelEngine: "./gipfel-engine.js" };
+const FILES = { CaboEngine: "./cabo-engine.js", NimmtEngine: "./nimmt-engine.js", QwixxEngine: "./qwixx-engine.js", Flip7Engine: "./flip7-engine.js", GipfelEngine: "./gipfel-engine.js", MurphyEngine: "./murphy-engine.js" };
 /* each page only loads its own engine – look it up when needed */
 function lib(name) {
   if (typeof window !== "undefined" && window[name]) return window[name];
@@ -457,7 +457,112 @@ const gipfel = {
   }
 };
 
-return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7, gipfel };
+/* ---------- Murphys Gesetz ---------- */
+
+/* how far a hand is from the bot's Murphy card (a card without a condition: unknown, a middling value) */
+function murphyGap(M, state, bot, hand) {
+  const gap = M.taskDistance(M.murphyCheck(state, bot), hand);
+  return gap === null ? 5 : gap;
+}
+
+/* the number cards to give away that leave the best hand (one number card always stays) */
+function murphyBestGive(M, state, bot, hand, count) {
+  const nums = hand.filter(M.isNumber);
+  let best = null;
+  const consider = combo => {
+    const rest = hand.filter(c => !combo.includes(c));
+    if (rest.filter(M.isNumber).length < 1) return;
+    const gap = murphyGap(M, state, bot, rest);
+    if (!best || gap < best.gap) best = { cards: combo, gap };
+  };
+  if (count === 1) nums.forEach(c => consider([c]));
+  else for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) consider([nums[i], nums[j]]);
+  return best;
+}
+
+/* the hidden deck: what the bot can expect, from the number cards it has not seen */
+const MURPHY_SAMPLES = 8;
+function murphyDeckGuess(M, state, bot, count) {
+  const seen = new Set([...state.hands[bot], ...state.basar, ...state.piles.flat()]);
+  const pool = M.numberCards().filter(c => !seen.has(c));
+  if (pool.length < count) return Infinity;
+  let total = 0;
+  for (let s = 0; s < MURPHY_SAMPLES; s++) {
+    const picked = [];
+    while (picked.length < count) {
+      const card = pool[Math.floor(Math.random() * pool.length)];
+      if (!picked.includes(card)) picked.push(card);
+    }
+    const best = murphyBestGive(M, state, bot, [...state.hands[bot], ...picked], count === 1 ? 2 : 1);
+    total += best ? best.gap : 100;
+  }
+  return total / MURPHY_SAMPLES;
+}
+
+function murphyDeckHas(state, count) {
+  return state.deck.length + state.actionPile.length + state.piles.reduce((sum, pile) => sum + Math.max(0, pile.length - 1), 0) >= count;
+}
+
+function murphyPlay(state, bot) {
+  const M = lib("MurphyEngine");
+  if (!state.players.includes(bot) || state.phase !== "play" || state.turnPerson !== bot) return null;
+  const hand = state.hands[bot];
+
+  if (state.step === "give") {
+    const best = murphyBestGive(M, state, bot, hand, state.trade.give);
+    const cards = best ? best.cards : hand.filter(M.isNumber).slice(0, state.trade.give);
+    const piles = cards.map((_, i) => (i + state.round) % 2);
+    return M.give(state, bot, cards, piles);
+  }
+
+  const now = murphyGap(M, state, bot, hand);
+  const nums = hand.filter(M.isNumber).length;
+  /* a hopeless task: swap it for a new one */
+  const fresh = hand.find(c => M.isGreen(state, c) && M.actionOf(state, c).effect === "murphyNeu");
+  if (fresh && now >= 12 && !state.actionPlayed && state.tradesLeft === 1) return M.playAction(state, bot, fresh, {});
+
+  const known = [];
+  const tryTake = (taken, run) => {
+    const best = murphyBestGive(M, state, bot, [...hand, ...taken], taken.length === 1 ? 2 : 1);
+    if (best) known.push({ gap: best.gap, run });
+  };
+  state.piles.forEach((pile, i) => {
+    if (pile.length >= 1 && nums >= 2) tryTake(pile.slice(-1), () => M.takeOpen(state, bot, i, 1));
+    if (pile.length >= 2) tryTake(pile.slice(-2), () => M.takeOpen(state, bot, i, 2));
+  });
+  if (state.piles.every(pile => pile.length > 0)) tryTake(state.piles.map(pile => pile[pile.length - 1]), () => M.takeBothOpen(state, bot));
+  state.basar.forEach((card, i) => {
+    if (state.basar.length <= M.BASAR_SIZE - 1 && nums >= 2) tryTake([card], () => M.takeBasar(state, bot, [card]));
+    state.basar.slice(i + 1).forEach(other => tryTake([card, other], () => M.takeBasar(state, bot, [card, other])));
+  });
+  /* only an open card that really helps – two bots must never hand the same cards back and forth */
+  const bestKnown = known.sort((a, b) => a.gap - b.gap)[0];
+  const deck = [];
+  if (murphyDeckHas(state, 2)) deck.push({ gap: murphyDeckGuess(M, state, bot, 2), run: () => M.takeDeck(state, bot, 2) });
+  if (nums >= 3 && murphyDeckHas(state, 1)) deck.push({ gap: murphyDeckGuess(M, state, bot, 1), run: () => M.takeDeck(state, bot, 1) });
+  const bestDeck = deck.sort((a, b) => a.gap - b.gap)[0];
+  if (bestKnown && bestKnown.gap < now && (!bestDeck || bestKnown.gap <= bestDeck.gap)) return bestKnown.run();
+  if (bestDeck) return bestDeck.run();
+  if (bestKnown) return bestKnown.run();
+  return null;
+}
+
+const murphy = {
+  play: murphyPlay,
+  delay(state) {
+    const events = state.lastMove && state.lastMove.events ? state.lastMove.events.length : 0;
+    return Math.min(5200, jitter(1100, 500) + Math.min(events, 8) * 150);
+  },
+  reaction(before, after, bot) {
+    const events = (after.lastMove && after.lastMove.events) || [];
+    if (after.phase === "finished" && after.result && after.result.winner === bot) return "😏";
+    if (events.some(e => e.type === "murphy" && e.person === bot)) return "🔥";
+    if (events.some(e => e.type === "murphy" && e.person !== bot)) return "🙈";
+    return null;
+  }
+};
+
+return { NAMES: ["Udiou", "Klausi"], cabo, nimmt, qwixx, flip7, gipfel, murphy };
 
 })();
 

@@ -14,8 +14,9 @@ import { startStaticServer } from "./support/static-server.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 /* names that stand for several file names, or a friendlier name for one */
 const GROUPS = {
-  spiele: ["cabo", "nimmt", "qwixx", "flip7", "gipfel", "geo", "bots", "game-reactions", "bot-names"],
+  spiele: ["cabo", "nimmt", "qwixx", "flip7", "gipfel", "murphy", "geo", "bots", "game-reactions", "bot-names"],
   phase10: ["gipfel"],
+  murphys: ["murphy"],
   quest: ["ziele"],
   todos: ["ziele"],
   kuschelakku: ["akku"],

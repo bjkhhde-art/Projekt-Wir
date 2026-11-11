@@ -1,0 +1,673 @@
+/* Murphys Gesetz – board, Basar, seats and the cards (drawn in CSS until pictures are uploaded) */
+
+.mg-board {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.mg-score {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0 auto 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mg-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.mg-chip strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+}
+
+.mg-chip small {
+  font-size: 11px;
+}
+
+.mg-chip.me {
+  border-color: var(--pink);
+}
+
+/* ---------- cards ---------- */
+
+.mg-card {
+  --w: 44px;
+  --ink: #3a3a4a;
+  position: relative;
+  flex: none;
+  width: var(--w);
+  height: calc(var(--w) * 1.4);
+  border-radius: calc(var(--w) * 0.16);
+  border: 2px solid var(--ink);
+  background: linear-gradient(165deg, #ffffff, #f4eefa);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(30, 20, 60, 0.18);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mg-card > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.mg-card .mg-v {
+  font-size: calc(var(--w) * 0.52);
+}
+
+.mg-card .mg-corner {
+  position: absolute;
+  top: calc(var(--w) * 0.06);
+  left: calc(var(--w) * 0.1);
+  font-size: calc(var(--w) * 0.22);
+}
+
+.mg-c-r { --ink: #d0343f; background: linear-gradient(165deg, #fff, #ffe1e3); }
+.mg-c-y { --ink: #b88400; background: linear-gradient(165deg, #fff, #fff1c2); }
+.mg-c-g { --ink: #188a4f; background: linear-gradient(165deg, #fff, #d9f4e4); }
+
+.mg-act {
+  align-content: center;
+  gap: calc(var(--w) * 0.06);
+  padding: 2px;
+  text-align: center;
+}
+
+.mg-act-rot { --ink: #c62a3b; background: linear-gradient(165deg, #fff4f4, #ffc9cf); }
+.mg-act-gruen { --ink: #16794a; background: linear-gradient(165deg, #f3fff7, #bfeccf); }
+
+.mg-act-icon {
+  font-size: calc(var(--w) * 0.34);
+}
+
+.mg-act-title {
+  font-family: var(--font-body, inherit);
+  font-size: calc(var(--w) * 0.17);
+  font-weight: 800;
+  line-height: 1.05;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.mg-back {
+  --ink: #5b3a1d;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.18) 0 4px, transparent 4px 9px),
+    linear-gradient(160deg, #f0a24f, #c0652d);
+}
+
+.mg-back .mg-v {
+  font-size: calc(var(--w) * 0.42);
+}
+
+.mg-card.pickable {
+  cursor: pointer;
+}
+
+.mg-card.selected {
+  transform: translateY(-9px);
+  box-shadow: 0 0 0 3px var(--pink), 0 8px 14px rgba(255, 92, 138, 0.3);
+}
+
+@keyframes mg-in {
+  0% { transform: translateY(-14px) scale(0.85); opacity: 0.2; }
+  100% { transform: none; opacity: 1; }
+}
+
+.mg-card.fresh {
+  animation: mg-in 0.45s cubic-bezier(.2, .9, .3, 1.2);
+  box-shadow: 0 0 0 2px #ffd36b, 0 2px 6px rgba(30, 20, 60, 0.18);
+}
+
+.mg-card.fresh.selected {
+  box-shadow: 0 0 0 3px var(--pink), 0 8px 14px rgba(255, 92, 138, 0.3);
+}
+
+/* ---------- the Murphy card ---------- */
+
+.mg-murphy {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 92px;
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+  border: 2px solid #5b3a1d;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(255, 211, 107, 0.6) 0 18px, transparent 19px),
+    linear-gradient(160deg, #fffaf0, #ffe9c7);
+  color: #3b2a14;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(60, 30, 0, 0.15);
+}
+
+.mg-murphy > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fffaf0;
+}
+
+.mg-murphy-head {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a5a1d;
+}
+
+.mg-murphy-text {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.mg-murphy.small {
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.mg-murphy.small .mg-murphy-text {
+  font-size: 14px;
+}
+
+.mg-murphy.empty {
+  min-height: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.mg-task {
+  margin-bottom: 4px;
+}
+
+/* ---------- deck, open piles, action pile ---------- */
+
+.mg-table {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 10px;
+}
+
+.mg-pile-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mg-pile {
+  position: relative;
+  width: 58px;
+  height: 81px;
+  padding: 0;
+  border-radius: 10px;
+  border: 2px dashed var(--surface-border);
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: default;
+  color: inherit;
+  font: inherit;
+}
+
+.mg-pile .mg-card {
+  --w: 58px;
+}
+
+.mg-pile .mg-card.mg-under {
+  position: absolute;
+  --w: 30px;
+  right: -8px;
+  bottom: -8px;
+  opacity: 0.9;
+  transform: rotate(8deg);
+  z-index: -1;
+}
+
+.mg-pile.has-cards::before {
+  content: "";
+  position: absolute;
+  inset: 4px -4px -4px 4px;
+  border-radius: 10px;
+  background: #c0652d;
+  opacity: 0.25;
+}
+
+.mg-pile.can-take,
+.mg-pile.can-drop {
+  cursor: pointer;
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+  border-radius: 12px;
+}
+
+.mg-action-pile .mg-card {
+  --w: 46px;
+  opacity: 0.9;
+}
+
+.mg-pile-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------- Basar ---------- */
+
+.mg-basar {
+  margin: 0 0 12px;
+  padding: 8px 10px 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mg-basar.can-drop {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+}
+
+.mg-basar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.mg-basar-head small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mg-basar-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  min-height: 56px;
+  padding-top: 8px;
+}
+
+.mg-basar-cards .mg-card {
+  --w: 40px;
+}
+
+/* ---------- seats ---------- */
+
+.mg-opps {
+  display: grid;
+  gap: 8px;
+}
+
+.mg-seat {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mg-seat.turn {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 92, 138, 0.18);
+}
+
+.mg-seat-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.mg-seat-name {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.mg-seat-info {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mg-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--surface-solid);
+  color: var(--text-muted);
+}
+
+.mg-badge.turn { background: var(--pink); color: #fff; }
+.mg-badge.skip { background: #e6e6ec; color: #4b4c57; }
+.mg-badge.won { background: #fff2b3; color: #8a6400; }
+
+.mg-opp-hand {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 27px;
+}
+
+.mg-opp-hand .mg-back + .mg-back {
+  margin-left: -10px;
+}
+
+.mg-sort {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mg-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 5px;
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+@keyframes mg-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.mg-seat.mg-shake {
+  animation: mg-shake 0.45s ease;
+}
+
+/* ---------- messages and actions ---------- */
+
+.mg-event {
+  display: grid;
+  gap: 3px;
+  margin: 0 auto 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pink-deep);
+}
+
+.mg-event:empty {
+  display: none;
+}
+
+.mg-event .big {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+@keyframes mg-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.mg-event .big.pop {
+  animation: mg-pop 0.55s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+.mg-status {
+  text-align: center;
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 2px 0 10px;
+  min-height: 20px;
+}
+
+.mg-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mg-actions:empty {
+  display: none;
+}
+
+.mg-btn {
+  min-height: 44px;
+  font-size: 14.5px;
+}
+
+.mg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mg-seg {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border: 1px solid var(--surface-border);
+}
+
+.mg-seg-btn {
+  flex: 1;
+  min-height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mg-seg-btn.on {
+  background: var(--pink);
+  color: #fff;
+}
+
+.mg-hint {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mg-green {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.mg-targets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.mg-target.on {
+  background: var(--pink);
+  color: #fff;
+}
+
+/* ---------- round summary ---------- */
+
+.mg-summary {
+  width: 100%;
+  max-width: 440px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+}
+
+.mg-summary h3 {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.mg-proof {
+  display: grid;
+  gap: 8px;
+}
+
+.mg-proof-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.mg-missed-title {
+  margin: 12px 0 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mg-missed {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.mg-summary .gr-ready {
+  margin-top: 12px;
+}
+
+/* ---------- rules ---------- */
+
+.mg-rules {
+  max-width: 560px;
+  margin: 16px auto 0;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.mg-rules summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.mg-rules p {
+  margin: 8px 0 0;
+}
+
+.mg-rules-list {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-event .big.pop,
+  .mg-card.fresh,
+  .mg-seat.mg-shake {
+    animation: none;
+  }
+  .mg-card {
+    transition: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .mg-table {
+    gap: 10px;
+  }
+  .mg-pile {
+    width: 52px;
+    height: 73px;
+  }
+  .mg-pile .mg-card {
+    --w: 52px;
+  }
+  .mg-hand .mg-card {
+    --w: 40px;
+  }
+}
+
+/* ---------- three or four players: more on one screen ---------- */
+
+body:has(#mgBoard.mg-crowd:not(.hidden)) .page-title,
+body:has(#mgBoard.mg-crowd:not(.hidden)) .page-subtitle {
+  display: none;
+}
+
+.mg-crowd .mg-opps {
+  gap: 6px;
+}
+
+.mg-crowd .mg-seat.mg-opp {
+  padding: 7px 10px;
+}
+
+.mg-crowd .mg-score {
+  /* the back arrow sits top left once the title is hidden */
+  padding-left: 52px;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.mg-crowd .mg-chip {
+  padding: 3px 8px;
+}
+
+.mg-crowd .mg-opps .mg-seat-head {
+  margin-bottom: 4px;
+}
+
+.mg-crowd .mg-table {
+  margin: 8px 0 6px;
+}
