@@ -88,32 +88,32 @@ async function stage(build) {
 }
 await stage({
   turn: "Isi",
-  hands: { Isi: ["r7-0", "g7-0", "y7-0", "r1-0", "r2-0", "A.klauen.0"], Benji: ["y5-0", "y6-0", "g3-0", "r9-0"] },
-  basar: ["r4-0", "r5-0", "r6-0", "g4-0", "g5-0", "g6-0"],
-  piles: [["r7-1"], ["y3-0"]],
+  hands: { Isi: ["b7-0", "g7-0", "y7-0", "b1-0", "b2-0", "A.klauen.0"], Benji: ["y5-0", "y6-0", "g3-0", "b9-0"] },
+  basar: ["b4-0", "b5-0", "b6-0", "g4-0", "g5-0", "g6-0"],
+  piles: [["b7-1"], ["y3-0"]],
   murphy: { Isi: "m02", Benji: "m03" }
 });
-await until(async () => await isi.locator('#mgOwn [data-card="A.klauen.0"]').count() === 1 && await isi.locator('#mgPile0 [data-card="r7-1"]').count() === 1, 5000, "stacked state");
+await until(async () => await isi.locator('#mgOwn [data-card="A.klauen.0"]').count() === 1 && await isi.locator('#mgPile0 [data-card="b7-1"]').count() === 1, 5000, "stacked state");
 await until(async () => (await benji.locator("#mgStatus").textContent()).includes("Isi ist dran"), 5000, "Benji waits");
 ok((await isi.locator("#mgStatus").textContent()).includes("Du bist dran"), "Isi is asked to take first");
 ok((await isi.locator("#mgOwn .mg-murphy-text").textContent()).includes("4 Karten mit derselben Zahl"), "her task: four of the same number");
 ok(await isi.locator(".mg-seg-btn").count() === 2, "she chooses two-for-one or one-for-two");
 
-/* one for two: the open Rot 7, then Rot 1 and Rot 2 onto the right pile */
+/* one for two: the open Blau 7, then Blau 1 and Blau 2 onto the right pile */
 await isi.locator('.mg-seg-btn[data-count="1"]').click();
 await isi.click("#mgPile0");
 await until(async () => (await latest()).state.step === "give", 4000, "took");
 await until(async () => (await isi.locator("#mgStatus").textContent()).includes("zwei Zahlenkarten"), 4000, "give hint");
-ok(await isi.locator('#mgOwn .mg-card.fresh[data-card="r7-1"]').count() === 1, "the card just taken is marked as new");
-await isi.locator('#mgOwn [data-card="r1-0"]').click();
-await isi.locator('#mgOwn [data-card="r2-0"]').click();
+ok(await isi.locator('#mgOwn .mg-card.fresh[data-card="b7-1"]').count() === 1, "the card just taken is marked as new");
+await isi.locator('#mgOwn [data-card="b1-0"]').click();
+await isi.locator('#mgOwn [data-card="b2-0"]').click();
 await isi.click("#mgPile1");
 await until(async () => (await latest()).state.phase === "round-over", 4000, "round over");
 const won = (await latest()).state;
-ok(won.won.Isi.join() === "m02" && won.piles[1].slice(-2).join() === "r1-0,r2-0", "four Siebenen: Isi keeps her Murphy card");
+ok(won.won.Isi.join() === "m02" && won.piles[1].slice(-2).join() === "b1-0,b2-0", "four Siebenen: Isi keeps her Murphy card");
 await until(async () => (await benji.locator("#mgActions .mg-summary").textContent()).includes("Dumm gelaufen"), 4000, "summary");
 ok((await benji.locator("#mgActions .mg-summary").textContent()).includes("4 Karten mit derselben Zahl"), "Benji sees the fulfilled task");
-ok(await benji.locator('#mgActions .mg-proof [data-card="r7-1"]').count() === 1, "and Isi's cards as proof");
+ok(await benji.locator('#mgActions .mg-proof [data-card="b7-1"]').count() === 1, "and Isi's cards as proof");
 ok((await benji.locator("#mgScore").textContent()).includes("1/3"), "the score shows one Murphy card for Isi");
 
 /* both ready: next round, new tasks, the hands stay */
@@ -130,11 +130,11 @@ await benji.locator('#mgBasar [data-card="g5-0"]').click();
 await benji.locator(".mg-basar-take").click();
 await until(async () => (await latest()).state.step === "give", 4000, "Benji took");
 ok((await latest()).state.trade.at === "basar" && (await benji.locator("#mgStatus").textContent()).includes("in den Basar"), "two from the Basar → give one back there");
-await benji.locator('#mgOwn [data-card="r9-0"]').click();
+await benji.locator('#mgOwn [data-card="b9-0"]').click();
 await benji.locator(".mg-give").click();
 await until(async () => (await latest()).state.turnPerson === "Isi", 4000, "Isi's turn");
 const afterBasar = (await latest()).state;
-ok(afterBasar.basar.includes("r9-0") && afterBasar.basar.length === 5 && afterBasar.hands.Benji.includes("g4-0"), "the Basar now has the Rot 9 and five cards");
+ok(afterBasar.basar.includes("b9-0") && afterBasar.basar.length === 5 && afterBasar.hands.Benji.includes("g4-0"), "the Basar now has the Blau 9 and five cards");
 
 /* Isi plays her green card instead of a trade */
 await until(async () => (await isi.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Isi's turn on her phone");
