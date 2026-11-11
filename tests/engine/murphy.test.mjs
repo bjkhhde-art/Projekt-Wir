@@ -112,12 +112,15 @@ throwsWith(() => M.takeOpen(table({ Isi: ["b1-0"], Benji: ["y5-0"] }, { piles: [
 throwsWith(() => M.give(M.takeOpen(table({ Isi: ["A.klauen.0", "b1-0"], Benji: ["y5-0"] }, { piles: [["g5-0", "g6-0"], ["b10-0"]] }), "Isi", 0, 2), "Isi", ["A.klauen.0"], [0]), /nur Zahlenkarten/, "action cards cannot be given away in a trade");
 
 /* a whole trade in one move */
-t = M.trade(table(hands, { piles: [["g5-0", "g6-0"], ["b10-0"]] }), "Isi", { from: "pile", pile: 0, count: 1 }, ["b1-0", "b2-0"]);
-ok(t.turnPerson === "Benji" && t.hands.Isi.includes("g6-0") && t.piles[0].includes("b1-0") && t.piles[1].includes("b2-0"), "trade: one from a pile, two given (left, right), turn over");
+t = M.trade(table(hands, { piles: [["g5-0", "g6-0"], ["b10-0"]] }), "Isi", { from: "pile", pile: 0, count: 1 }, ["b1-0", "b2-0"], [0, 1]);
+ok(t.turnPerson === "Benji" && t.hands.Isi.includes("g6-0") && t.piles[0].includes("b1-0") && t.piles[1].includes("b2-0"), "trade: one from a pile, two given (one left, one right as chosen), turn over");
+throwsWith(() => M.trade(table(hands, { piles: [["g5-0", "g6-0"], ["b10-0"]] }), "Isi", { from: "pile", pile: 0, count: 1 }, ["b1-0", "b2-0"]), /welchen offenen Stapel/, "trade at the table: the pile must be chosen");
+t = M.trade(table(hands, { piles: [["g5-0", "g6-0"], ["b10-0"]] }), "Isi", { from: "pile", pile: 0, count: 2 }, ["b1-0"], [1]);
+ok(t.piles[1].slice(-1)[0] === "b1-0" && t.piles[0].length === 0, "trade: two from the left, the given card onto the right pile");
 t = M.trade(table(hands, { basar: ["b4-0", "b5-0", "b6-0"] }), "Isi", { from: "basar", cards: ["b4-0", "b5-0"] }, ["g9-0"]);
 ok(t.basar.includes("g9-0") && t.basar.length === 2 && t.lastMove.events.some(e => e.type === "take") && t.lastMove.events.some(e => e.type === "give"), "trade: two from the Basar, one back there, one move with both");
 throwsWith(() => M.trade(table(hands, { basar: ["b4-0"] }), "Isi", { from: "basar", cards: ["b4-0"] }, ["g9-0"]), /1 gegen 2/, "trade: one for one is no trade");
-t = M.trade(table(hands, { piles: [["g5-0"], ["b10-0"]], deck: ["A.aussetzen.0", "y11-0"] }), "Isi", { from: "deck", count: 2 }, ["b1-0"]);
+t = M.trade(table(hands, { piles: [["g5-0"], ["b10-0"]], deck: ["A.aussetzen.0", "y11-0"] }), "Isi", { from: "deck", count: 2 }, ["b1-0"], [0]);
 ok(t.hands.Isi.includes("b1-0") && t.trade === null, "trade from the deck: a blue card ends the turn, nothing is given");
 
 /* the hidden deck */

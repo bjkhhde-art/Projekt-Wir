@@ -30,7 +30,7 @@ Auf GitHub laufen Lint und alle Tests automatisch bei jedem Push (siehe `.github
 | 🎲 Qwixx | `npm test -- qwixx` | Regeln | 2 Geräte, Animationen, 3 Spieler mit Gast |
 | 🃏 Flip 7 | `npm test -- flip7` | Regeln | 2 Geräte, 3 Spieler mit Gast |
 | 🎯 Phase 10 | `npm test -- phase10` (Dateien heißen `gipfel`) | Regeln | 2 Geräte, an fremde Phasen anlegen |
-| 🍞 Murphys Gesetz | `npm test -- murphy` | Regeln, Kartendatei, Murphy-Aufgaben, Aktionskarten, Bots spielen ganze Partien | 2 Geräte: Tausch am Stapel, Murphy-Karte erfüllt, nächste Runde, Basar, grüne Aktionskarte |
+| 🍞 Murphys Gesetz | `npm test -- murphy` | Regeln, Kartendatei, Murphy-Aufgaben, Aktionskarten, Bots spielen ganze Partien | 2 Geräte: Tausch am Stapel, Murphy-Karte erfüllt, nächste Runde, Mac, Ablagestapel wählen, grüne Aktionskarte |
 | 🌍 Geo-Guesser | `npm test -- geo` | Regeln | 2 Geräte |
 | 🤖 Computer-Spieler | `npm test -- bots` | Züge von Udiou und Klausi | Lobby, Ersatz-Handy, Cabo, Qwixx, 6 nimmt!, Flip 7 |
 | 😂 Reaktionen & Bot-Namen | `npm test -- game-reactions bot-names` | Namen bereinigen | Emojis/Sticker im Spiel, Namen in den Einstellungen |
