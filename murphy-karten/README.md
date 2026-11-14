@@ -21,31 +21,22 @@ Die Bilder sind schon da: `blau-1.webp` … `blau-11.webp`, `gruen-1.webp` … `
 `"zahlenBilder": true` in `murphy-karten.json` schaltet sie ein. Für die Rückseite ein Bild hochladen und
 `"rueckseite": "rueckseite.webp"` eintragen.
 
-## Murphy-Karten (vorgeschlagene Dateinamen)
+## Murphy-Karten
 
-| Datei | id | Aufgabe (Platzhalter) |
+| Datei (falls ein Bild dazukommt) | id | Aufgabe |
 |---|---|---|
-| `murphy-m01.webp` | m01 | Sammle Karten einer Farbe, die zusammen nicht mehr als 29 ergeben. Du brauchst mindestens 5. |
-| `murphy-m02.webp` | m02 | Genau 4 Karten mit derselben Zahl. |
-| `murphy-m03.webp` | m03 | Eine Reihe aus mindestens 5 Zahlen (Farbe egal). |
-| `murphy-m04.webp` | m04 | Nur gerade Zahlen – mindestens 5 Karten. |
-| `murphy-m05.webp` | m05 | Nur ungerade Zahlen – mindestens 6 Karten. |
-| `murphy-m06.webp` | m06 | Höchstens 5 Karten, die zusammen genau 30 ergeben. |
-| `murphy-m07.webp` | m07 | Von jeder Farbe genau 2 Karten. |
-| `murphy-m08.webp` | m08 | Drei Paare – sonst nichts. |
-| `murphy-m09.webp` | m09 | Zwei Drillinge – sonst nichts. |
-| `murphy-m10.webp` | m10 | Ein Drilling und ein Paar. |
-| `murphy-m11.webp` | m11 | Mindestens 7 Karten, keine Zahl doppelt. |
-| `murphy-m12.webp` | m12 | Nur Zahlen von 1 bis 5 – mindestens 5 Karten. |
-| `murphy-m13.webp` | m13 | Nur Zahlen ab 8 – mindestens 5 Karten. |
-| `murphy-m14.webp` | m14 | Höchstens 6 Karten, zusammen mindestens 50. |
-| `murphy-m15.webp` | m15 | Genau 3 Karten, zusammen 25 bis 30. |
-| `murphy-m16.webp` | m16 | Nur rote Karten – mindestens 6. |
-| `murphy-m17.webp` | m17 | Nur grüne Karten, zusammen mindestens 40. |
-| `murphy-m18.webp` | m18 | Eine gelbe Reihe aus mindestens 4 Zahlen. |
-| `murphy-m19.webp` | m19 | Zwei Farben mit je genau 3 Karten. |
-| `murphy-m20.webp` | m20 | Nur noch eine einzige Karte: eine 11. |
-| `murphy-m21.webp` | m21 | Mindestens 4 Karten, die zusammen genau 21 ergeben. |
+| `murphy-m01.webp` | m01 | Die Aufgabe ist erfüllt, wenn du mindestens 8 Karten hast, die in Summe 90 oder mehr ergeben. |
+| `murphy-m02.webp` | m02 | Die Aufgabe ist erfüllt, wenn du NUR eine blaue 5 und eine beliebige andere Karte hast. |
+| `murphy-m03.webp` | m03 | Die Aufgabe ist erfüllt, wenn du NUR aufeinander folgende Karten gleicher Farbe hast. Du brauchst mindestens 4. |
+| `murphy-m04.webp` | m04 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit der Zahl 10 hast – egal wie viele. |
+| `murphy-m05.webp` | m05 | Die Aufgabe ist erfüllt, wenn du NUR eine gelbe 6 und eine beliebige andere Karte hast. |
+| `murphy-m06.webp` | m06 | Die Aufgabe ist erfüllt, wenn du NUR gelbe Karten hast. Du brauchst mindestens 7. |
+| `murphy-m07.webp` | m07 | Die Aufgabe ist erfüllt, wenn du NUR Karten hast, deren Zahl höchstens 3 ist. Du brauchst mindestens 3. |
+| `murphy-m08.webp` | m08 | Die Aufgabe ist erfüllt, wenn du NUR Karten hast, deren Zahlen mehr als 4 Buchstaben haben. Du brauchst mindestens 4. (Zahlen mit mehr als 4 Buchstaben: sechs und sieben) |
+| `murphy-m09.webp` | m09 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Pärchen liegen. Es müssen mindestens 2 Pärchen sein – Farbe egal. |
+| `murphy-m10.webp` | m10 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zahlen der Dreierreihe hast. Du brauchst mindestens 6. (Zahlen der Dreierreihe: 3, 6, 9) |
+| `murphy-m11.webp` | m11 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit ungeraden Zahlen hast. Du brauchst mindestens 9. |
+| `murphy-m12.webp` | m12 | Die Aufgabe ist erfüllt, wenn bei Mac NUR eine Zahlenfolge liegt. Es müssen mindestens 3 Karten sein – Farbe egal. |
 
 ## Aktionskarten (alle mit Bild)
 

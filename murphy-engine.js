@@ -84,9 +84,10 @@ const perPlayer = (players, fn) => players.reduce((acc, p) => { acc[p] = fn(p); 
 /* ---------- Murphy tasks: what the number cards in hand must fulfil ---------- */
 
 const RANGE_KEYS = ["anzahl", "summe", "farben", "jedeFarbe", "kleinste", "groesste"];
-const BOOL_KEYS = ["verschieden", "gleicheZahl", "reihe", "gerade", "ungerade"];
+const BOOL_KEYS = ["verschieden", "gleicheZahl", "reihe", "gerade", "ungerade", "nurPaare"];
 const LIST_KEYS = ["werte", "gruppen", "farbGruppen"];
-const CHECK_KEYS = [...RANGE_KEYS, ...BOOL_KEYS, ...LIST_KEYS, "farbe", "oder"];
+/* bei: "hand" (default) or "mac" – whose number cards are checked; mitKarte: "blau 5" – this card must be there */
+const CHECK_KEYS = [...RANGE_KEYS, ...BOOL_KEYS, ...LIST_KEYS, "farbe", "mitKarte", "bei", "oder"];
 
 const rangeGap = (x, spec) => (typeof spec === "number" ? Math.abs(x - spec)
   : Math.max(0, (spec.min === undefined ? x : spec.min) - x, x - (spec.max === undefined ? x : spec.max)));
@@ -107,10 +108,11 @@ function shapeGap(counts, wanted) {
   return gap;
 }
 
-/* how far the number cards are from the task: 0 = fulfilled. Also guides the computer players. */
-function taskDistance(check, cards) {
+/* how far the number cards are from the task: 0 = fulfilled. Also guides the computer players.
+   ctx.mac: Mac's cards, for tasks about Mac (bei: "mac") – then the hand does not matter */
+function taskDistance(check, cards, ctx = {}) {
   if (!check) return null;
-  const nums = cards.filter(isNumber);
+  const nums = (check.bei === "mac" ? ctx.mac || [] : cards).filter(isNumber);
   if (nums.length === 0) return 100;
   const values = nums.map(valueOf);
   const colours = nums.map(colourOf);
@@ -147,14 +149,17 @@ function taskDistance(check, cards) {
   if (check.farbGruppen !== undefined) gap += 2 * shapeGap(colourCounts.values(), check.farbGruppen);
   if (check.kleinste !== undefined) gap += rangeGap(Math.min(...values), check.kleinste);
   if (check.groesste !== undefined) gap += rangeGap(Math.max(...values), check.groesste);
-  if (check.oder !== undefined) gap += Math.min(...check.oder.map(alt => taskDistance(alt, nums)));
+  if (check.mitKarte !== undefined && !nums.some(c => colourOf(c) === check.mitKarte.colour && valueOf(c) === check.mitKarte.value)) gap += 3;
+  /* only pairs: every number exactly twice */
+  if (check.nurPaare) gap += 2 * [...valueCounts.values()].reduce((sum, count) => sum + Math.abs(count - 2), 0);
+  if (check.oder !== undefined) gap += Math.min(...check.oder.map(alt => taskDistance(alt, nums, { mac: nums })));
   return gap;
 }
 
 /* exactly fulfilled? (null: the card has no condition – the player says so herself) */
-function fulfils(check, cards) {
+function fulfils(check, cards, ctx = {}) {
   if (!check) return null;
-  return taskDistance(check, cards) === 0;
+  return taskDistance(check, cards, ctx) === 0;
 }
 
 /* ---------- murphy-karten.json ---------- */
@@ -219,6 +224,13 @@ function parseCheck(check, where) {
     } else if (key === "farbe") {
       if (!COLOUR_KEYS[value]) throw new Error(`${at}: „blau“, „gelb“ oder „gruen“ erwartet.`);
       out.farbe = value === "grün" ? "gruen" : value;
+    } else if (key === "mitKarte") {
+      const m = typeof value === "string" ? /^(blau|gelb|gruen|grün)\s+(\d+)$/i.exec(value.trim()) : null;
+      if (!m || Number(m[2]) < 1 || Number(m[2]) > MAX_VALUE) throw new Error(`${at}: z. B. „blau 5“ erwartet (Farbe und Zahl 1–${MAX_VALUE}).`);
+      out.mitKarte = { colour: COLOUR_KEYS[m[1].toLowerCase()], value: Number(m[2]) };
+    } else if (key === "bei") {
+      if (value !== "hand" && value !== "mac") throw new Error(`${at}: „hand“ oder „mac“ erwartet.`);
+      if (value === "mac") out.bei = "mac";
     } else if (key === "werte") {
       if (!Array.isArray(value) || value.length === 0 || !value.every(v => Number.isInteger(v) && v >= 1 && v <= MAX_VALUE)) {
         throw new Error(`${at}: eine Liste von Zahlen 1–${MAX_VALUE} erwartet.`);
@@ -369,7 +381,13 @@ function dealMurphy(state, rand) {
     state.murphyDeck = shuffle(state.murphyBack, rand);
     state.murphyBack = [];
   }
-  return state.murphyDeck.pop() || null;
+  if (state.murphyDeck.length) return state.murphyDeck.pop();
+  /* all Murphy cards are kept or held (few cards, many players, many to win): a kept one comes back into play */
+  const held = new Set(Object.values(state.murphy || {}).filter(Boolean));
+  const ids = state.rules.murphy.map(m => m.id);
+  const free = ids.filter(id => !held.has(id));
+  const pool = free.length ? free : ids;
+  return pool[Math.floor(rand() * pool.length)] || null;
 }
 
 /* cards drawn outside a trade (effects, refills): red ones are put aside without acting – no chains */
@@ -415,8 +433,8 @@ function takeRandomNumbers(state, person, count, rand) {
 function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
   const chosen = rules || configuredRules;
   if (!chosen) throw new Error("Die Karten (murphy-karten.json) sind noch nicht geladen.");
-  if (chosen.murphy.length < players.length * chosen.winCards) {
-    throw new Error(`Für ${players.length} Personen braucht es mindestens ${players.length * chosen.winCards} aktive Murphy-Karten.`);
+  if (chosen.murphy.length < players.length) {
+    throw new Error(`Für ${players.length} Personen braucht es mindestens ${players.length} aktive Murphy-Karten.`);
   }
   const state = {
     players: players.slice(),
@@ -778,7 +796,7 @@ function worstNumber(state, person) {
   let best = null;
   let bestGap = Infinity;
   nums.forEach(card => {
-    const gap = check ? taskDistance(check, hand.filter(c => c !== card)) : -valueOf(card);
+    const gap = check ? taskDistance(check, hand.filter(c => c !== card), { mac: state.basar }) : -valueOf(card);
     if (gap < bestGap) { best = card; bestGap = gap; }
   });
   return best;
@@ -986,7 +1004,7 @@ function finishTurn(state, person, rand) {
   state.step = null;
   state.trade = null;
   const order = [person, ...state.players.filter(p => p !== person)];
-  const winner = order.find(p => fulfils(murphyCheck(state, p), state.hands[p]) === true);
+  const winner = order.find(p => fulfils(murphyCheck(state, p), state.hands[p], { mac: state.basar }) === true);
   if (winner) {
     winRound(state, winner);
     return;
@@ -1020,7 +1038,7 @@ function claimMurphy(state, person) {
   if (state.phase !== "play") throw new Error("Die Runde ist vorbei.");
   const check = murphyCheck(state, person);
   if (check) {
-    if (!fulfils(check, state.hands[person])) throw new Error("Deine Murphy-Karte ist noch nicht erfüllt.");
+    if (!fulfils(check, state.hands[person], { mac: state.basar })) throw new Error("Deine Murphy-Karte ist noch nicht erfüllt.");
   }
   const next = begin(state);
   winRound(next, person);
