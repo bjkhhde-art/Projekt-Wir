@@ -4,6 +4,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const M = require("../../murphy-engine.js");
 const rules = M.parseCards(require("../../murphy-karten.json"));
+/* the staged tables use the fixed test tasks (m02 = four of a kind …), whatever murphy-karten.json holds */
+const testRules = M.parseCards({ ...require("../../murphy-karten.json"), murphy: require("../fixtures/murphy-aufgaben-alt.json") });
 
 /* Murphys Gesetz on two phones: lobby, the deal, a trade at the open piles that fulfils Isi's
    Murphy card, the round summary on both phones, the next round, a Basar trade and a green action card */
@@ -64,6 +66,7 @@ async function stage(build) {
   const placed = new Set([...Object.values(hands).flat(), ...build.basar, ...build.piles.flat(), ...(build.deck || [])]);
   const rest = [...M.numberCards(), ...M.actionCards(s.rules)].filter(c => !placed.has(c));
   Object.assign(s, {
+    rules: testRules,
     hands,
     basar: build.basar,
     piles: build.piles,

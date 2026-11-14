@@ -460,20 +460,22 @@ const gipfel = {
 /* ---------- Murphys Gesetz ---------- */
 
 /* how far a hand is from the bot's Murphy card (a card without a condition: unknown, a middling value) */
-function murphyGap(M, state, bot, hand) {
-  const gap = M.taskDistance(M.murphyCheck(state, bot), hand);
+function murphyGap(M, state, bot, hand, mac = state.basar) {
+  /* a task about Mac ("bei Mac liegen NUR Pärchen") is measured on Mac's cards */
+  const gap = M.taskDistance(M.murphyCheck(state, bot), hand, { mac });
   return gap === null ? 5 : gap;
 }
 
 /* the number cards to give away that leave the best hand (one number card always stays) */
-function murphyBestGive(M, state, bot, hand, count, locked = []) {
+/* macBase: in a trade with Mac, his cards before the given ones go to him – they count for tasks about Mac */
+function murphyBestGive(M, state, bot, hand, count, locked = [], macBase = null) {
   /* cards just taken in this trade may not be given back (house rule) */
   const nums = hand.filter(c => M.isNumber(c) && !locked.includes(c));
   let best = null;
   const consider = combo => {
     const rest = hand.filter(c => !combo.includes(c));
     if (rest.filter(M.isNumber).length < 1) return;
-    const gap = murphyGap(M, state, bot, rest);
+    const gap = murphyGap(M, state, bot, rest, macBase ? [...macBase, ...combo] : state.basar);
     if (!best || gap < best.gap) best = { cards: combo, gap };
   };
   if (count === 1) nums.forEach(c => consider([c]));
@@ -517,7 +519,7 @@ function murphyPlay(state, bot) {
 
   if (state.step === "give") {
     const taken = state.trade.cards || [];
-    const best = murphyBestGive(M, state, bot, hand, state.trade.give, taken);
+    const best = murphyBestGive(M, state, bot, hand, state.trade.give, taken, state.trade.at === "basar" ? state.basar : null);
     /* one card from the deck and two can't be given without losing the last number card: draw a second one */
     if (!best && state.trade.from === "deck" && state.trade.taken === 1) return M.drawMore(state, bot);
     const cards = best ? best.cards : hand.filter(c => M.isNumber(c) && !taken.includes(c)).slice(0, state.trade.give);
@@ -532,8 +534,8 @@ function murphyPlay(state, bot) {
   if (fresh && now >= 12 && !state.actionPlayed && state.tradesLeft === 1) return M.playAction(state, bot, fresh, {});
 
   const known = [];
-  const tryTake = (taken, run) => {
-    const best = murphyBestGive(M, state, bot, [...hand, ...taken], taken.length === 1 ? 2 : 1, taken);
+  const tryTake = (taken, run, fromMac = false) => {
+    const best = murphyBestGive(M, state, bot, [...hand, ...taken], taken.length === 1 ? 2 : 1, taken, fromMac ? state.basar.filter(c => !taken.includes(c)) : null);
     if (best) known.push({ gap: best.gap, run });
   };
   state.piles.forEach((pile, i) => {
@@ -542,8 +544,8 @@ function murphyPlay(state, bot) {
   });
   if (state.piles.every(pile => pile.length > 0)) tryTake(state.piles.map(pile => pile[pile.length - 1]), () => M.takeBothOpen(state, bot));
   state.basar.forEach((card, i) => {
-    if (state.basar.length <= M.BASAR_SIZE - 1 && nums >= 2) tryTake([card], () => M.takeBasar(state, bot, [card]));
-    state.basar.slice(i + 1).forEach(other => tryTake([card, other], () => M.takeBasar(state, bot, [card, other])));
+    if (state.basar.length <= M.BASAR_SIZE - 1 && nums >= 2) tryTake([card], () => M.takeBasar(state, bot, [card]), true);
+    state.basar.slice(i + 1).forEach(other => tryTake([card, other], () => M.takeBasar(state, bot, [card, other]), true));
   });
   /* only an open card that really helps – two bots must never hand the same cards back and forth */
   const bestKnown = known.sort((a, b) => a.gap - b.gap)[0];

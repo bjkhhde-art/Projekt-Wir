@@ -6,7 +6,7 @@ const Bots = require("../../game-bots.js");
 const real = require("../../murphy-karten.json");
 /* the rules of the effects are tested with a fixed list of action cards (the first placeholders), so these tests
    stay the same when the card file changes; the real cards are tested further down */
-const json = { ...real, aktionen: require("../fixtures/murphy-aktionen-alt.json") };
+const json = { ...real, murphy: require("../fixtures/murphy-aufgaben-alt.json"), aktionen: require("../fixtures/murphy-aktionen-alt.json") };
 
 let assertions = 0;
 function ok(cond, msg) { assert.ok(cond, msg); assertions++; console.log("PASS:", msg); }
@@ -51,6 +51,7 @@ ok(numbers.filter(n => M.valueOf(n) === 2).length === 3 && numbers.filter(n => M
 ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the test cards: 17 action cards and 21 Murphy cards");
 ok(rules.actions.filter(a => a.colour === "blau").reduce((s, a) => s + a.copies, 0) === 9, "9 blue (instant) action cards, 8 green ones");
 const realRules = M.parseCards(real);
+ok(realRules.murphy.length === 12 && realRules.murphy.every(m => m.check && m.text.startsWith("Die Aufgabe ist erfüllt")), "the card file: the 12 real Murphy tasks, each checked by the game");
 ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.title && a.text), "the card file: 5 blue and 11 green action cards, each with title and text");
 ok(realRules.backImage === "rueckseite.webp" && !realRules.numberImages && realRules.actions.every(a => !a.image), "only the back is a picture – number and action cards are drawn");
 ok(M.parseCards({ ...real, aktionen: [{ id: "alt", farbe: "rot", wirkung: "ziehen" }] }).actions[0].colour === "blau", "an older file with \"rot\" still works: red means blue (instant)");
@@ -216,7 +217,8 @@ ok(M.claimMurphy(manual, "Benji").lastRound.winner === "Benji", "a card without 
 
 
 /* ---------- the real action cards ---------- */
-const R = realRules;
+/* the real action cards, with the fixed test tasks (their ids are used below) */
+const R = M.parseCards({ ...real, murphy: json.murphy });
 const three = { Isi: ["b1-0", "b2-0", "b3-0", "g9-0"], Benji: ["y5-0", "y6-0", "g3-0"], Lea: ["g1-0", "g2-0", "A.fordern.0"] };
 const real3 = (hands, extra = {}) => table(JSON.parse(JSON.stringify(hands)), { piles: [["g5-0"], ["b10-0"]], ...extra }, R);
 let q = real3(three, { deck: ["A.tausch-alles-blau.0", "b11-0"], murphy: { Isi: "m01", Benji: "m03", Lea: "m04" } });
@@ -262,6 +264,29 @@ q = M.playAction(q, "Isi", "A.nimm-drei.0", { source: "basar", cards: ["g7-0", "
 ok(q.basar.join() === "g10-0" && q.hands.Isi.includes("y7-0"), "3 nehmen: three from Mac");
 q = M.playAction(real2("A.abgeben.0"), "Isi", "A.abgeben.0", { cards: ["b7-0", "b8-0"] });
 ok(q.hands.Benji.includes("b7-0") && q.hands.Benji.includes("b8-0"), "2 abgeben: two cards to Benji");
+
+/* ---------- the real Murphy tasks, including the ones about Mac ---------- */
+const task = id => realRules.murphy.find(m => m.id === id).check;
+ok(M.fulfils(task("m01"), ["b11-0", "b11-1", "y11-0", "g11-0", "b10-0", "y10-0", "g10-0", "b9-0", "y9-0"]) && !M.fulfils(task("m01"), ["b11-0", "b11-1", "y11-0", "g11-0", "b10-0", "y10-0", "g10-0", "b9-0"]), "8+ cards to 90: nine cards make it, eight (83) do not");
+ok(M.fulfils(task("m02"), ["b5-0", "g9-0"]) && !M.fulfils(task("m02"), ["b5-0", "g9-0", "y1-0"]) && !M.fulfils(task("m02"), ["y5-0", "g9-0"]), "only a blue 5 and one other card");
+ok(M.fulfils(task("m03"), ["g4-0", "g5-0", "g6-0", "g7-0"]) && !M.fulfils(task("m03"), ["g4-0", "g5-0", "b6-0", "g7-0"]), "only a row in one colour, at least 4");
+ok(M.fulfils(task("m04"), ["b10-0"]) && M.fulfils(task("m04"), ["b10-0", "y10-0", "g10-1"]) && !M.fulfils(task("m04"), ["b10-0", "y9-0"]), "only tens, however many");
+ok(M.fulfils(task("m08"), ["b6-0", "g7-0", "y6-0", "y7-1"]) && !M.fulfils(task("m08"), ["b6-0", "g7-0", "y6-0", "y8-1"]), "only sechs and sieben, at least 4");
+ok(M.fulfils(task("m09"), ["b1-0"], { mac: ["b4-0", "y4-0", "g9-0", "g9-1"] }) && !M.fulfils(task("m09"), ["b1-0"], { mac: ["b4-0", "y4-0", "g9-0", "g9-1", "y2-0"] })
+  && !M.fulfils(task("m09"), ["b1-0"], { mac: ["b4-0", "y4-0"] }) && !M.fulfils(task("m09"), ["b1-0"], { mac: ["b4-0", "y4-0", "g4-1", "g9-1"] }), "Mac only pairs, at least two – a single card or a triple spoils it, the own hand does not matter");
+ok(M.fulfils(task("m12"), ["b1-0"], { mac: ["b4-0", "y5-0", "g6-0"] }) && !M.fulfils(task("m12"), ["b1-0"], { mac: ["b4-0", "y5-0", "g7-0"] }), "Mac only a row of at least 3, colour does not matter");
+let macWin = table({ Isi: ["b1-0", "b2-0", "y3-0"], Benji: ["y5-0", "y6-0"] }, { basar: ["b4-0", "y5-1", "g7-0"], piles: [["g5-0"], ["b10-0"]], murphy: { Isi: "m12", Benji: "m11" } }, realRules);
+macWin = M.trade(macWin, "Isi", { from: "basar", cards: ["g7-0"] }, ["y3-0", "b2-0"]);
+ok(macWin.phase === "round-over" && macWin.lastRound.winner === "Isi", "a trade with Mac that leaves him 2-3-4-5: Isi's Mac task is fulfilled");
+throwsWith(() => M.parseCards({ ...real, murphy: [{ id: "x", text: "t", bedingung: { mitKarte: "lila 5" } }, ...real.murphy] }), /blau 5/, "mitKarte needs a colour and a number");
+throwsWith(() => M.parseCards({ ...real, murphy: [{ id: "x", text: "t", bedingung: { bei: "tisch", anzahl: 2 } }, ...real.murphy] }), /mac/, "bei is hand or mac");
+/* few Murphy cards, four players, five to win: they never run out */
+let many = M.createInitialState(["A", "B", "C", "D"], seeded(9), realRules, "5");
+many.murphyDeck = [];
+many.murphyBack = [];
+
+const refill = M.nextRound({ ...many, phase: "round-over", lastRound: { winner: "A" }, murphy: { A: null, B: null, C: null, D: null } }, "A", seeded(10));
+ok(["A", "B", "C", "D"].every(p => refill.murphy[p]), "… every player gets one");
 
 /* ---------- how many Murphy cards win, chosen in the lobby ---------- */
 const five = M.createInitialState(["Isi", "Benji"], seeded(7), rules, "5");

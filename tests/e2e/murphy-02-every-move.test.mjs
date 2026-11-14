@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const M = require("../../murphy-engine.js");
-const rules = M.parseCards(require("../../murphy-karten.json"));
+/* the real action cards with the fixed test tasks (their ids are used below), whatever murphy-karten.json holds */
+const rules = M.parseCards({ ...require("../../murphy-karten.json"), murphy: require("../fixtures/murphy-aufgaben-alt.json") });
 
 /* Murphys Gesetz, every kind of move once through the page: the hidden deck card by card, an open pile
    (top two), both open piles, Mac, a blue card that hits a chosen person, every kind of green card,
