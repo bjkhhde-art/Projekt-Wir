@@ -149,6 +149,10 @@ const stolen = (await latest()).state;
 ok(stolen.hands.Benji.length === benjiBefore - 1 && stolen.actionPile.includes("A.alle-geben.0"), "Alle geben dir: Benji gave Isi a card, the green card is on the action pile");
 await until(async () => (await benji.locator("#mgEvent").textContent()).includes("Alle geben dir"), 4000, "Benji sees it");
 ok(true, "Benji sees what Isi played");
+await until(async () => await benji.locator(".mg-pop-action").count() === 1, 3000, "action pop-up");
+ok((await benji.locator(".mg-pop-action").textContent()).includes("Alle geben dir") && (await benji.locator(".mg-pop-action").textContent()).includes("Isi spielt"), "a pop-up shows Benji the green card Isi played");
+await until(async () => await benji.locator(".mg-pop-turn").count() === 1, 6000, "turn pop-up");
+ok((await benji.locator(".mg-pop-turn").textContent()).includes("Du bist dran"), "then a pop-up tells Benji: Du bist dran! (taps go through it)");
 
 /* Benji draws from the deck card by card; the drawn cards stay, he gives one he held before */
 await until(async () => (await benji.locator("#mgStatus").textContent()).includes("Du bist dran"), 5000, "Benji's turn again");

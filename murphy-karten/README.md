@@ -37,6 +37,26 @@ Die Bilder sind schon da: `blau-1.webp` … `blau-11.webp`, `gruen-1.webp` … `
 | `murphy-m10.webp` | m10 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zahlen der Dreierreihe hast. Du brauchst mindestens 6. (Zahlen der Dreierreihe: 3, 6, 9) |
 | `murphy-m11.webp` | m11 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit ungeraden Zahlen hast. Du brauchst mindestens 9. |
 | `murphy-m12.webp` | m12 | Die Aufgabe ist erfüllt, wenn bei Mac NUR eine Zahlenfolge liegt. Es müssen mindestens 3 Karten sein – Farbe egal. |
+| `murphy-m13.webp` | m13 | Die Aufgabe ist erfüllt, wenn du NUR grüne Karten hast. Du brauchst mindestens 6. |
+| `murphy-m14.webp` | m14 | Die Aufgabe ist erfüllt, wenn du NUR blaue Karten mit geraden Zahlen hast. Du brauchst mindestens 4. |
+| `murphy-m15.webp` | m15 | Die Aufgabe ist erfüllt, wenn du NUR 4 Karten mit derselben Zahl hast – Farbe egal. |
+| `murphy-m16.webp` | m16 | Die Aufgabe ist erfüllt, wenn du NUR einen Drilling und ein Pärchen hast (z. B. drei 8en und zwei 4en) – Farbe egal. |
+| `murphy-m17.webp` | m17 | Die Aufgabe ist erfüllt, wenn deine Karten zusammen genau 21 ergeben. Du brauchst mindestens 3. |
+| `murphy-m18.webp` | m18 | Die Aufgabe ist erfüllt, wenn du von jeder Farbe genau 2 Karten hast – also NUR 6 Karten. |
+| `murphy-m19.webp` | m19 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit 9, 10 oder 11 hast. Du brauchst mindestens 5. |
+| `murphy-m20.webp` | m20 | Die Aufgabe ist erfüllt, wenn du NUR verschiedene Zahlen hast – keine Zahl doppelt, Farbe egal. Du brauchst mindestens 7. |
+| `murphy-m21.webp` | m21 | Die Aufgabe ist erfüllt, wenn du NUR eine lückenlose Zahlenfolge hast (z. B. 3, 4, 5, 6, 7) – Farbe egal. Du brauchst mindestens 5. |
+| `murphy-m22.webp` | m22 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit geraden Zahlen hast. Du brauchst mindestens 8. |
+| `murphy-m23.webp` | m23 | Die Aufgabe ist erfüllt, wenn du NUR 4 Karten hast, die zusammen höchstens 12 ergeben. |
+| `murphy-m24.webp` | m24 | Die Aufgabe ist erfüllt, wenn du NUR noch eine einzige Karte hast: eine 11 – Farbe egal. |
+| `murphy-m25.webp` | m25 | Die Aufgabe ist erfüllt, wenn du NUR Pärchen hast – jede Zahl genau zweimal, Farbe egal. Es müssen mindestens 3 Pärchen sein. |
+| `murphy-m26.webp` | m26 | Die Aufgabe ist erfüllt, wenn du NUR Karten in zwei Farben hast, von jeder genau 3. |
+| `murphy-m27.webp` | m27 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Quadratzahlen hast. Du brauchst mindestens 4. (Quadratzahlen: 1, 4, 9) |
+| `murphy-m28.webp` | m28 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Primzahlen hast. Du brauchst mindestens 6. (Primzahlen: 2, 3, 5, 7, 11) |
+| `murphy-m29.webp` | m29 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten einer Farbe liegen. Es müssen mindestens 4 sein. |
+| `murphy-m30.webp` | m30 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit Zahlen bis höchstens 5 liegen. Es müssen mindestens 3 sein. |
+| `murphy-m31.webp` | m31 | Die Aufgabe ist erfüllt, wenn du mindestens 6 Karten hast, die zusammen genau 50 ergeben. |
+| `murphy-m32.webp` | m32 | Die Aufgabe ist erfüllt, wenn du NUR 3 Karten mit derselben Zahl hast – in allen drei Farben. |
 
 ## Aktionskarten (alle mit Bild)
 

@@ -51,7 +51,34 @@ ok(numbers.filter(n => M.valueOf(n) === 2).length === 3 && numbers.filter(n => M
 ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the test cards: 17 action cards and 21 Murphy cards");
 ok(rules.actions.filter(a => a.colour === "blau").reduce((s, a) => s + a.copies, 0) === 9, "9 blue (instant) action cards, 8 green ones");
 const realRules = M.parseCards(real);
-ok(realRules.murphy.length === 12 && realRules.murphy.every(m => m.check && m.text.startsWith("Die Aufgabe ist erfüllt")), "the card file: the 12 real Murphy tasks, each checked by the game");
+ok(realRules.murphy.length === 32 && realRules.murphy.every(m => m.check && m.text.startsWith("Die Aufgabe ist erfüllt")), "the card file: the 12 real Murphy tasks and 20 new ones, each checked by the game");
+/* every new task: one hand that fulfils it and one that just misses (hand, or Mac for tasks about Mac) */
+const realTask = id => realRules.murphy.find(c => c.id === id).check;
+const NEW_TASKS = {
+  m13: [["g1-0", "g4-0", "g5-0", "g7-0", "g9-0", "g11-0"], ["g1-0", "g4-0", "g5-0", "g7-0", "g9-0", "b11-0"]],
+  m14: [["b2-0", "b4-0", "b8-0", "b10-0"], ["b2-0", "b4-0", "b8-0", "b9-0"]],
+  m15: [["b5-0", "b5-1", "y5-0", "g5-0"], ["b5-0", "b5-1", "y5-0", "g5-0", "g6-0"]],
+  m16: [["b8-0", "y8-0", "g8-0", "b4-0", "g4-0"], ["b8-0", "y8-0", "g8-0", "b4-0", "g5-0"]],
+  m17: [["b10-0", "y7-0", "g4-0"], ["b10-0", "y7-0", "g5-0"]],
+  m18: [["b1-0", "b2-0", "y3-0", "y4-0", "g5-0", "g6-0"], ["b1-0", "b2-0", "y3-0", "y4-0", "g5-0", "b6-0"]],
+  m19: [["b9-0", "y10-0", "g11-0", "b11-0", "y9-0"], ["b9-0", "y10-0", "g11-0", "b11-0", "y8-0"]],
+  m20: [["b1-0", "y2-0", "g3-0", "b5-0", "y7-0", "g9-0", "b11-0"], ["b1-0", "y2-0", "g3-0", "b5-0", "y7-0", "g9-0", "b9-0"]],
+  m21: [["b3-0", "y4-0", "g5-0", "b6-0", "y7-0"], ["b3-0", "y4-0", "g5-0", "b6-0", "y8-0"]],
+  m22: [["b2-0", "y4-0", "g4-0", "b6-0", "y8-0", "g8-0", "b10-0", "y10-0"], ["b2-0", "y4-0", "g4-0", "b6-0", "y8-0", "g8-0", "b10-0", "y11-0"]],
+  m23: [["b1-0", "y2-0", "g3-0", "b6-0"], ["b1-0", "y2-0", "g3-0", "b7-0"]],
+  m24: [["y11-0"], ["y11-0", "b11-0"]],
+  m25: [["b4-0", "y4-0", "g7-0", "g7-1", "b9-0", "y9-0"], ["b4-0", "y4-0", "g7-0", "g7-1", "b9-0", "y9-0", "g9-0"]],
+  m26: [["b1-0", "b5-0", "b9-0", "g2-0", "g6-0", "g10-0"], ["b1-0", "b5-0", "b9-0", "g2-0", "g6-0", "y10-0"]],
+  m27: [["b1-0", "y4-0", "g9-0", "b9-0"], ["b1-0", "y4-0", "g9-0", "b8-0"]],
+  m28: [["b2-0", "y3-0", "g5-0", "b7-0", "y11-0", "g11-0"], ["b2-0", "y3-0", "g5-0", "b7-0", "y11-0", "g9-0"]],
+  m31: [["b11-0", "y10-0", "g9-0", "b8-0", "y7-0", "g5-0"], ["b11-0", "y10-0", "g9-0", "b8-0", "y7-0", "g4-0"]],
+  m32: [["b7-0", "y7-0", "g7-0"], ["b7-0", "b7-1", "g7-0"]]
+};
+Object.entries(NEW_TASKS).forEach(([id, [yes, no]]) => {
+  ok(M.fulfils(realTask(id), yes) && !M.fulfils(realTask(id), no), `new task ${id}: fulfilled exactly, and missed by one card`);
+});
+ok(M.fulfils(realTask("m29"), ["b1-0"], { mac: ["g1-0", "g4-0", "g8-0", "g11-0"] }) && !M.fulfils(realTask("m29"), ["b1-0"], { mac: ["g1-0", "g4-0", "g8-0", "y11-0"] }), "new task m29: Mac holds one colour only");
+ok(M.fulfils(realTask("m30"), ["b11-0"], { mac: ["g1-0", "y4-0", "b5-0"] }) && !M.fulfils(realTask("m30"), ["b11-0"], { mac: ["g1-0", "y4-0", "b6-0"] }), "new task m30: Mac holds nothing above 5");
 ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.title && a.text), "the card file: 5 blue and 11 green action cards, each with title and text");
 ok(realRules.backImage === "rueckseite.webp" && !realRules.numberImages && realRules.actions.every(a => !a.image), "only the back is a picture – number and action cards are drawn");
 ok(M.parseCards({ ...real, aktionen: [{ id: "alt", farbe: "rot", wirkung: "ziehen" }] }).actions[0].colour === "blau", "an older file with \"rot\" still works: red means blue (instant)");
