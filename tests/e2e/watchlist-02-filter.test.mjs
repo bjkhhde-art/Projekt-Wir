@@ -25,7 +25,7 @@ const page = await (await browser.newContext({ viewport: { width: 390, height: 8
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 await page.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
-await page.goto("http://localhost:9091/wir.html?tab=watchlist");
+await page.goto("http://localhost:9091/ziele.html?tab=watchlist");
 await page.waitForTimeout(800);
 
 const shown = async () => {
@@ -40,7 +40,7 @@ ok(await page.locator(".watchlist-filter-btn").count() === 0, "the three fixed b
 ok(await page.locator("#watchlistFilterPanel").isHidden(), "the filter panel starts folded");
 await page.click("#watchlistFilterToggle");
 ok(await page.locator("#watchlistFilterPanel").isVisible(), "'Filter' opens the panel");
-ok(await page.locator('.wl-filter-group[data-group="status"] .wl-chip').count() === 6, "status: running, open, together, Isi, Benji, without info");
+ok(await page.locator('.wl-filter-group[data-group="status"] .wl-chip').count() === 7, "status: running, open, together live, separately, only Isi, only Benji, without info");
 const platforms = await page.locator('.wl-filter-group[data-group="platforms"] .wl-chip').allTextContents();
 ok(platforms.map(p => p.replace(/\s+/g, " ").trim()).join("|") === "Netflix 3|Disney+ 1|Kino 1|Prime Video 1", `platforms come from the list with counts, Netflix/netflix merged (${platforms.map(p => p.replace(/\s+/g, " ").trim()).join(", ")})`);
 ok((await page.locator('.wl-filter-group[data-group="periods"] .wl-chip').allTextContents()).map(t => t.trim()).join("|").includes("2025"), "years come from the watch dates");
@@ -54,8 +54,8 @@ ok((await page.locator("#watchlistFilterCount").textContent()) === "2", "the but
 await page.click("#watchlistFilterReset");
 ok(await page.locator("#watchlistFilterCount").isHidden(), "Zurücksetzen clears everything");
 
-await chip("status", "Isi allein").click();
-await chip("status", "Benji allein").click();
+await chip("status", "Nur Isi").click();
+await chip("status", "Nur Benji").click();
 ok(same(await shown(), ["Lupin", "Arcane"]), "Isi alone OR Benji alone");
 ok(await page.locator(".watched-list").isVisible(), "the watched list opens automatically while filtering");
 ok((await page.locator("#watchlistResultCount").textContent()) === "2 von 6", "the result count is shown");

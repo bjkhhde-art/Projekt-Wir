@@ -33,11 +33,15 @@ const watchlistWatchingInput = document.getElementById("watchlistWatchingInput")
 const watchlistSeriesCounts = document.getElementById("watchlistSeriesCounts");
 const watchlistSeasonsInput = document.getElementById("watchlistSeasonsInput");
 const watchlistSeasonEpisodes = document.getElementById("watchlistSeasonEpisodes");
+const watchlistStats = document.getElementById("watchlistStats");
 
 const MEDIA_LABELS = { film: "🎬 Film", serie: "📺 Serie" };
 const MEDIA_ICONS = { film: "🎬", serie: "📺" };
 const SEEN_OPEN_KEY = "pw_watchlist_seen_open";
-const SEEN_BY_LABELS = { both: "👫 zusammen", Isi: "👤 Isi allein", Benji: "👤 Benji allein" };
+const SEEN_BY_LABELS = WatchlistFilter.WATCH_MODE_LABELS;
+const MODE_SHORT = WatchlistFilter.WATCH_MODE_SHORT;
+/* the way new episode ticks are recorded, per series and per phone (Isi alone on her phone, together on the sofa…) */
+const EPISODE_MODE_KEY = "pw_watchlist_episode_mode";
 const LONG_PRESS_MS = 500;
 
 let watchlistEntries = [];
@@ -140,14 +144,37 @@ function seenEpisodeCount(entry, seen = seenEpisodes(entry)) {
   return count;
 }
 
-/* the last tick finishes the series: it moves to "Schon gesehen" (together, today – editable by holding the row) */
-async function saveEpisodes(entry, seen, finished) {
-  const update = { episodes_seen: [...seen] };
+function episodeModeFor(entry) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(EPISODE_MODE_KEY) || "{}")[entry.id];
+    return WatchlistFilter.isWatchMode(stored) ? stored : "both";
+  } catch (error) {
+    return "both";
+  }
+}
+
+function rememberEpisodeMode(entry, mode) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(EPISODE_MODE_KEY) || "{}");
+    stored[entry.id] = mode;
+    localStorage.setItem(EPISODE_MODE_KEY, JSON.stringify(stored));
+  } catch (error) {
+    /* only a convenience */
+  }
+}
+
+/* modes: { "1-3": "both", "1-4": "Isi", … } – every key is a ticked episode.
+   The last tick finishes the series: it moves to "Schon gesehen", and how it was watched follows
+   from its episodes (editable later by holding the row). */
+async function saveEpisodes(entry, modes) {
+  const seen = new Set(Object.keys(modes));
+  const finished = seenEpisodeCount(entry, seen) === totalEpisodes(entry);
+  const update = { episodes_seen: [...seen], episode_seen_by: modes };
   if (finished) {
     update.watched = true;
     update.watching = false;
     update.watched_at = new Date().toISOString();
-    update.seen_by = entry.seen_by || "both";
+    update.seen_by = WatchlistFilter.seriesSeenBy(modes);
   }
   const { error } = await supabaseClient.from("watchlist").update(update).eq("id", entry.id);
 
@@ -164,31 +191,90 @@ async function saveEpisodes(entry, seen, finished) {
   await loadWatchlist();
 }
 
+/* tapping ticks with the chosen way; an episode already ticked the same way is unticked,
+   one ticked another way switches to the chosen way. A season works the same for all its episodes. */
 function toggleEpisodes(entry, keys) {
-  const seen = seenEpisodes(entry);
-  const allSeen = keys.every(key => seen.has(key));
-  keys.forEach(key => (allSeen ? seen.delete(key) : seen.add(key)));
-  saveEpisodes(entry, seen, seenEpisodeCount(entry, seen) === totalEpisodes(entry));
+  const mode = episodeModeFor(entry);
+  const modes = WatchlistFilter.episodeModes(entry);
+  const allSame = keys.every(key => modes[key] === mode);
+  keys.forEach(key => {
+    if (allSame) delete modes[key];
+    else modes[key] = mode;
+  });
+  saveEpisodes(entry, modes);
+}
+
+/* where to go on: the first episode not ticked yet */
+function nextEpisode(entry, modes) {
+  const lengths = seasonLengths(entry);
+  for (let s = 0; s < lengths.length; s++) {
+    for (let e = 1; e <= lengths[s]; e++) if (!modes[episodeKey(s + 1, e)]) return { season: s + 1, episode: e };
+  }
+  return null;
+}
+
+function buildModePicker(entry) {
+  const current = episodeModeFor(entry);
+  const picker = document.createElement("div");
+  picker.className = "watch-mode-picker";
+  picker.setAttribute("role", "radiogroup");
+  picker.setAttribute("aria-label", "Wie schaut ihr diese Folgen?");
+  WatchlistFilter.WATCH_MODES.forEach(mode => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "watch-mode-btn" + (mode === current ? " selected" : "");
+    btn.dataset.mode = mode;
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", String(mode === current));
+    btn.textContent = SEEN_BY_LABELS[mode];
+    btn.addEventListener("click", () => {
+      rememberEpisodeMode(entry, mode);
+      picker.querySelectorAll(".watch-mode-btn").forEach(other => {
+        const selected = other === btn;
+        other.classList.toggle("selected", selected);
+        other.setAttribute("aria-checked", String(selected));
+      });
+    });
+    picker.appendChild(btn);
+  });
+  return picker;
+}
+
+function buildModeSummary(modes) {
+  const counts = WatchlistFilter.modeCounts(modes);
+  const used = WatchlistFilter.WATCH_MODES.filter(mode => counts[mode] > 0);
+  if (used.length === 0) return null;
+  const summary = document.createElement("div");
+  summary.className = "watch-mode-summary";
+  summary.innerHTML = used.map(mode =>
+    `<span class="watch-mode-pill" data-mode="${mode}">${escapeHtml(SEEN_BY_LABELS[mode])} <b>${counts[mode]}</b></span>`).join("");
+  return summary;
+}
+
+function buildCardHead(entry, badge) {
+  const head = document.createElement("div");
+  head.className = "watchlist-card-head";
+  const meta = [entry.platform ? `▶️ ${entry.platform}` : null, entry.added_by ? `von ${entry.added_by}` : null].filter(Boolean).join(" · ");
+  head.innerHTML = `
+    <span class="watchlist-poster" data-type="${entry.media_type === "serie" ? "serie" : "film"}" aria-hidden="true">${MEDIA_ICONS[entry.media_type] || MEDIA_ICONS.film}</span>
+    <div class="watchlist-head-main">
+      <span class="watchlist-type-badge">${escapeHtml(badge)}</span>
+      <h3 class="watchlist-title">${escapeHtml(entry.title)}</h3>
+      ${meta ? `<span class="watchlist-meta">${escapeHtml(meta)}</span>` : ""}
+    </div>
+  `;
+  return head;
 }
 
 function buildWatchingCard(entry) {
   const card = document.createElement("div");
-  card.className = "watchlist-card card";
+  card.className = "watchlist-card watchlist-card-watching card";
   card.setAttribute("data-reveal", "");
   attachLongPressToEdit(card, entry);
 
-  const head = document.createElement("div");
-  head.className = "watchlist-card-head";
-  head.innerHTML = `
-    <span class="watchlist-type-badge chip">📺 Läuft gerade</span>
-    ${entry.platform ? `<span class="watchlist-platform">▶️ ${escapeHtml(entry.platform)}</span>` : ""}
-  `;
-  card.appendChild(head);
-
-  const title = document.createElement("h3");
-  title.className = "watchlist-title";
-  title.textContent = entry.title;
-  card.appendChild(title);
+  const modes = WatchlistFilter.episodeModes(entry);
+  const next = nextEpisode(entry, modes);
+  card.appendChild(buildCardHead(entry, next ? `📺 Weiter mit S${next.season} · F${next.episode}` : "📺 Läuft gerade"));
 
   const total = totalEpisodes(entry);
   if (!total) {
@@ -197,26 +283,36 @@ function buildWatchingCard(entry) {
     hint.textContent = "Halte die Karte gedrückt und trag Staffeln und Folgen ein.";
     card.appendChild(hint);
   } else {
-    const count = seenEpisodeCount(entry);
+    const count = seenEpisodeCount(entry, new Set(Object.keys(modes)));
     const progress = document.createElement("div");
     progress.className = "watch-progress";
     progress.innerHTML = `<span>${count} von ${total} Folgen</span><div class="watch-progress-bar"><span style="width:${Math.round(count / total * 100)}%"></span></div>`;
     card.appendChild(progress);
 
-    const seen = seenEpisodes(entry);
-    seasonLengths(entry).forEach((length, index) => {
+    const summary = buildModeSummary(modes);
+    if (summary) card.appendChild(summary);
+
+    const pickerLabel = document.createElement("p");
+    pickerLabel.className = "watch-mode-label";
+    pickerLabel.textContent = "Abhaken als …";
+    card.appendChild(pickerLabel);
+    card.appendChild(buildModePicker(entry));
+
+    const lengths = seasonLengths(entry);
+    lengths.forEach((length, index) => {
       const s = index + 1;
       const keys = Array.from({ length }, (_, i) => episodeKey(s, i + 1));
+      const seasonSeen = keys.filter(key => modes[key]).length;
       const season = document.createElement("div");
       season.className = "watch-season";
 
       const seasonHead = document.createElement("div");
       seasonHead.className = "watch-season-head";
-      seasonHead.innerHTML = `<span>Staffel ${s}</span>`;
+      seasonHead.innerHTML = `<span>Staffel ${s} <span class="watch-season-count">${seasonSeen}/${length}</span></span>`;
       const allBtn = document.createElement("button");
       allBtn.type = "button";
       allBtn.className = "watch-season-all";
-      allBtn.textContent = keys.every(key => seen.has(key)) ? "Alle abwählen" : "Alle gesehen";
+      allBtn.textContent = seasonSeen === length ? "Alle abwählen" : "Alle gesehen";
       allBtn.addEventListener("click", () => toggleEpisodes(entry, keys));
       seasonHead.appendChild(allBtn);
       season.appendChild(seasonHead);
@@ -224,18 +320,25 @@ function buildWatchingCard(entry) {
       const grid = document.createElement("div");
       grid.className = "watch-episodes";
       keys.forEach((key, i) => {
+        const mode = modes[key];
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "watch-episode" + (seen.has(key) ? " seen" : "");
+        btn.className = "watch-episode" + (mode ? " seen" : "") + (next && next.season === s && next.episode === i + 1 ? " next" : "");
+        if (mode) btn.dataset.mode = mode;
         btn.textContent = i + 1;
-        btn.title = `Staffel ${s}, Folge ${i + 1}`;
-        btn.setAttribute("aria-pressed", String(seen.has(key)));
+        btn.title = `Staffel ${s}, Folge ${i + 1}${mode ? ` – ${SEEN_BY_LABELS[mode]}` : ""}`;
+        btn.setAttribute("aria-pressed", String(!!mode));
         btn.addEventListener("click", () => toggleEpisodes(entry, [key]));
         grid.appendChild(btn);
       });
       season.appendChild(grid);
       card.appendChild(season);
     });
+
+    const legend = document.createElement("p");
+    legend.className = "watch-legend";
+    legend.textContent = "Antippen hakt eine Folge mit der gewählten Art ab, nochmal antippen nimmt sie zurück.";
+    card.appendChild(legend);
   }
 
   const actions = document.createElement("div");
@@ -247,17 +350,21 @@ function buildWatchingCard(entry) {
   stopBtn.textContent = "⏸️ Zurück auf die Liste";
   stopBtn.addEventListener("click", () => setWatching(entry, false));
   actions.appendChild(stopBtn);
+  actions.appendChild(buildDeleteButton(entry));
 
+  card.appendChild(actions);
+  return card;
+}
+
+function buildDeleteButton(entry) {
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "watchlist-delete-btn";
   deleteBtn.title = "Löschen";
+  deleteBtn.setAttribute("aria-label", `„${entry.title}“ löschen`);
   deleteBtn.textContent = "🗑️";
   deleteBtn.addEventListener("click", () => deleteEntry(entry));
-  actions.appendChild(deleteBtn);
-
-  card.appendChild(actions);
-  return card;
+  return deleteBtn;
 }
 
 async function setWatching(entry, watching) {
@@ -288,30 +395,12 @@ function buildWatchlistCard(entry) {
   card.setAttribute("data-reveal", "");
   attachLongPressToEdit(card, entry);
 
-  const head = document.createElement("div");
-  head.className = "watchlist-card-head";
-  head.innerHTML = `
-    <span class="watchlist-type-badge chip">${MEDIA_LABELS[entry.media_type] || MEDIA_LABELS.film}</span>
-    ${entry.platform ? `<span class="watchlist-platform">▶️ ${escapeHtml(entry.platform)}</span>` : ""}
-  `;
-  card.appendChild(head);
+  card.appendChild(buildCardHead(entry, MEDIA_LABELS[entry.media_type] || MEDIA_LABELS.film));
 
-  const title = document.createElement("h3");
-  title.className = "watchlist-title";
-  title.textContent = entry.title;
-  card.appendChild(title);
-
-  if (entry.added_by) {
-    const addedBy = document.createElement("p");
-    addedBy.className = "watchlist-added-by";
-    addedBy.textContent = `Hinzugefügt von ${entry.added_by}`;
-    card.appendChild(addedBy);
-  }
-
-  const hint = document.createElement("p");
-  hint.className = "watchlist-not-watched-hint";
-  hint.textContent = "Noch nicht gesehen – nach dem Schauen gibt's die Bewertung.";
-  card.appendChild(hint);
+  /* a series one of us already started alone still waits for the other */
+  const modes = WatchlistFilter.episodeModes(entry);
+  const summary = buildModeSummary(modes);
+  if (summary) card.appendChild(summary);
 
   const actions = document.createElement("div");
   actions.className = "watchlist-actions";
@@ -321,6 +410,7 @@ function buildWatchlistCard(entry) {
   watchedBtn.className = "btn btn-sm";
   watchedBtn.textContent = "✅ Als gesehen markieren";
   watchedBtn.addEventListener("click", () => toggleWatched(entry));
+  actions.appendChild(watchedBtn);
   if (entry.media_type === "serie") {
     const startBtn = document.createElement("button");
     startBtn.type = "button";
@@ -329,18 +419,9 @@ function buildWatchlistCard(entry) {
     startBtn.addEventListener("click", () => startWatching(entry));
     actions.appendChild(startBtn);
   }
-  actions.appendChild(watchedBtn);
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "watchlist-delete-btn";
-  deleteBtn.title = "Löschen";
-  deleteBtn.textContent = "🗑️";
-  deleteBtn.addEventListener("click", () => deleteEntry(entry));
-  actions.appendChild(deleteBtn);
+  actions.appendChild(buildDeleteButton(entry));
 
   card.appendChild(actions);
-
   return card;
 }
 
@@ -351,6 +432,7 @@ function buildWatchedRow(entry) {
   attachLongPressToEdit(row, entry);
 
   const meta = [SEEN_BY_LABELS[entry.seen_by], entry.platform, entry.watched_at ? `gesehen ${formatDate(entry.watched_at)}` : null].filter(Boolean).join(" · ");
+  if (entry.seen_by) row.dataset.mode = entry.seen_by;
   row.innerHTML = `
     <span class="watched-type" title="${entry.media_type === "serie" ? "Serie" : "Film"}">${MEDIA_ICONS[entry.media_type] || MEDIA_ICONS.film}</span>
     <div class="watched-main">
@@ -408,8 +490,25 @@ function buildSeenSection(watched, forceOpen) {
   return section;
 }
 
+function renderStats() {
+  const open = watchlistEntries.filter(entry => !entry.watched && !entry.watching).length;
+  const watching = watchlistEntries.filter(entry => !entry.watched && entry.watching).length;
+  const watched = watchlistEntries.filter(entry => entry.watched);
+  const together = watched.filter(entry => entry.seen_by === "both").length;
+  const items = [
+    { icon: "🍿", value: open, label: "offen" },
+    { icon: "📺", value: watching, label: "läuft" },
+    { icon: "✅", value: watched.length, label: "gesehen" },
+    { icon: "👫", value: together, label: "zusammen" }
+  ];
+  watchlistStats.innerHTML = watchlistEntries.length
+    ? items.map(item => `<div class="wl-stat"><span class="wl-stat-value">${item.icon} ${item.value}</span><span class="wl-stat-label">${item.label}</span></div>`).join("")
+    : "";
+}
+
 function renderWatchlist() {
   watchlistList.innerHTML = "";
+  renderStats();
 
   const search = currentSearch.trim();
 
@@ -618,7 +717,7 @@ async function setWatched(entry, nextWatched, seenBy, watchedAt) {
     .update({
       watched: nextWatched,
       watching: false,
-      ...(nextWatched ? {} : { episodes_seen: [] }),
+      ...(nextWatched ? {} : { episodes_seen: [], episode_seen_by: {} }),
       watched_at: nextWatched ? watchedAt || new Date().toISOString() : null,
       rating: nextWatched ? entry.rating : null,
       seen_by: nextWatched ? seenBy : null
@@ -818,12 +917,13 @@ async function saveWatchlistEntry() {
     if (complete) {
       payload.season_episodes = lengths;
       /* ticks outside a shrunken grid fall away */
-      payload.episodes_seen = entryBefore
-        ? [...seenEpisodes(entryBefore)].filter(key => {
-            const [s, e] = key.split("-").map(Number);
-            return s <= lengths.length && e <= lengths[s - 1];
-          })
-        : [];
+      const inGrid = key => {
+        const [s, e] = key.split("-").map(Number);
+        return s <= lengths.length && e <= lengths[s - 1];
+      };
+      const modesBefore = entryBefore ? WatchlistFilter.episodeModes(entryBefore) : {};
+      payload.episode_seen_by = Object.fromEntries(Object.entries(modesBefore).filter(([key]) => inGrid(key)));
+      payload.episodes_seen = Object.keys(payload.episode_seen_by);
     }
   } else if (watchlistTypeInput.value !== "serie") {
     payload.watching = false;

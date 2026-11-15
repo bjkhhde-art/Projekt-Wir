@@ -12,9 +12,11 @@ const base = "http://localhost:9091/";
 const activeNav = () => page.locator(".nav-item.active").getAttribute("href");
 const visible = selector => page.locator(selector).isVisible();
 
-/* Ziele: just the Quest with the bingo board – the Vision is gone */
+/* ToDos: Couple Quest and Watchlist – the Vision is gone */
 await page.goto(base + "ziele.html"); await page.waitForTimeout(500);
-ok(await page.locator(".hub-tab").count() === 0, "ToDos has no tabs any more");
+const todoTabs = await page.locator(".hub-tab").allTextContents();
+ok(JSON.stringify(todoTabs) === JSON.stringify(["🎯 Couple Quest", "🎬 Watchlist"]), `ToDos has Couple Quest and Watchlist (${todoTabs.join(", ")})`);
+ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "quest", "ToDos opens on the Couple Quest");
 ok((await page.locator("h1").textContent()).startsWith("ToDos"), "the page is called ToDos");
 ok(await page.locator("#board").count() === 1 && await visible("#openAddModal") && await page.locator("#openVisionModal, #visionTimeline").count() === 0, "ToDos shows the bingo board with its + button, no Vision");
 await page.click("#openAddModal"); await page.waitForTimeout(200);
@@ -44,12 +46,12 @@ ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuest
 ok(await page.locator(".mode-btn, #otherMode, #versusMode").count() === 0, "only the conversation questions are left – no 'Andere'");
 ok(await activeNav() === "games.html", "the questions page highlights Spiele in the nav");
 
-/* Wir: Kuschelakku, Watchlist, Briefe; old links forward */
+/* Wir: Kuschelakku, Briefe (the watchlist moved to ToDos); old links forward */
 await page.goto(base + "wir.html"); await page.waitForTimeout(400);
 const wirTabs = await page.locator(".hub-tab").allTextContents();
-ok(JSON.stringify(wirTabs) === JSON.stringify(["🔋 Kuschelakku", "🎬 Watchlist", "💌 Briefe"]), `Wir has Kuschelakku, Watchlist and Briefe (${wirTabs.join(", ")})`);
+ok(JSON.stringify(wirTabs) === JSON.stringify(["🔋 Kuschelakku", "💌 Briefe"]), `Wir has Kuschelakku and Briefe (${wirTabs.join(", ")})`);
 ok(await page.locator("#privateLinkList, #openPrivateLinkModal").count() === 0, "'Nur für uns' is gone");
-ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "watchlist", "Wir opens on the Watchlist, the Akku tab is a link");
+ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "briefe", "Wir opens on the Briefe, the Akku tab is a link");
 await page.setViewportSize({ width: 360, height: 740 });
 ok(await page.locator(".hub-tabs").evaluate(el => [...el.children].every(tab => tab.scrollWidth <= tab.clientWidth + 1) && el.scrollWidth <= el.clientWidth + 1), "the Wir tabs fit on a 360 px phone");
 await page.setViewportSize({ width: 390, height: 844 });
@@ -61,6 +63,8 @@ await page.waitForURL(/wir\.html\?tab=briefe$/); await page.waitForTimeout(400);
 ok(await page.locator(".hub-tab.active").getAttribute("data-tab") === "briefe", "from the batteries the Briefe tab leads back into Wir");
 await page.goto(base + "wir.html?tab=fragen"); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html"), "old links to wir.html?tab=fragen land on the questions page");
+await page.goto(base + "wir.html?tab=watchlist"); await page.waitForTimeout(600);
+ok(page.url().endsWith("ziele.html?tab=watchlist") && await page.locator(".hub-tab.active").getAttribute("data-tab") === "watchlist", "old links to the watchlist land in ToDos");
 
 /* six places in the bar; Mochi is reached from its tile on Home */
 await page.setViewportSize({ width: 384, height: 740 });
