@@ -26,6 +26,10 @@ const SORT_KEY = "mg_sort";
 let currentState = null;
 let cheeredGame = null;
 let lastSeq = null;
+/* the first state after loading the page shows no pop-ups – only moves seen live do */
+let seenBoard = false;
+/* which Murphy card I held at the last render, to light up a new one */
+let ownMurphy = { key: null, id: null };
 /* what is chosen to take: the open piles (per pile 0–2 of its top cards) or Mac (state.basar).
    The hidden deck is not chosen: a tap draws a card straight away. */
 let pileSel = [0, 0];
@@ -238,6 +242,7 @@ function renderLocal() {
   renderTable(currentState);
   renderSeats(currentState);
   renderControls(currentState);
+  fitBoard();
 }
 
 /* the cards I just got are marked in my hand until my next move */
@@ -273,6 +278,9 @@ function renderBoard(game) {
   renderEvents(state);
   renderControls(state);
   if (fresh) shakeHit(state);
+  if (fresh && seenBoard) showMovePopups(state);
+  seenBoard = true;
+  fitBoard();
 }
 
 function renderScore(state) {
@@ -451,7 +459,12 @@ function fillOwn(state) {
   if (state.phase === "play") {
     const task = document.createElement("div");
     task.className = "mg-task";
-    task.appendChild(murphyEl(state, state.murphy[person]));
+    const murphy = murphyEl(state, state.murphy[person]);
+    /* a new Murphy card in the middle of a round (swapped, passed on, a new one drawn): it lights up */
+    const key = `${state.gameNo}-${state.round}`;
+    if (ownMurphy.key === key && ownMurphy.id && ownMurphy.id !== state.murphy[person]) murphy.classList.add("changed");
+    ownMurphy = { key, id: state.murphy[person] };
+    task.appendChild(murphy);
     ownEl.appendChild(task);
   }
 
@@ -799,4 +812,333 @@ function renderSummary(state) {
     cheeredGame = cheerKey;
     celebrate(30);
   }
+}
+
+/* ---------- three or four players: everything on one screen ---------- */
+
+/* the cards shrink step by step (--k, 1 down to 0.6) until the page needs no scrolling */
+const FIT_STEPS = [1, 0.93, 0.86, 0.8, 0.75, 0.7, 0.65];
+let fitFrame = 0;
+
+function fitBoard() {
+  cancelAnimationFrame(fitFrame);
+  fitFrame = requestAnimationFrame(() => {
+    const crowd = boardEl.classList.contains("mg-crowd") && !boardEl.classList.contains("hidden");
+    const root = document.documentElement;
+    if (!crowd) {
+      boardEl.style.removeProperty("--k");
+      return;
+    }
+    const fits = () => root.scrollHeight <= window.innerHeight + 1;
+    for (const k of FIT_STEPS) {
+      boardEl.style.setProperty("--k", String(k));
+      if (fits()) break;
+    }
+  });
+}
+
+window.addEventListener("resize", fitBoard);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBoard);
+
+/* ---------- pop-ups: whose turn it is, and what an action card just did ---------- */
+
+const popLayer = document.createElement("div");
+popLayer.className = "mg-pop-layer";
+popLayer.setAttribute("aria-live", "assertive");
+document.body.appendChild(popLayer);
+let popQueue = [];
+let popTimer = 0;
+
+/* a new move replaces whatever is still waiting – the newest news counts */
+function showPopups(list) {
+  clearTimeout(popTimer);
+  popLayer.innerHTML = "";
+  popQueue = list;
+  nextPopup();
+}
+
+function nextPopup() {
+  const item = popQueue.shift();
+  if (!item) {
+    popLayer.innerHTML = "";
+    return;
+  }
+  popLayer.innerHTML = "";
+  popLayer.appendChild(item.el);
+  if (item.play) item.play();
+  popTimer = setTimeout(() => {
+    item.el.classList.add("out");
+    popTimer = setTimeout(nextPopup, 260);
+  }, item.ms);
+}
+
+/* a tap anywhere hides the pop-up at once (it never blocks the tap itself) */
+document.addEventListener("pointerdown", () => {
+  if (!popLayer.firstChild) return;
+  clearTimeout(popTimer);
+  popQueue = [];
+  popLayer.innerHTML = "";
+}, true);
+
+function showMovePopups(state) {
+  const events = (state.lastMove && state.lastMove.events) || [];
+  const list = [];
+  const at = events.findIndex(e => e.type === "action");
+  if (at >= 0) list.push(actionPopup(state, events[at], events.slice(at + 1)));
+  if (state.phase === "play" && myTurn(state) && state.step === "take"
+    && (state.lastMove.person !== me() || events.some(e => e.type === "skip"))) {
+    list.push(turnPopup(state, events));
+  }
+  if (list.length) showPopups(list);
+}
+
+function turnPopup(state, events) {
+  const el = document.createElement("div");
+  el.className = "mg-pop mg-pop-turn";
+  const again = state.lastMove.person === me() && events.some(e => e.type === "skip");
+  el.innerHTML = `
+    <span class="mg-pop-emoji" aria-hidden="true">🍞</span>
+    <strong class="mg-pop-title">${again ? "Du bist gleich nochmal dran!" : "Du bist dran!"}</strong>
+    <span class="mg-pop-sub">${state.tradesLeft > 1 ? "Doppelt tauschen" : "Tausche 1 gegen 2 oder 2 gegen 1"}</span>`;
+  return { el, ms: 1500 };
+}
+
+/* a mini Murphy card for the animations: face down (🍞) or with its text */
+function miniMurphy(text) {
+  const el = document.createElement("div");
+  el.className = `mg-mini-murphy${text ? " open" : ""}`;
+  el.innerHTML = text ? `<span>${escapeHtml(text)}</span>` : "<b>🍞</b><small>Murphy</small>";
+  return el;
+}
+
+function miniBacks(state, n) {
+  const el = document.createElement("div");
+  el.className = "mg-mini-fan";
+  for (let i = 0; i < n; i++) el.appendChild(backEl(state, 22));
+  return el;
+}
+
+function seatTag(person, content) {
+  const el = document.createElement("div");
+  el.className = "mg-pop-seat";
+  el.dataset.person = person;
+  const things = document.createElement("div");
+  things.className = "mg-pop-things";
+  (Array.isArray(content) ? content : [content]).filter(Boolean).forEach(c => things.appendChild(c));
+  const name = document.createElement("span");
+  name.className = "mg-pop-name";
+  name.textContent = nameFor(person);
+  el.append(things, name);
+  return el;
+}
+
+const animate = (el, frames, options) => {
+  if (el && typeof el.animate === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.animate(frames, { fill: "both", easing: "cubic-bezier(.4,0,.2,1)", ...options });
+  }
+};
+
+/* two seats swap what they hold: both things fly across in an arc at the same time */
+function swapScene(state, a, b, make) {
+  const scene = document.createElement("div");
+  scene.className = "mg-pop-scene swap";
+  const left = seatTag(a, make(a));
+  const arrow = document.createElement("span");
+  arrow.className = "mg-pop-arrow";
+  arrow.textContent = "⇄";
+  const right = seatTag(b, make(b));
+  scene.append(left, arrow, right);
+  const play = () => {
+    const l = left.querySelector(".mg-pop-things");
+    const r = right.querySelector(".mg-pop-things");
+    const dx = right.getBoundingClientRect().left - left.getBoundingClientRect().left;
+    const opts = { duration: 900, delay: 650 };
+    animate(l, [{ transform: "none" }, { transform: `translate(${dx / 2}px, -34px) rotate(8deg)`, offset: 0.5 }, { transform: `translateX(${dx}px)` }], opts);
+    animate(r, [{ transform: "none" }, { transform: `translate(${-dx / 2}px, 34px) rotate(-8deg)`, offset: 0.5 }, { transform: `translateX(${-dx}px)` }], opts);
+    animate(arrow, [{ transform: "scale(1)" }, { transform: "scale(1.5) rotate(180deg)" }, { transform: "scale(1) rotate(360deg)" }], opts);
+  };
+  return { scene, play };
+}
+
+/* every Murphy card moves one seat on */
+function passScene(state) {
+  const order = [state.players[0]];
+  for (let p = M.nextOf(state, order[0]); p !== order[0]; p = M.nextOf(state, p)) order.push(p);
+  const scene = document.createElement("div");
+  scene.className = "mg-pop-scene pass";
+  const seats = order.map(p => seatTag(p, miniMurphy()));
+  scene.append(...seats);
+  const play = () => {
+    const xs = seats.map(s => s.getBoundingClientRect().left);
+    seats.forEach((seat, i) => {
+      const to = (i + 1) % seats.length;
+      const dx = xs[to] - xs[i];
+      animate(seat.querySelector(".mg-pop-things"), [
+        { transform: "none" },
+        { transform: `translate(${dx / 2}px, ${to === 0 ? 40 : -30}px)`, offset: 0.5 },
+        { transform: `translateX(${dx}px)` }
+      ], { duration: 900, delay: 650 });
+    });
+  };
+  return { scene, play };
+}
+
+/* cards go from one seat (or the deck) to another */
+function flowScene(state, from, to, count, fromLabel) {
+  const scene = document.createElement("div");
+  scene.className = "mg-pop-scene flow";
+  const source = from ? seatTag(from, miniBacks(state, 1)) : seatTag("", backEl(state, 30));
+  if (!from) source.querySelector(".mg-pop-name").textContent = fromLabel || "Stapel";
+  const arrow = document.createElement("span");
+  arrow.className = "mg-pop-arrow";
+  arrow.textContent = "➜";
+  const target = seatTag(to, null);
+  target.querySelector(".mg-pop-things").classList.add("empty");
+  scene.append(source, arrow, target);
+  const play = () => {
+    const a = source.querySelector(".mg-pop-things").getBoundingClientRect();
+    const b = target.querySelector(".mg-pop-things").getBoundingClientRect();
+    for (let i = 0; i < Math.min(count, 5); i++) {
+      const card = backEl(state, 22);
+      card.classList.add("mg-pop-flyer");
+      scene.appendChild(card);
+      const box = scene.getBoundingClientRect();
+      card.style.left = `${a.left - box.left + a.width / 2 - 11}px`;
+      card.style.top = `${a.top - box.top + a.height / 2 - 15}px`;
+      const dx = b.left - a.left + (b.width - a.width) / 2 + (i - (count - 1) / 2) * 10;
+      const dy = b.top - a.top;
+      animate(card, [
+        { transform: "translate(0, 0) rotate(0deg)", opacity: 0 },
+        { transform: "translate(0, 0) rotate(0deg)", opacity: 1, offset: 0.1 },
+        { transform: `translate(${dx / 2}px, ${dy / 2 - 30}px) rotate(${10 + i * 4}deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${(i - 1) * 6}deg)`, opacity: 1 }
+      ], { duration: 800, delay: 600 + i * 160 });
+    }
+  };
+  return { scene, play };
+}
+
+/* one thing that happens to one seat: an icon pops (⛔, 🔄, a new Murphy card …) */
+function iconScene(person, content, frames) {
+  const scene = document.createElement("div");
+  scene.className = "mg-pop-scene single";
+  const seat = seatTag(person, content);
+  scene.appendChild(seat);
+  const play = () => animate(seat.querySelector(".mg-pop-things"), frames, { duration: 900, delay: 600 });
+  return { scene, play };
+}
+
+function sceneFor(state, e, rest) {
+  const action = M.actionOf(state, e.card);
+  if (!action) return null;
+  const person = e.person;
+  const target = e.target;
+  const pop = [{ transform: "scale(0.3) rotate(-30deg)", opacity: 0 }, { transform: "scale(1.25) rotate(8deg)", opacity: 1, offset: 0.6 }, { transform: "none", opacity: 1 }];
+  switch (action.effect) {
+    case "murphyTausch":
+      return swapScene(state, person, target, () => miniMurphy());
+    case "handtausch":
+      return swapScene(state, person, target, p => miniBacks(state, Math.min(5, state.hands[p].length)));
+    case "handUndMurphyTausch":
+      return swapScene(state, person, target, p => [miniMurphy(), miniBacks(state, Math.min(4, state.hands[p].length))]);
+    case "murphyWeiter":
+      return passScene(state);
+    case "murphyNeu": {
+      const scene = iconScene(person, [miniMurphy(), miniMurphy()], []);
+      const [oldCard, newCard] = scene.scene.querySelectorAll(".mg-mini-murphy");
+      newCard.classList.add("fresh");
+      scene.play = () => {
+        animate(oldCard, [{ transform: "none", opacity: 1 }, { transform: "translate(-70px, 40px) rotate(-40deg)", opacity: 0 }], { duration: 700, delay: 600 });
+        animate(newCard, [{ transform: "translateY(-80px) rotateY(180deg)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 700, delay: 1000 });
+      };
+      return scene;
+    }
+    case "murphyOffen": {
+      const card = state.murphy[person] && M.murphyOf(state, state.murphy[person]);
+      return iconScene(person, miniMurphy(card ? card.text : "offen"), [{ transform: "rotateY(180deg)", opacity: 0.3 }, { transform: "none", opacity: 1 }]);
+    }
+    case "aussetzen": {
+      const icon = document.createElement("span");
+      icon.className = "mg-pop-icon";
+      icon.textContent = "⛔";
+      return iconScene((rest.find(x => x.type === "skip") || {}).person || M.nextOf(state, person), icon, pop);
+    }
+    case "richtung": {
+      const icon = document.createElement("span");
+      icon.className = "mg-pop-icon";
+      icon.textContent = "🔄";
+      return iconScene(person, icon, [{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }]);
+    }
+    case "klauen":
+    case "fordern":
+      return flowScene(state, target, person, action.amount || 1);
+    case "alleKlauen": {
+      const from = rest.filter(x => x.type === "stolen").map(x => x.target);
+      return from.length ? flowScene(state, from[0], person, from.length) : null;
+    }
+    case "alleGeben": {
+      const gifts = rest.filter(x => x.type === "gift");
+      return gifts.length ? flowScene(state, gifts[0].person, person, gifts.length) : null;
+    }
+    case "abgeben":
+    case "paarAbgeben": {
+      const gift = rest.find(x => x.type === "gift");
+      const n = rest.filter(x => x.type === "gift").reduce((sum, x) => sum + x.cards.length, 0);
+      return gift ? flowScene(state, person, gift.target, n) : null;
+    }
+    case "ziehen":
+    case "alleZiehen":
+    case "weitergeben":
+      return flowScene(state, null, person, action.amount || 1);
+    case "nehmen": {
+      const fromMac = rest.some(x => x.type === "take" && x.from === "basar");
+      return flowScene(state, null, person, action.amount || 3, fromMac ? "Mac" : "Stapel");
+    }
+    default:
+      return null;
+  }
+}
+
+function actionPopup(state, e, rest) {
+  const action = M.actionOf(state, e.card);
+  const el = document.createElement("div");
+  el.className = `mg-pop mg-pop-action ${action && action.colour === "gruen" ? "green" : "blue"}`;
+  const who = e.person === me() ? "Du spielst" : `${e.person} spielt`;
+  const aim = e.target ? ` – trifft ${e.target === me() ? "dich" : e.target}` : "";
+  const head = document.createElement("div");
+  head.className = "mg-pop-head";
+  const card = cardEl(e.card, state, 74);
+  card.classList.add("mg-pop-card");
+  const words = document.createElement("div");
+  words.className = "mg-pop-words";
+  words.innerHTML = `
+    <span class="mg-pop-kind">${action && action.colour === "gruen" ? "🍀 Grüne Aktionskarte" : "⚡ Blaue Aktionskarte"}</span>
+    <strong class="mg-pop-title">${escapeHtml(action ? action.title : "Aktion")}</strong>
+    <span class="mg-pop-sub">${escapeHtml(who + aim)}</span>`;
+  head.append(card, words);
+  el.appendChild(head);
+  if (action && action.text) {
+    const text = document.createElement("p");
+    text.className = "mg-pop-text";
+    text.textContent = action.text;
+    el.appendChild(text);
+  }
+  const scene = sceneFor(state, e, rest);
+  if (scene) el.appendChild(scene.scene);
+  const lines = rest.map(x => describe(x, state)).filter(Boolean).map(x => (typeof x === "string" ? x : x.text)).slice(0, 3);
+  const murphyMoved = action && ["murphyTausch", "handUndMurphyTausch", "murphyWeiter", "murphyNeu"].includes(action.effect);
+  if (murphyMoved && seated(state) && (action.effect === "murphyWeiter" || e.person === me() || e.target === me())) {
+    lines.unshift("🍞 Du hast jetzt eine andere Murphy-Karte – schau sie dir an!");
+  }
+  if (lines.length) {
+    const list = document.createElement("div");
+    list.className = "mg-pop-lines";
+    list.innerHTML = lines.map(line => `<span>${escapeHtml(line)}</span>`).join("");
+    el.appendChild(list);
+  }
+  const play = () => {
+    animate(card, [{ transform: "rotateY(180deg) scale(0.6)", opacity: 0 }, { transform: "rotateY(0deg) scale(1.1)", opacity: 1, offset: 0.7 }, { transform: "none", opacity: 1 }], { duration: 600 });
+    if (scene) scene.play();
+  };
+  return { el, ms: scene ? 3400 : 2600, play };
 }
