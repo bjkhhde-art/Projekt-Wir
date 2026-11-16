@@ -82,6 +82,11 @@
   background: linear-gradient(135deg, #15803d 0%, var(--purple-deep) 100%);
 }
 
+/* the games card: purple into orange */
+.kpi-wrapped-games {
+  background: linear-gradient(135deg, var(--purple-deep) 0%, #c2410c 100%);
+}
+
 .kpi-wrapped-icon {
   font-size: 38px;
   flex-shrink: 0;

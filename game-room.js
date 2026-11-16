@@ -31,6 +31,8 @@ const GameRoom = (() => {
   const reactionLabel = emoji => STICKERS[emoji] ? STICKERS[emoji].label : emoji;
   const reactionFace = emoji => STICKERS[emoji] ? `<img src="${STICKERS[emoji].src}" alt="${STICKERS[emoji].label}" class="gr-sticker">` : emoji;
   const REACTION_GAP_MS = 700;
+  /* what the statistics keep of a game's state (who won, how many games) – never cards or hands */
+  const PLAY_SUMMARY_KEYS = ["moveSeq", "gameNo", "round", "wins", "winner", "gameOver", "scores", "option"];
   const REACTION_SHOW_MS = 2600;
 
   const isMember = name => MEMBERS.includes(name);
@@ -213,6 +215,29 @@ const GameRoom = (() => {
       if (!value) offlineNotified = true;
     }
 
+    /* Spiele-Statistik: after every saved move the server counts the active play time of this table
+       (game_plays, see 20261116130000_game_plays.sql). Only Isi and Benji record; it never blocks or
+       breaks a move – if it fails, the statistics just miss a few seconds. */
+    function recordPlay(row, ended) {
+      if (isGuest || !row || !row.id || typeof client.rpc !== "function") return;
+      const state = row.state || {};
+      const summary = {};
+      for (const key of PLAY_SUMMARY_KEYS) if (state[key] !== undefined) summary[key] = state[key];
+      try {
+        Promise.resolve(withTimeout(client.rpc("record_game_play", {
+          p_game: table,
+          p_game_id: row.id,
+          p_players: Array.isArray(state.players) ? state.players : [],
+          p_summary: ended ? {} : summary,
+          p_ended: Boolean(ended)
+        }))).then(result => {
+          if (result && result.error) console.warn("Spielzeit nicht gespeichert:", result.error.message || result.error);
+        }, error => console.warn("Spielzeit nicht gespeichert:", error && error.message));
+      } catch (error) {
+        console.warn("Spielzeit nicht gespeichert:", error && error.message);
+      }
+    }
+
     /* Several people may act at the same time, so every write is guarded by the row's version:
        if another device saved in between, the change is recomputed on the fresh row.
        change(fresh) returns the columns to write, or null to give up quietly; throwing shows the message. */
@@ -256,6 +281,7 @@ const GameRoom = (() => {
         }
         if (data && data.length > 0) {
           announceChange();
+          if (isRunning(data[0].status)) recordPlay(data[0], false);
           return true;
         }
       }
@@ -459,6 +485,7 @@ const GameRoom = (() => {
         showToast("Spiel konnte nicht beendet werden.", "error");
         return;
       }
+      recordPlay(fresh, true);
       announceChange();
       await sync();
     }

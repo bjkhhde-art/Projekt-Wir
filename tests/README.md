@@ -43,6 +43,7 @@ Auf GitHub laufen Lint und alle Tests automatisch bei jedem Push (siehe `.github
 | 🍰 Mochi | `npm test -- mochi` | Pflege-Logik | Zusammen, klassisch, Schlaf, Garten & Sternenregen |
 | 📊 Chat-Wrapped | `npm test -- chat` | Auswertung, Verschlüsselung | Hochladen, ZIP, zwei Handys, Exporte zusammenführen |
 | 🎶 Playlist Wrapped | `npm test -- playlist` | Auswertung (Top-Künstler, Jahre, Rekorde, wer hat was reingepackt) | Seite mit Teil- und kompletter Playlist, Zufallssong, Links von KPIs und Spiele |
+| 🎮 Spiele-Statistik | `npm test -- spielstats game-stats` | Siege, Partien, gemessene und geschätzte Spielzeit, Wochen | Seite mit Daten aus mehreren Spielen, Link von den KPIs; Song-Quiz-Test prüft, dass Züge erfasst werden |
 | 📈 KPIs | `npm test -- kpis` | – | Tage zusammen, Jahrestag (Daten aus der Datenbank, nicht im Code), Countdowns (mit festem Datum) |
 | 🏠 Home | `npm test -- home` | – | Tage, Alicante, Mochi-Stimmung, Akku des anderen, letzte Reise |
 | ⚙️ Einstellungen | `npm test -- einstellungen` | – | Wer bin ich (ändern, Push-Abo zieht mit), echter Push-Status, Schalter pro Person, Alicante-Daten, Abmelden |
