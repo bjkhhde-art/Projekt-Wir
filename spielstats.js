@@ -146,7 +146,7 @@ function renderRecords(s) {
 function renderFoot(s) {
   const parts = [];
   if (s.measuredTables) parts.push(`${fmt(s.measuredTables)} ${s.measuredTables === 1 ? "Spieltisch" : "Spieltische"} genau gemessen${s.measuredSince ? ` (seit ${day(s.measuredSince)})` : ""}`);
-  parts.push("ältere Spieltische geschätzt: die Zeit vom Öffnen bis zum letzten Zug, bei tagelang offenen Tischen die Züge mal dem üblichen Tempo des Spiels");
+  parts.push(`${s.measuredTables ? "ältere" : "Ältere"} Spieltische geschätzt: die Zeit vom Öffnen bis zum letzten Zug, bei tagelang offenen Tischen die Züge mal dem üblichen Tempo des Spiels`);
   document.getElementById("gsFoot").textContent = `ℹ️ ${parts.join(" · ")}. Neue Spiele werden ab jetzt genau mitgezählt (Pausen über 5 Minuten nicht).`;
 }
 
