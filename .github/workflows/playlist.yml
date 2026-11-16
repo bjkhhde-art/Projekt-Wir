@@ -1,0 +1,38 @@
+name: Playlist
+
+# Keeps playlist.json (song quiz + Playlist-Wrapped) in step with our Spotify playlist.
+# Optional repository secrets SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET: then every song (not only the
+# first 100) and who added it. See README → Spotify-Playlist.
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: playlist
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/update-playlist.mjs
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+      - name: Commit when changed
+        run: |
+          if git diff --quiet -- playlist.json; then echo "nothing new"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add playlist.json
+          git commit -m "Playlist aktualisiert"
+          git push
