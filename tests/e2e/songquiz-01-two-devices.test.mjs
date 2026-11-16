@@ -92,6 +92,11 @@ await until(async () => (await latest()).state.picks.Isi !== null, 4000, "Isi's 
 ok((await isi.locator(".sq-wait").textContent()).includes("Warte auf Benji"), "Isi waits for Benji");
 ok(await isi.locator(".sq-option:not([disabled])").count() === 0, "after answering the buttons are locked");
 ok((await latest()).state.picks.Isi.ms >= 0, "the time until the answer is saved");
+/* Spiele-Statistik: every saved move tells the server, with a summary but never the game's secrets */
+const recorded = await isi.evaluate(() => (window.__mockRpcCalls || []).filter(c => c.name === "record_game_play"));
+const last = recorded[recorded.length - 1];
+ok(recorded.length >= 1 && last.args.p_game === "songquiz_games" && last.args.p_ended === false, "the move is recorded for the statistics");
+ok(last.args.p_summary.moveSeq >= 1 && last.args.p_players.join() === "Isi,Benji" && !("questions" in last.args.p_summary), "the record carries moves and players, not the questions");
 
 await benji.click(`.sq-option[data-choice="${wrongOf(right)}"]`);
 await until(async () => (await isi.locator(".sq-answer h2").count()) === 1 && (await benji.locator(".sq-answer h2").count()) === 1, 4000, "reveal");

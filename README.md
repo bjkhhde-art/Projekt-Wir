@@ -14,6 +14,8 @@ Gemeinsame Couple-App (installierbar, mit Login, Push-Benachrichtigungen und Dar
   Einladungslink und die Computer-Spieler Udiou und Klausi können mitspielen; Emoji-Reaktionen
 - 🎧 **Song-Quiz** (in Spiele) – 30-Sekunden-Hörproben aus unserer Spotify-Playlist „Hau raus“: Welcher Song,
   wer singt? Richtig = 1 Punkt, wer bei zwei richtigen Antworten schneller war, bekommt ⚡ einen Bonuspunkt
+- 🎮 **Spiele-Statistik** (in KPIs) – wie oft und wie lange wir welches Spiel gespielt haben, Siege Isi gegen Benji,
+  Spielzeit pro Woche und Wochentag, Rekorde
 - 🎶 **Playlist Wrapped** (in KPIs) – die Playlist in Zahlen: Top-Künstler, Erscheinungsjahre, Rekorde, Zufallssong
   und – mit Spotify-Schlüssel – wer welche Songs reingepackt hat
 - 💬 **Gesprächsfragen** – über 5.000 Fragen nach Kategorie
@@ -70,6 +72,15 @@ automatisch über den GitHub-Workflow **Playlist** (`.github/workflows/playlist.
 
 Hörproben, Cover und Erscheinungsdatum holt das Skript pro Song einmal aus dem öffentlichen Song-Player; bekannte Songs
 behalten, was schon da ist. Einmalig für das Spiel: Migration `20261116120000_create_songquiz_games_table.sql` ausführen.
+
+## Spiele-Statistik
+
+`spielstats.html` liest alle Spiel-Tabellen und `game_plays`. Seit Migration `20261116130000_game_plays.sql` ruft
+`game-room.js` nach jedem gespeicherten Zug `record_game_play` auf: Der Server zählt die aktive Spielzeit pro
+Spieltisch mit seiner eigenen Uhr (Zeit seit dem letzten Zug, höchstens 5 Minuten – ein tagelang offener Tisch zählt
+also nicht als Spielzeit), dazu Züge, Spieler und eine kleine Zusammenfassung (Siege, Runden – keine Karten).
+Eingeladene Gäste zeichnen nichts auf. Ältere Spieltische schätzt `game-stats.js`: bis 3 Stunden zwischen Öffnen und
+letztem Zug zählt diese Zeit, sonst Züge × übliches Tempo des Spiels.
 
 ## Login & Datenschutz
 

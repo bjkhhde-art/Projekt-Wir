@@ -39,7 +39,7 @@ ok(page.url().endsWith("ziele.html"), "the old vision.html address lands on ToDo
 /* Spiele: the questions next to the games; Chat-Wrapped moved to the KPIs */
 await page.goto(base + "games.html"); await page.waitForTimeout(400);
 const tiles = await page.locator(".game-tile h2").allTextContents();
-ok(JSON.stringify(tiles) === JSON.stringify(["Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Phase 10", "Murphys Gesetz", "Geo-Guesser", "Fragen"]), `Spiele lists the questions next to the games (${tiles.join(", ")})`);
+ok(JSON.stringify(tiles) === JSON.stringify(["Cabo", "6 nimmt!", "Qwixx", "Flip 7", "Phase 10", "Murphys Gesetz", "Geo-Guesser", "Song-Quiz", "Fragen"]), `Spiele lists the questions next to the games (${tiles.join(", ")})`);
 await page.locator(".game-tile", { hasText: "Fragen" }).click(); await page.waitForTimeout(600);
 ok(page.url().endsWith("questions.html") && (await page.locator("h1").textContent()).startsWith("Fragen"), "the tile opens the questions page");
 ok(await page.locator(".category-btn").count() === 4 && await visible("#newQuestionBtn"), "the questions page has its four categories and the next button");
