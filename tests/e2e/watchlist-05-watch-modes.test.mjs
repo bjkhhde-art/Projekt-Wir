@@ -51,7 +51,7 @@ let r = await row(1);
 ok(JSON.stringify(r.episode_seen_by) === '{"1-1":"both","1-2":"Isi"}' && r.episodes_seen.length === 2, "episode 2 is stored as 'only Isi'");
 ok(await card.locator(".watch-episode").nth(1).getAttribute("data-mode") === "Isi", "and shown in Isi's colour");
 ok(await card.locator(".watch-mode-btn.selected").getAttribute("data-mode") === "Isi", "the chosen way stays for the next ticks");
-ok((await card.locator(".watch-mode-summary").textContent()).includes("Nur Isi 1"), "the summary counts episodes per way");
+ok((await card.locator('.watch-mode-pill[data-mode="Isi"]').textContent()).trim().endsWith("1"), "the summary counts episodes per way");
 
 /* tapping it again with the same way takes it back; another way switches it */
 await card.locator(".watch-episode").nth(1).click();
@@ -78,7 +78,7 @@ ok(r.watched && r.seen_by === "separate", `finished series: mostly separately â†
 ok((await page.locator(".watched-row", { hasText: "Severance" }).locator(".watched-meta").textContent()).includes("ðŸ‘¥ Beide getrennt"), "the row says so");
 
 /* a film watched separately */
-await page.locator(".watchlist-card", { hasText: "Oppenheimer" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.locator(".open-row", { hasText: "Oppenheimer" }).locator('button[title="Als gesehen markieren"]').click();
 ok(await page.locator("#seenByModal .seen-by-btn").count() === 4, "the question offers four ways");
 await page.click('#seenByModal .seen-by-btn[data-seen="separate"]');
 await wait(700);
@@ -109,6 +109,21 @@ await page.click(".confirm-yes");
 await wait(700);
 r = await row(1);
 ok(!r.watched && r.episodes_seen.length === 0 && JSON.stringify(r.episode_seen_by) === "{}", "'noch nicht gesehen' clears the episodes and how they were watched");
+
+/* several running series sit side by side and scroll sideways */
+await post("/t/watchlist/seed", { rows: [
+  { ...base, id: 11, title: "Andor", media_type: "serie", watched: false, watching: true, season_episodes: [12, 12], episodes_seen: [], episode_seen_by: {}, created_at: "2026-01-05T10:00:00Z" },
+  { ...base, id: 12, title: "Slow Horses", media_type: "serie", watched: false, watching: true, season_episodes: [6, 6, 6, 6], episodes_seen: [], episode_seen_by: {}, created_at: "2026-01-06T10:00:00Z" },
+  { ...base, id: 13, title: "Fallout", media_type: "serie", watched: false, watching: true, season_episodes: [8], episodes_seen: [], episode_seen_by: {}, created_at: "2026-01-07T10:00:00Z" }
+] });
+await page.reload(); await page.waitForTimeout(900);
+const strip = page.locator(".watching-strip");
+ok(await strip.evaluate(el => el.scrollWidth > el.clientWidth + 50), "three running series form a row that scrolls sideways");
+const tops = await page.locator(".watching-strip .watchlist-card").evaluateAll(cards => cards.map(c => Math.round(c.getBoundingClientRect().top)));
+ok(new Set(tops).size === 1, "the series cards sit next to each other, not below each other");
+ok(await page.locator(".watchlist-card", { hasText: "Andor" }).locator(".watch-episodes").evaluate(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).flexWrap === "nowrap"), "24 episodes stay in one row that scrolls sideways");
+const cardH = (await page.locator(".watchlist-card", { hasText: "Andor" }).boundingBox()).height;
+ok(cardH < 300, `a running series card stays compact (${Math.round(cardH)}px)`);
 
 /* the quest is still one tap away */
 await page.click('.hub-tab[data-tab="quest"]');

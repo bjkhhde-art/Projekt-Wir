@@ -26,10 +26,10 @@ page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:9091/ziele.html?tab=watchlist");
 await page.waitForTimeout(800);
 
-ok(await page.locator(".watchlist-card", { hasText: "Dune" }).locator("button", { hasText: "Wir schauen gerade" }).count() === 0, "films have no 'watching' button");
+ok(await page.locator(".open-row", { hasText: "Dune" }).locator('button[title="Wir schauen gerade"]').count() === 0, "films have no 'watching' button");
 
 /* start: counts are asked for first */
-await page.locator(".watchlist-card", { hasText: "Maxton Hall" }).locator("button", { hasText: "Wir schauen gerade" }).click();
+await page.locator(".open-row", { hasText: "Maxton Hall" }).locator('button[title="Wir schauen gerade"]').click();
 ok(await page.locator("#watchlistWatchingInput").isChecked(), "the form opens with 'Wir schauen gerade' ticked");
 await page.click("#saveWatchlistBtn");
 await wait(300);
@@ -55,7 +55,7 @@ ok(JSON.stringify((await row(1)).episodes_seen) === '["1-1"]', "episode 1 of sea
 await page.locator(".watch-season-all").nth(1).click();
 await wait(500);
 ok(JSON.stringify((await row(1)).episodes_seen.sort()) === '["1-1","2-1"]', "'Alle gesehen' ticks a whole season");
-ok((await page.locator(".watch-progress").textContent()).includes("2 von 4"), "progress shows 2 of 4");
+ok((await page.locator(".watch-progress").textContent()).includes("2/4"), "progress shows 2 of 4");
 await page.locator(".watch-episode").nth(3).click();
 await wait(500);
 ok(JSON.stringify((await row(1)).episodes_seen) === '["1-1"]', "a ticked episode can be unticked");
