@@ -10,8 +10,12 @@ Gemeinsame Couple-App (installierbar, mit Login, Push-Benachrichtigungen und Dar
 - 🎬 **Watchlist** (in ToDos) – Filme und Serien mit Filter, Serienfortschritt und „Wie geschaut?“: zusammen live,
   beide getrennt, nur Isi oder nur Benji – für Filme, ganze Serien und jede einzelne Folge
 - 🍰 **Mochi** – gemeinsames Haustier mit Pflege, Shop, Garten, Minispielen, Wünschen und Nachrichten
-- 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10, Murphys Gesetz und Geo-Guesser, live auf zwei Handys; Freunde per
+- 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10, Murphys Gesetz, Geo-Guesser und Song-Quiz, live auf zwei Handys; Freunde per
   Einladungslink und die Computer-Spieler Udiou und Klausi können mitspielen; Emoji-Reaktionen
+- 🎧 **Song-Quiz** (in Spiele) – 30-Sekunden-Hörproben aus unserer Spotify-Playlist „Hau raus“: Welcher Song,
+  wer singt? Richtig = 1 Punkt, wer bei zwei richtigen Antworten schneller war, bekommt ⚡ einen Bonuspunkt
+- 🎶 **Playlist Wrapped** (in KPIs) – die Playlist in Zahlen: Top-Künstler, Erscheinungsjahre, Rekorde, Zufallssong
+  und – mit Spotify-Schlüssel – wer welche Songs reingepackt hat
 - 💬 **Gesprächsfragen** – über 5.000 Fragen nach Kategorie
 - 📊 **Chat-Wrapped** – WhatsApp-Export hochladen: Statistiken, Awards, Wortwolke, Zitate, „Wer hat's
   geschrieben?“. Weitere Exporte werden abgeglichen (nur Neues kommt dazu). Der Chat liegt für beide in
@@ -50,6 +54,22 @@ Buttons, Modals, Toasts) und werden von jeder Seite eingebunden.
 
 Live:
 https://bjkhhde-art.github.io/Projekt-Wir/
+
+## Spotify-Playlist
+
+Song-Quiz und Playlist Wrapped lesen `playlist.json`. Die Datei schreibt `tools/update-playlist.mjs`, jeden Tag
+automatisch über den GitHub-Workflow **Playlist** (`.github/workflows/playlist.yml`, per Hand: Actions → Playlist →
+*Run workflow*; lokal: `node tools/update-playlist.mjs`). Nur wenn sich etwas geändert hat, wird committet.
+
+- **Ohne Schlüssel** liest das Skript Spotifys öffentlichen Player: nur die **ersten 100 Songs**, ohne „wer hat's
+  hinzugefügt“. Die Seiten sagen dann dazu, dass nur ein Teil ausgewertet ist.
+- **Mit Schlüssel** kommen alle Songs und wer sie wann hinzugefügt hat: Auf developer.spotify.com/dashboard eine App
+  anlegen (Web API, Redirect-URI egal, z. B. `https://example.com`), dann im GitHub-Repo unter Settings → Secrets and
+  variables → Actions `SPOTIFY_CLIENT_ID` und `SPOTIFY_CLIENT_SECRET` eintragen und den Workflow einmal starten.
+  Das Spotify-Konto `ben.kzyk` ist Benji, das andere Konto Isi (`PEOPLE` oben im Skript).
+
+Hörproben, Cover und Erscheinungsdatum holt das Skript pro Song einmal aus dem öffentlichen Song-Player; bekannte Songs
+behalten, was schon da ist. Einmalig für das Spiel: Migration `20261116120000_create_songquiz_games_table.sql` ausführen.
 
 ## Login & Datenschutz
 

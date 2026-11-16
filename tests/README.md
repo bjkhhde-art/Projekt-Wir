@@ -32,6 +32,7 @@ Auf GitHub laufen Lint und alle Tests automatisch bei jedem Push (siehe `.github
 | 🎯 Phase 10 | `npm test -- phase10` (Dateien heißen `gipfel`) | Regeln | 2 Geräte, an fremde Phasen anlegen |
 | 🍞 Murphys Gesetz | `npm test -- murphy` | Regeln, Kartendatei, Murphy-Aufgaben (jede der 20 neuen mit Beispielhand), Aktionskarten, Bots spielen ganze Partien | 2 Geräte: Tausch am Stapel, Pop-ups (Aktionskarte, „Du bist dran!“), Murphy-Karte erfüllt, nächste Runde, Mac, Ablagestapel wählen, grüne Aktionskarte; jeder Zug einmal (verdeckter Stapel, offene Stapel, Mac, blaue Karte mit Personenwahl, jede grüne Karte, offene Murphy-Karte, Partie-Ende); ganze Partie mit Udiou und Klausi |
 | 🌍 Geo-Guesser | `npm test -- geo` | Regeln | 2 Geräte |
+| 🎧 Song-Quiz | `npm test -- songquiz` | Regeln (Antworten, Tempo-Bonus, Modi, echte `playlist.json`) | 2 Geräte |
 | 🤖 Computer-Spieler | `npm test -- bots` | Züge von Udiou und Klausi | Lobby, Ersatz-Handy, Cabo, Qwixx, 6 nimmt!, Flip 7 |
 | 😂 Reaktionen & Bot-Namen | `npm test -- game-reactions bot-names` | Namen bereinigen | Emojis/Sticker im Spiel, Namen in den Einstellungen |
 | 🎯 Couple Quest (ToDos) | `npm test -- quest` | – | Reihenfolge, Hinzufügen, Abhaken, Zurücksetzen, Bearbeiten, Löschen; Absender, Doppeltipp, 16er-Grenze mit 2 Handys, gleichzeitiges Abhaken, überfällig |
@@ -41,6 +42,7 @@ Auf GitHub laufen Lint und alle Tests automatisch bei jedem Push (siehe `.github
 | ✈️ Reisen | `npm test -- reise` | Aufnahmedatum von Fotos | Galerie, Fotodaten, Story-Modus, Karte, fehlgeschlagene Uploads bleiben in der Liste, HEIC |
 | 🍰 Mochi | `npm test -- mochi` | Pflege-Logik | Zusammen, klassisch, Schlaf, Garten & Sternenregen |
 | 📊 Chat-Wrapped | `npm test -- chat` | Auswertung, Verschlüsselung | Hochladen, ZIP, zwei Handys, Exporte zusammenführen |
+| 🎶 Playlist Wrapped | `npm test -- playlist` | Auswertung (Top-Künstler, Jahre, Rekorde, wer hat was reingepackt) | Seite mit Teil- und kompletter Playlist, Zufallssong, Links von KPIs und Spiele |
 | 📈 KPIs | `npm test -- kpis` | – | Tage zusammen, Jahrestag (Daten aus der Datenbank, nicht im Code), Countdowns (mit festem Datum) |
 | 🏠 Home | `npm test -- home` | – | Tage, Alicante, Mochi-Stimmung, Akku des anderen, letzte Reise |
 | ⚙️ Einstellungen | `npm test -- einstellungen` | – | Wer bin ich (ändern, Push-Abo zieht mit), echter Push-Status, Schalter pro Person, Alicante-Daten, Abmelden |

@@ -77,6 +77,11 @@
   color: white;
 }
 
+/* the playlist card: Spotify-green into our purple, so it does not look like the chat card */
+.kpi-wrapped-music {
+  background: linear-gradient(135deg, #15803d 0%, var(--purple-deep) 100%);
+}
+
 .kpi-wrapped-icon {
   font-size: 38px;
   flex-shrink: 0;
