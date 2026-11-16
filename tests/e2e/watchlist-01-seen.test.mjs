@@ -30,14 +30,14 @@ page.on("pageerror", e => errors.push(e.message));
 await page.goto("http://localhost:9091/ziele.html?tab=watchlist");
 await page.waitForTimeout(800);
 
-ok(await page.locator(".watchlist-card").count() === 2, "titles still to watch stay big cards");
+ok(await page.locator(".open-row").count() === 2, "titles still to watch are compact rows too");
 ok((await page.locator(".watchlist-section-label").first().textContent()).includes("Noch zu schauen · 2"), "the open section shows how many are left");
 ok(await page.locator(".watched-row").count() === 4, "the four watched titles are compact rows");
 const titles = await page.locator(".watched-title").allTextContents();
 ok(JSON.stringify(titles) === JSON.stringify(["Shōgun", "Arcane", "Past Lives", "La La Land"]), `newest watched first (${titles.join(", ")})`);
 const rowHeight = (await page.locator(".watched-row").first().boundingBox()).height;
-const cardHeight = (await page.locator(".watchlist-card").first().boundingBox()).height;
-ok(rowHeight < 60 && rowHeight < cardHeight / 2, `a watched row is much smaller than a card (${Math.round(rowHeight)}px vs ${Math.round(cardHeight)}px)`);
+const openHeight = (await page.locator(".open-row").first().boundingBox()).height;
+ok(rowHeight < 60 && openHeight < 60, `watched and open rows stay slim (${Math.round(rowHeight)}px / ${Math.round(openHeight)}px)`);
 ok((await page.locator(".watched-toggle").textContent()).includes("4") && (await page.locator(".watched-toggle").textContent()).includes("Ø 4,0"), "the header shows the count and the average rating");
 ok((await page.locator(".watched-meta").nth(2).textContent()).includes("Netflix") && (await page.locator(".watched-meta").nth(2).textContent()).includes("gesehen 20.9.2026"), "each row shows where and when");
 
@@ -57,10 +57,10 @@ await page.waitForTimeout(200);
 ok(JSON.stringify(await page.locator(".watched-title").allTextContents()) === JSON.stringify(["Past Lives"]), "fuzzy search forgives typos: 'past livs' → Past Lives");
 await page.fill("#watchlistSearchInput", "dune thre");
 await page.waitForTimeout(200);
-ok(await page.locator(".watchlist-card", { hasText: "Dune Part Three" }).count() === 1 && await page.locator(".watchlist-card").count() === 1, "word beginnings across the title: 'dune thre' → Dune Part Three");
+ok(await page.locator(".open-row", { hasText: "Dune Part Three" }).count() === 1 && await page.locator(".open-row").count() === 1, "word beginnings across the title: 'dune thre' → Dune Part Three");
 await page.fill("#watchlistSearchInput", "kino");
 await page.waitForTimeout(200);
-ok(await page.locator(".watchlist-card", { hasText: "Dune Part Three" }).count() === 1, "the platform is searched too ('kino')");
+ok(await page.locator(".open-row", { hasText: "Dune Part Three" }).count() === 1, "the platform is searched too ('kino')");
 await page.fill("#watchlistSearchInput", "arc");
 await page.waitForTimeout(200);
 await page.fill("#watchlistSearchInput", "");
@@ -99,7 +99,7 @@ await page.click("#watchlistToggleWatchedBtn");
 await page.click(".confirm-yes");
 await wait(600);
 ok((await rows()).find(r => r.id === 5).watched === false, "La La Land is back on the list");
-ok(await page.locator(".watchlist-card", { hasText: "La La Land" }).count() === 1 && await page.locator(".watched-row").count() === 3, "it moves back to the big cards");
+ok(await page.locator(".open-row", { hasText: "La La Land" }).count() === 1 && await page.locator(".watched-row").count() === 3, "it moves back to the open titles");
 
 await hold(page.locator(".watched-row", { hasText: "Arcane" }).locator(".watched-main"));
 await page.click("#watchlistDeleteBtn");
@@ -114,7 +114,7 @@ ok(await page.locator("#watchlistSeenByField").isHidden(), "a new entry form doe
 await page.click("#closeWatchlistModal");
 
 /* marking an open title as watched moves it into the compact list */
-await page.locator(".watchlist-card", { hasText: "The Bear" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.locator(".open-row", { hasText: "The Bear" }).locator('button[title="Als gesehen markieren"]').click();
 await wait(200);
 ok(await page.locator("#seenByModal").isVisible() && (await page.locator("#seenByModalText").textContent()).includes("The Bear"), "marking as watched asks: together or alone?");
 await page.click('#seenByModal .seen-by-btn[data-seen="Benji"]');
@@ -142,11 +142,11 @@ const pastLives = (await rows()).find(r => r.id === 3);
 ok(pastLives.watched === false && pastLives.seen_by === null, "marking it as not watched also clears who watched it");
 
 /* cancelling the question changes nothing */
-await page.locator(".watchlist-card", { hasText: "Past Lives" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.locator(".open-row", { hasText: "Past Lives" }).locator('button[title="Als gesehen markieren"]').click();
 await page.click("#cancelSeenBy");
 await wait(400);
 ok((await rows()).find(r => r.id === 3).watched === false, "cancelling the question keeps it on the list");
-await page.locator(".watchlist-card", { hasText: "Past Lives" }).locator("button", { hasText: "Als gesehen markieren" }).click();
+await page.locator(".open-row", { hasText: "Past Lives" }).locator('button[title="Als gesehen markieren"]').click();
 await page.click('#seenByModal .seen-by-btn[data-seen="both"]');
 await wait(700);
 ok((await rows()).find(r => r.id === 3).seen_by === "both", "watched together again");
@@ -170,7 +170,7 @@ ok(await page.locator("#watchlistDuplicateHint").isHidden() && await page.locato
 await page.click("#closeWatchlistModal");
 
 /* editing an entry does not flag its own title, but renaming onto another one is blocked */
-await hold(page.locator(".watchlist-card", { hasText: "Dune Part Three" }).locator(".watchlist-title"));
+await hold(page.locator(".open-row", { hasText: "Dune Part Three" }).locator(".watchlist-title"));
 ok(await page.locator("#watchlistDuplicateHint").isHidden() && await page.locator("#saveWatchlistBtn").isEnabled(), "an entry being edited is not its own duplicate");
 await page.fill("#watchlistTitleInput", "La La Land");
 ok(await page.locator("#saveWatchlistBtn").isDisabled(), "renaming it to another existing title is blocked");

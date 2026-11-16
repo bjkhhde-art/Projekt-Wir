@@ -48,7 +48,7 @@ async function hold(locator) {
   await wait(200);
 }
 const watchedTitles = () => page.locator(".watched-title").allTextContents();
-const markButton = title => page.locator(".watchlist-card", { hasText: title }).locator("button", { hasText: "Als gesehen markieren" });
+const markButton = title => page.locator(".open-row", { hasText: title }).locator('button[title="Als gesehen markieren"]');
 
 /* marking as watched: today unless changed */
 await markButton("Dune").click();

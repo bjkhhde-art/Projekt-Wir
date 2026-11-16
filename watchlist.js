@@ -213,20 +213,24 @@ function nextEpisode(entry, modes) {
   return null;
 }
 
+/* short labels so the four ways fit in one row */
+const MODE_CHIP_LABELS = { both: "👫 Live", separate: "👥 Getrennt", Isi: "🙋‍♀️ Isi", Benji: "🙋‍♂️ Benji" };
+
 function buildModePicker(entry) {
   const current = episodeModeFor(entry);
   const picker = document.createElement("div");
   picker.className = "watch-mode-picker";
   picker.setAttribute("role", "radiogroup");
-  picker.setAttribute("aria-label", "Wie schaut ihr diese Folgen?");
+  picker.setAttribute("aria-label", "Folgen abhaken als …");
   WatchlistFilter.WATCH_MODES.forEach(mode => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "watch-mode-btn" + (mode === current ? " selected" : "");
     btn.dataset.mode = mode;
+    btn.title = `Abhaken als: ${SEEN_BY_LABELS[mode]}`;
     btn.setAttribute("role", "radio");
     btn.setAttribute("aria-checked", String(mode === current));
-    btn.textContent = SEEN_BY_LABELS[mode];
+    btn.textContent = MODE_CHIP_LABELS[mode];
     btn.addEventListener("click", () => {
       rememberEpisodeMode(entry, mode);
       picker.querySelectorAll(".watch-mode-btn").forEach(other => {
@@ -240,14 +244,15 @@ function buildModePicker(entry) {
   return picker;
 }
 
+/* e.g. "👫 2 · 👥 1 · I 1" – how the ticked episodes were watched */
 function buildModeSummary(modes) {
   const counts = WatchlistFilter.modeCounts(modes);
   const used = WatchlistFilter.WATCH_MODES.filter(mode => counts[mode] > 0);
   if (used.length === 0) return null;
-  const summary = document.createElement("div");
+  const summary = document.createElement("span");
   summary.className = "watch-mode-summary";
   summary.innerHTML = used.map(mode =>
-    `<span class="watch-mode-pill" data-mode="${mode}">${escapeHtml(SEEN_BY_LABELS[mode])} <b>${counts[mode]}</b></span>`).join("");
+    `<span class="watch-mode-pill" data-mode="${mode}" title="${escapeHtml(SEEN_BY_LABELS[mode])}">${escapeHtml(MODE_CHIP_LABELS[mode].split(" ")[0])} ${counts[mode]}</span>`).join("");
   return summary;
 }
 
@@ -266,15 +271,29 @@ function buildCardHead(entry, badge) {
   return head;
 }
 
+function iconButton(className, icon, label, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = className;
+  btn.textContent = icon;
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+/* a series we are watching: all episodes of all seasons in one row that scrolls sideways,
+   each season starting with a small "S1" button that ticks the whole season */
 function buildWatchingCard(entry) {
   const card = document.createElement("div");
   card.className = "watchlist-card watchlist-card-watching card";
-  card.setAttribute("data-reveal", "");
   attachLongPressToEdit(card, entry);
 
   const modes = WatchlistFilter.episodeModes(entry);
   const next = nextEpisode(entry, modes);
-  card.appendChild(buildCardHead(entry, next ? `📺 Weiter mit S${next.season} · F${next.episode}` : "📺 Läuft gerade"));
+  const head = buildCardHead(entry, next ? `📺 Weiter mit S${next.season} · F${next.episode}` : "📺 Läuft gerade");
+  head.appendChild(iconButton("watch-pause-btn", "⏸️", "Zurück auf die Liste", () => setWatching(entry, false)));
+  card.appendChild(head);
 
   const total = totalEpisodes(entry);
   if (!total) {
@@ -282,89 +301,58 @@ function buildWatchingCard(entry) {
     hint.className = "watchlist-not-watched-hint";
     hint.textContent = "Halte die Karte gedrückt und trag Staffeln und Folgen ein.";
     card.appendChild(hint);
-  } else {
-    const count = seenEpisodeCount(entry, new Set(Object.keys(modes)));
-    const progress = document.createElement("div");
-    progress.className = "watch-progress";
-    progress.innerHTML = `<span>${count} von ${total} Folgen</span><div class="watch-progress-bar"><span style="width:${Math.round(count / total * 100)}%"></span></div>`;
-    card.appendChild(progress);
-
-    const summary = buildModeSummary(modes);
-    if (summary) card.appendChild(summary);
-
-    const pickerLabel = document.createElement("p");
-    pickerLabel.className = "watch-mode-label";
-    pickerLabel.textContent = "Abhaken als …";
-    card.appendChild(pickerLabel);
-    card.appendChild(buildModePicker(entry));
-
-    const lengths = seasonLengths(entry);
-    lengths.forEach((length, index) => {
-      const s = index + 1;
-      const keys = Array.from({ length }, (_, i) => episodeKey(s, i + 1));
-      const seasonSeen = keys.filter(key => modes[key]).length;
-      const season = document.createElement("div");
-      season.className = "watch-season";
-
-      const seasonHead = document.createElement("div");
-      seasonHead.className = "watch-season-head";
-      seasonHead.innerHTML = `<span>Staffel ${s} <span class="watch-season-count">${seasonSeen}/${length}</span></span>`;
-      const allBtn = document.createElement("button");
-      allBtn.type = "button";
-      allBtn.className = "watch-season-all";
-      allBtn.textContent = seasonSeen === length ? "Alle abwählen" : "Alle gesehen";
-      allBtn.addEventListener("click", () => toggleEpisodes(entry, keys));
-      seasonHead.appendChild(allBtn);
-      season.appendChild(seasonHead);
-
-      const grid = document.createElement("div");
-      grid.className = "watch-episodes";
-      keys.forEach((key, i) => {
-        const mode = modes[key];
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "watch-episode" + (mode ? " seen" : "") + (next && next.season === s && next.episode === i + 1 ? " next" : "");
-        if (mode) btn.dataset.mode = mode;
-        btn.textContent = i + 1;
-        btn.title = `Staffel ${s}, Folge ${i + 1}${mode ? ` – ${SEEN_BY_LABELS[mode]}` : ""}`;
-        btn.setAttribute("aria-pressed", String(!!mode));
-        btn.addEventListener("click", () => toggleEpisodes(entry, [key]));
-        grid.appendChild(btn);
-      });
-      season.appendChild(grid);
-      card.appendChild(season);
-    });
-
-    const legend = document.createElement("p");
-    legend.className = "watch-legend";
-    legend.textContent = "Antippen hakt eine Folge mit der gewählten Art ab, nochmal antippen nimmt sie zurück.";
-    card.appendChild(legend);
+    return card;
   }
 
-  const actions = document.createElement("div");
-  actions.className = "watchlist-actions";
+  const count = seenEpisodeCount(entry, new Set(Object.keys(modes)));
+  const progress = document.createElement("div");
+  progress.className = "watch-progress";
+  progress.innerHTML = `<span class="watch-progress-count">${count}/${total}</span><div class="watch-progress-bar"><span style="width:${Math.round(count / total * 100)}%"></span></div>`;
+  const summary = buildModeSummary(modes);
+  if (summary) progress.appendChild(summary);
+  card.appendChild(progress);
 
-  const stopBtn = document.createElement("button");
-  stopBtn.type = "button";
-  stopBtn.className = "btn btn-secondary btn-sm";
-  stopBtn.textContent = "⏸️ Zurück auf die Liste";
-  stopBtn.addEventListener("click", () => setWatching(entry, false));
-  actions.appendChild(stopBtn);
-  actions.appendChild(buildDeleteButton(entry));
+  card.appendChild(buildModePicker(entry));
 
-  card.appendChild(actions);
+  const strip = document.createElement("div");
+  strip.className = "watch-episodes";
+  let nextBtn = null;
+  seasonLengths(entry).forEach((length, index) => {
+    const s = index + 1;
+    const keys = Array.from({ length }, (_, i) => episodeKey(s, i + 1));
+    const seasonSeen = keys.filter(key => modes[key]).length;
+    const allBtn = document.createElement("button");
+    allBtn.type = "button";
+    allBtn.className = "watch-season-all" + (seasonSeen === length ? " done" : "");
+    allBtn.textContent = `S${s}`;
+    allBtn.title = `Staffel ${s} (${seasonSeen}/${length}): ${seasonSeen === length ? "alle abwählen" : "alle gesehen"}`;
+    allBtn.setAttribute("aria-label", allBtn.title);
+    allBtn.addEventListener("click", () => toggleEpisodes(entry, keys));
+    strip.appendChild(allBtn);
+
+    keys.forEach((key, i) => {
+      const mode = modes[key];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      const isNext = next && next.season === s && next.episode === i + 1;
+      btn.className = "watch-episode" + (mode ? " seen" : "") + (isNext ? " next" : "");
+      if (mode) btn.dataset.mode = mode;
+      btn.textContent = i + 1;
+      btn.title = `Staffel ${s}, Folge ${i + 1}${mode ? ` – ${SEEN_BY_LABELS[mode]}` : ""}`;
+      btn.setAttribute("aria-pressed", String(!!mode));
+      btn.addEventListener("click", () => toggleEpisodes(entry, [key]));
+      if (isNext) nextBtn = btn;
+      strip.appendChild(btn);
+    });
+  });
+  card.appendChild(strip);
+  /* start the row at the next episode (with two before it for context) */
+  if (nextBtn) {
+    requestAnimationFrame(() => {
+      strip.scrollLeft = Math.max(0, nextBtn.offsetLeft - strip.offsetLeft - 2 * (nextBtn.offsetWidth + 6));
+    });
+  }
   return card;
-}
-
-function buildDeleteButton(entry) {
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "watchlist-delete-btn";
-  deleteBtn.title = "Löschen";
-  deleteBtn.setAttribute("aria-label", `„${entry.title}“ löschen`);
-  deleteBtn.textContent = "🗑️";
-  deleteBtn.addEventListener("click", () => deleteEntry(entry));
-  return deleteBtn;
 }
 
 async function setWatching(entry, watching) {
@@ -389,40 +377,34 @@ function startWatching(entry) {
   watchlistSeasonsInput.focus();
 }
 
-function buildWatchlistCard(entry) {
-  const card = document.createElement("div");
-  card.className = "watchlist-card card";
-  card.setAttribute("data-reveal", "");
-  attachLongPressToEdit(card, entry);
+/* a title still to watch: one slim row – type, title, where / who, quick buttons. Holding it edits it. */
+function buildOpenRow(entry) {
+  const row = document.createElement("div");
+  row.className = "open-row";
+  attachLongPressToEdit(row, entry);
 
-  card.appendChild(buildCardHead(entry, MEDIA_LABELS[entry.media_type] || MEDIA_LABELS.film));
-
-  /* a series one of us already started alone still waits for the other */
   const modes = WatchlistFilter.episodeModes(entry);
-  const summary = buildModeSummary(modes);
-  if (summary) card.appendChild(summary);
-
+  const started = Object.keys(modes).length;
+  const meta = [
+    entry.platform,
+    entry.added_by ? `von ${entry.added_by}` : null,
+    started && totalEpisodes(entry) ? `${started}/${totalEpisodes(entry)} Folgen` : null
+  ].filter(Boolean).join(" · ");
+  row.innerHTML = `
+    <span class="watched-type" title="${entry.media_type === "serie" ? "Serie" : "Film"}">${MEDIA_ICONS[entry.media_type] || MEDIA_ICONS.film}</span>
+    <div class="watched-main">
+      <span class="watchlist-title">${escapeHtml(entry.title)}</span>
+      ${meta ? `<span class="open-meta">${escapeHtml(meta)}</span>` : ""}
+    </div>
+  `;
   const actions = document.createElement("div");
-  actions.className = "watchlist-actions";
-
-  const watchedBtn = document.createElement("button");
-  watchedBtn.type = "button";
-  watchedBtn.className = "btn btn-sm";
-  watchedBtn.textContent = "✅ Als gesehen markieren";
-  watchedBtn.addEventListener("click", () => toggleWatched(entry));
-  actions.appendChild(watchedBtn);
+  actions.className = "open-row-actions";
   if (entry.media_type === "serie") {
-    const startBtn = document.createElement("button");
-    startBtn.type = "button";
-    startBtn.className = "btn btn-secondary btn-sm";
-    startBtn.textContent = "▶️ Wir schauen gerade";
-    startBtn.addEventListener("click", () => startWatching(entry));
-    actions.appendChild(startBtn);
+    actions.appendChild(iconButton("open-row-btn", "▶️", "Wir schauen gerade", () => startWatching(entry)));
   }
-  actions.appendChild(buildDeleteButton(entry));
-
-  card.appendChild(actions);
-  return card;
+  actions.appendChild(iconButton("open-row-btn open-row-done", "✓", "Als gesehen markieren", () => toggleWatched(entry)));
+  row.appendChild(actions);
+  return row;
 }
 
 /* watched titles: one slim row each – type, title, where/when, rating. Holding the row edits it. */
@@ -502,7 +484,7 @@ function renderStats() {
     { icon: "👫", value: together, label: "zusammen" }
   ];
   watchlistStats.innerHTML = watchlistEntries.length
-    ? items.map(item => `<div class="wl-stat"><span class="wl-stat-value">${item.icon} ${item.value}</span><span class="wl-stat-label">${item.label}</span></div>`).join("")
+    ? items.map(item => `<span class="wl-stat" title="${item.value} ${item.label}">${item.icon} <b>${item.value}</b> <span class="wl-stat-label">${item.label}</span></span>`).join("")
     : "";
 }
 
@@ -547,9 +529,13 @@ function renderWatchlist() {
   if (watching.length > 0) {
     const label = document.createElement("p");
     label.className = "watchlist-section-label";
-    label.textContent = `📺 Wir schauen gerade · ${watching.length}`;
+    label.textContent = `📺 Wir schauen gerade · ${watching.length}${watching.length > 1 ? " – seitlich wischen" : ""}`;
     watchlistList.appendChild(label);
-    watching.forEach(entry => watchlistList.appendChild(buildWatchingCard(entry)));
+    /* several series sit side by side and scroll sideways instead of stacking up */
+    const strip = document.createElement("div");
+    strip.className = "watching-strip" + (watching.length > 1 ? " many" : "");
+    watching.forEach(entry => strip.appendChild(buildWatchingCard(entry)));
+    watchlistList.appendChild(strip);
   }
 
   if (open.length > 0) {
@@ -557,7 +543,10 @@ function renderWatchlist() {
     label.className = "watchlist-section-label";
     label.textContent = `🍿 Noch zu schauen · ${open.length}`;
     watchlistList.appendChild(label);
-    open.forEach(entry => watchlistList.appendChild(buildWatchlistCard(entry)));
+    const list = document.createElement("div");
+    list.className = "open-list card";
+    open.forEach(entry => list.appendChild(buildOpenRow(entry)));
+    watchlistList.appendChild(list);
   }
 
   if (watched.length > 0) {

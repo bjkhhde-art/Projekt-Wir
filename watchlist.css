@@ -9,46 +9,30 @@
 /* ---------- overview numbers ---------- */
 
 .wl-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: -6px 2px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .wl-stats:empty {
   display: none;
 }
 
-.wl-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 4px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1.5px solid var(--surface-border);
-  box-shadow: var(--shadow-soft);
-}
-
-.wl-stat-value {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.wl-stat-label {
-  font-size: 11px;
-  color: var(--text-muted);
+.wl-stat b {
+  color: var(--text);
 }
 
 .watchlist-search {
   display: block;
-  width: 100%;
+  flex: 1 1 55%;
+  min-width: 0;
+  width: auto;
   box-sizing: border-box;
-  margin-bottom: 14px;
-  padding: 11px 14px;
+  margin: 0;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--surface-border);
   background: var(--surface-solid);
@@ -63,8 +47,9 @@
 
 .wl-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   margin-bottom: 12px;
 }
 
@@ -225,18 +210,18 @@
 .watchlist-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .watchlist-section-label {
-  margin: 10px 2px 2px;
+  margin: 8px 2px 0;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-muted);
 }
 
 .watchlist-card {
-  padding: 18px 20px;
+  padding: 14px 16px;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
@@ -249,18 +234,18 @@
 .watchlist-card-head {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .watchlist-poster {
   flex: none;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 64px;
-  border-radius: 14px;
-  font-size: 26px;
+  width: 40px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 21px;
   background: linear-gradient(160deg, rgba(255, 92, 138, 0.18), rgba(139, 92, 246, 0.22));
 }
 
@@ -286,7 +271,7 @@
 
 .watchlist-title {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.25;
   font-family: var(--font-heading);
   overflow-wrap: anywhere;
@@ -328,28 +313,6 @@
   font-size: 12.5px;
   color: var(--text-faint);
   font-style: italic;
-}
-
-.watchlist-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.watchlist-delete-btn {
-  margin-left: auto;
-  background: none;
-  border: none;
-  font-size: 17px;
-  cursor: pointer;
-  opacity: 0.55;
-  padding: 4px;
-  line-height: 1;
-}
-
-.watchlist-delete-btn:hover {
-  opacity: 1;
 }
 
 .watchlist-empty {
@@ -415,6 +378,50 @@
   display: none;
 }
 
+.open-list {
+  padding: 2px 0;
+}
+
+.open-row .watchlist-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-row-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.open-row-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.open-row-done {
+  border-color: transparent;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-weight: 800;
+}
+
+.open-row.long-pressing {
+  transform: scale(0.98);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.open-row,
 .watched-row {
   display: flex;
   align-items: center;
@@ -426,6 +433,7 @@
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
+.open-row + .open-row,
 .watched-row + .watched-row {
   border-top: 1px solid var(--surface-border);
 }
@@ -464,7 +472,8 @@
   white-space: nowrap;
 }
 
-.watched-meta {
+.watched-meta,
+.open-meta {
   font-size: 11.5px;
   color: var(--text-faint);
   overflow: hidden;
@@ -598,6 +607,41 @@
 
 /* ---------- series we are watching right now ---------- */
 
+.watching-strip.many {
+  display: flex;
+  gap: 10px;
+  /* reaches to the screen edge (the page keeps 3vw on each side) */
+  margin: 0 -3vw;
+  padding: 2px 3vw 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 3vw;
+  scrollbar-width: none;
+}
+
+.watching-strip.many::-webkit-scrollbar {
+  display: none;
+}
+
+.watching-strip.many .watchlist-card {
+  flex: 0 0 calc(100% - 34px);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.watch-pause-btn {
+  flex: none;
+  align-self: flex-start;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
 .watchlist-watching-check {
   display: flex;
   align-items: center;
@@ -623,8 +667,8 @@
 .watch-progress {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
+  gap: 8px;
+  margin: 0 0 10px;
   font-size: 12.5px;
   color: var(--text-muted);
 }
@@ -644,35 +688,50 @@
   transition: width 0.25s ease;
 }
 
-.watch-season {
-  margin-bottom: 10px;
-}
-
-.watch-season-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-  font-size: 13px;
+.watch-progress-count {
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .watch-season-all {
-  background: none;
+  flex: none;
+  height: 36px;
+  padding: 0 8px;
   border: none;
-  padding: 2px 4px;
-  font-size: 12px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.12);
   color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
 }
 
+.watch-season-all:not(:first-child) {
+  margin-left: 8px;
+}
+
+.watch-season-all.done {
+  color: var(--success);
+}
+
+/* all episodes in one row that scrolls sideways */
 .watch-episodes {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
+  margin: 0 -16px;
+  padding: 6px 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 24px), transparent 100%);
+}
+
+.watch-episodes::-webkit-scrollbar {
+  display: none;
 }
 
 .watch-episode {
+  flex: none;
   min-width: 36px;
   height: 36px;
   padding: 0 6px;
@@ -729,39 +788,28 @@
   font-weight: 700;
 }
 
-.watch-season-count {
-  margin-left: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-faint);
-}
-
 /* ---------- how we watch: picker, summary ---------- */
-
-.watch-mode-label {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 
 .watch-mode-picker {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  margin-bottom: 14px;
+  /* "Getrennt" is the longest label */
+  grid-template-columns: 0.9fr 1.35fr 0.85fr 1fr;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .watch-mode-btn {
-  padding: 8px 6px;
-  border-radius: var(--radius-sm);
+  min-width: 0;
+  padding: 7px 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-pill);
   border: 1.5px solid var(--surface-border);
   background: var(--surface-solid);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -778,14 +826,14 @@
 .watch-mode-btn.selected[data-mode="Benji"] { background: var(--mode-benji); }
 
 .watch-mode-summary {
+  flex: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: -4px 0 12px;
+  gap: 4px;
 }
 
 .watch-mode-pill {
-  padding: 3px 9px;
+  padding: 1px 7px;
+  white-space: nowrap;
   border-radius: var(--radius-pill);
   font-size: 11.5px;
   font-weight: 600;
@@ -798,8 +846,11 @@
 .watch-mode-pill[data-mode="Isi"] { --pill-mode: var(--mode-isi); }
 .watch-mode-pill[data-mode="Benji"] { --pill-mode: var(--mode-benji); }
 
-.watch-legend {
-  margin: 4px 0 12px;
-  font-size: 11.5px;
-  color: var(--text-faint);
+
+/* cards beside the screen in the sideways strip are shown right away (no slide-in while swiping) */
+.watching-strip .card {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: none;
 }
