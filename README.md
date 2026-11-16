@@ -7,7 +7,8 @@ Gemeinsame Couple-App (installierbar, mit Login, Push-Benachrichtigungen und Dar
 - 📊 **KPIs** – Tage zusammen, nächster Jahrestag, „Wie lange noch bis …“
 - ✈️ **Reisen** – Karte mit vergangenen und kommenden Reisen, Fotos mit Aufnahmedatum, Story-Modus
 - 💌 **Briefe** – Kurznachrichten als Umschläge, zum Öffnen antippen & hochwischen
-- 🎬 **Watchlist** – Filme und Serien mit Filter, Gesehen-Status und Serienfortschritt
+- 🎬 **Watchlist** (in ToDos) – Filme und Serien mit Filter, Serienfortschritt und „Wie geschaut?“: zusammen live,
+  beide getrennt, nur Isi oder nur Benji – für Filme, ganze Serien und jede einzelne Folge
 - 🍰 **Mochi** – gemeinsames Haustier mit Pflege, Shop, Garten, Minispielen, Wünschen und Nachrichten
 - 🎮 **Spiele** – Cabo, 6 nimmt!, Qwixx, Flip 7, Phase 10, Murphys Gesetz und Geo-Guesser, live auf zwei Handys; Freunde per
   Einladungslink und die Computer-Spieler Udiou und Klausi können mitspielen; Emoji-Reaktionen
@@ -23,8 +24,8 @@ Sechs Bereiche in der unteren Leiste:
 
 - 🏠 **Home** – Tage zusammen, wie lange Isi noch in Alicante ist, Status von Mochi, Kuschelbatterie vom anderen, Bild der letzten Reise
 - 📊 **KPIs** – Tage zusammen, nächster Jahrestag, wann wir uns kennengelernt haben, WhatsApp Wrapped (Chat-Wrapped) und „Wie lange noch bis …“
-- 💬 **Wir** – Kuschelakku, Watchlist, Briefe
-- ✅ **ToDos** – Couple Quest
+- 💬 **Wir** – Kuschelakku, Briefe
+- ✅ **ToDos** – Couple Quest, Watchlist
 - ✈️ **Reisen** – Karte, „Kommt noch“ und „Vergangen“
 - 🎮 **Spiele** – alle Spiele und Gesprächsfragen
 

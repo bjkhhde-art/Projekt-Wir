@@ -17,6 +17,7 @@
 
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="ziele.css">
+  <link rel="stylesheet" href="watchlist.css">
   <script src="theme.js"></script>
   <script src="pin-lock.js"></script>
 </head>
@@ -24,7 +25,12 @@
 
   <main class="page">
     <h1 class="page-title">ToDos ✅</h1>
-    <p class="page-subtitle">Was wir gemeinsam erledigen wollen: unsere Couple Quest</p>
+    <p class="page-subtitle">Was wir gemeinsam erledigen wollen: Couple Quest und Watchlist</p>
+
+    <div class="hub-tabs" role="tablist">
+      <button class="hub-tab" data-tab="quest" role="tab">🎯 Couple Quest</button>
+      <button class="hub-tab" data-tab="watchlist" role="tab">🎬 Watchlist</button>
+    </div>
 
     <section class="hub-panel" data-panel="quest">
       <div class="quest-toolbar">
@@ -33,9 +39,44 @@
 
       <div id="board"></div>
     </section>
+
+    <section class="hub-panel" data-panel="watchlist" hidden>
+
+      <div id="watchlistStats" class="wl-stats"></div>
+
+      <input id="watchlistSearchInput" type="search" class="watchlist-search" placeholder="🔍 Suchen...">
+
+      <div class="wl-filter-bar">
+        <button id="watchlistFilterToggle" class="wl-filter-toggle" type="button" aria-expanded="false" aria-controls="watchlistFilterPanel">
+          Filter <span id="watchlistFilterCount" class="wl-filter-count hidden"></span><span class="wl-filter-chevron">▾</span>
+        </button>
+        <span id="watchlistResultCount" class="wl-result-count"></span>
+        <button id="watchlistFilterReset" class="wl-filter-reset hidden" type="button">Zurücksetzen</button>
+      </div>
+
+      <div id="watchlistFilterPanel" class="wl-filter-panel card" hidden>
+        <div class="wl-filter-group" data-group="types"><h4>Art</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="status"><h4>Gesehen?</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="platforms"><h4>Anbieter</h4><div class="wl-chips"></div></div>
+        <div class="wl-filter-group" data-group="periods">
+          <h4>Gesehen am</h4>
+          <div class="wl-chips"></div>
+          <div class="wl-date-range">
+            <label>von <input id="watchlistFilterFrom" type="date"></label>
+            <label>bis <input id="watchlistFilterTo" type="date"></label>
+          </div>
+        </div>
+        <p class="wl-filter-hint">Mehrere pro Gruppe möglich. Zeitraum-Filter zeigen nur gesehene Titel.</p>
+      </div>
+
+      <div id="watchlistList" class="watchlist-list"></div>
+
+    </section>
+
   </main>
 
-  <button id="openAddModal" class="fab" title="Neues Bingofeld" aria-label="Neues Bingofeld">+</button>
+  <button id="openAddModal" class="fab" title="Neues Bingofeld" aria-label="Neues Bingofeld" data-show-for="quest">+</button>
+  <button id="openWatchlistModal" class="fab" title="Neuer Film oder neue Serie" aria-label="Neuer Film oder neue Serie" data-show-for="watchlist">+</button>
 
   <div id="addModal" class="modal hidden">
     <div class="modal-box">
@@ -86,6 +127,82 @@
     </div>
   </div>
 
+  <div id="watchlistModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="watchlistModalTitle">Neuer Eintrag</h2>
+
+      <label>Titel</label>
+      <input id="watchlistTitleInput" type="text" placeholder="z. B. Dune">
+      <p id="watchlistDuplicateHint" class="watchlist-duplicate-hint hidden" role="alert"></p>
+
+      <label>Film oder Serie?</label>
+      <select id="watchlistTypeInput">
+        <option value="film">🎬 Film</option>
+        <option value="serie">📺 Serie</option>
+      </select>
+
+      <div id="watchlistSeriesField" class="hidden">
+        <label class="watchlist-watching-check"><input id="watchlistWatchingInput" type="checkbox"> 📺 Wir schauen gerade</label>
+        <div id="watchlistSeriesCounts" class="watchlist-series-counts hidden">
+          <label for="watchlistSeasonsInput">Wie viele Staffeln?</label>
+          <input id="watchlistSeasonsInput" type="number" min="1" max="99" inputmode="numeric" placeholder="z. B. 3">
+          <div id="watchlistSeasonEpisodes" class="watchlist-season-episodes"></div>
+        </div>
+      </div>
+
+      <label>Wo schauen? (optional)</label>
+      <input id="watchlistPlatformInput" type="text" placeholder="z. B. Netflix, Kino, Prime Video">
+
+      <label>Hinzugefügt von</label>
+      <select id="watchlistAddedByInput">
+        <option value="Isi">Isi</option>
+        <option value="Benji">Benji</option>
+      </select>
+
+      <div id="watchlistSeenByField" class="hidden">
+        <label>Wie geschaut?</label>
+        <div class="seen-by-choice" role="radiogroup" aria-label="Wie habt ihr es geschaut?">
+          <button type="button" class="seen-by-btn" data-seen="both" role="radio">👫 Zusammen live</button>
+          <button type="button" class="seen-by-btn" data-seen="separate" role="radio">👥 Beide getrennt</button>
+          <button type="button" class="seen-by-btn" data-seen="Isi" role="radio">🙋‍♀️ Nur Isi</button>
+          <button type="button" class="seen-by-btn" data-seen="Benji" role="radio">🙋‍♂️ Nur Benji</button>
+        </div>
+        <label for="watchlistWatchedAtInput">Gesehen am</label>
+        <input id="watchlistWatchedAtInput" type="date">
+      </div>
+
+      <div class="modal-buttons">
+        <button id="saveWatchlistBtn" class="btn">Hinzufügen</button>
+        <button id="closeWatchlistModal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+
+      <div id="watchlistEditExtras" class="watchlist-edit-extras hidden">
+        <button id="watchlistToggleWatchedBtn" class="btn btn-secondary btn-sm" type="button">↩️ Doch noch nicht gesehen</button>
+        <button id="watchlistDeleteBtn" class="btn btn-secondary btn-sm watchlist-edit-delete" type="button">🗑️ Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seenByModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Gesehen! 🎉</h2>
+      <p id="seenByModalText" class="push-modal-text">Wie habt ihr es geschaut?</p>
+      <label class="seen-date-row" for="seenByDateInput">
+        <span>📅 Gesehen am</span>
+        <input id="seenByDateInput" type="date">
+      </label>
+      <div class="seen-by-choice seen-by-big">
+        <button type="button" class="seen-by-btn" data-seen="both"><span class="seen-by-icon">👫</span><span><b>Zusammen live</b><small>Wir saßen gemeinsam davor</small></span></button>
+        <button type="button" class="seen-by-btn" data-seen="separate"><span class="seen-by-icon">👥</span><span><b>Beide getrennt</b><small>Jeder hat es für sich geschaut</small></span></button>
+        <button type="button" class="seen-by-btn" data-seen="Isi"><span class="seen-by-icon">🙋‍♀️</span><span><b>Nur Isi</b><small>Benji hat es noch vor sich</small></span></button>
+        <button type="button" class="seen-by-btn" data-seen="Benji"><span class="seen-by-icon">🙋‍♂️</span><span><b>Nur Benji</b><small>Isi hat es noch vor sich</small></span></button>
+      </div>
+      <div class="modal-buttons">
+        <button id="cancelSeenBy" class="btn btn-secondary btn-block" type="button">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
   <div id="deleteBar" class="delete-bar card hidden">
     <span>Felder zum Löschen auswählen</span>
 
@@ -107,6 +224,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
   <script src="supabase-client.js"></script>
   <script src="shared.js"></script>
+  <script src="hub-tabs.js"></script>
   <script src="app.js"></script>
+  <script src="fuzzy-search.js"></script>
+  <script src="watchlist-filter.js"></script>
+  <script src="watchlist.js"></script>
 </body>
 </html>

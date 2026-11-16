@@ -54,4 +54,17 @@ const cleaned = W.sanitize({ types: ["film", 3], from: "gestern", to: "2026-01-3
 ok(same(cleaned, { types: ["film"], status: [], platforms: [], periods: [], from: "", to: "2026-01-31" }), "stored filters are cleaned up");
 ok(same(W.sanitize(null), W.emptyFilters()), "missing stored filters mean no filter");
 
+/* how something was watched: together live, both separately, only one of us */
+ok(W.STATUS_OPTIONS.some(o => o.value === "separate"), "'Beide getrennt' can be filtered");
+ok(W.matches({ watched: true, seen_by: "separate", media_type: "film" }, { ...W.emptyFilters(), status: ["separate"] }), "a title watched separately matches its filter");
+ok(JSON.stringify(W.episodeModes({ episodes_seen: ["1-1", "1-2"], episode_seen_by: { "1-2": "Isi" } })) === '{"1-1":"both","1-2":"Isi"}', "old ticks without a way count as together");
+ok(JSON.stringify(W.episodeModes({ episodes_seen: ["1-1"], episode_seen_by: { "1-1": "nonsense", "9-9": "Isi" } })) === '{"1-1":"both"}', "unknown ways and unticked keys are ignored");
+ok(W.modeCounts({ a: "both", b: "Isi", c: "Isi" }).Isi === 2, "counts per way");
+ok(W.seriesSeenBy({}) === "both", "no episodes → together");
+ok(W.seriesSeenBy({ a: "Isi", b: "Isi" }) === "Isi", "all episodes by Isi alone → only Isi");
+ok(W.seriesSeenBy({ a: "Isi", b: "Benji" }) === "separate", "Isi alone and Benji alone → both separately");
+ok(W.seriesSeenBy({ a: "both", b: "both", c: "Isi" }) === "both", "mostly together → together");
+ok(W.seriesSeenBy({ a: "both", b: "separate", c: "separate" }) === "separate", "mostly separately → separately");
+ok(W.seriesSeenBy({ a: "both", b: "Benji" }) === "both", "a tie goes to together");
+
 console.log(`\n${assertions} assertions passed (watchlist filter)`);

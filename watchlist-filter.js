@@ -5,15 +5,25 @@
   const STATUS_OPTIONS = [
     { value: "watching", label: "📺 Läuft gerade" },
     { value: "open", label: "🍿 Noch offen" },
-    { value: "both", label: "👫 Zusammen" },
-    { value: "Isi", label: "👤 Isi allein" },
-    { value: "Benji", label: "👤 Benji allein" },
+    { value: "both", label: "👫 Zusammen live" },
+    { value: "separate", label: "👥 Beide getrennt" },
+    { value: "Isi", label: "🙋‍♀️ Nur Isi" },
+    { value: "Benji", label: "🙋‍♂️ Nur Benji" },
     { value: "unknown", label: "❔ Gesehen, ohne Angabe" }
   ];
   const TYPE_OPTIONS = [
     { value: "film", label: "🎬 Filme" },
     { value: "serie", label: "📺 Serien" }
   ];
+  /* how a film, a series or a single episode was watched */
+  const WATCH_MODES = ["both", "separate", "Isi", "Benji"];
+  const WATCH_MODE_LABELS = {
+    both: "👫 Zusammen live",
+    separate: "👥 Beide getrennt",
+    Isi: "🙋‍♀️ Nur Isi",
+    Benji: "🙋‍♂️ Nur Benji"
+  };
+  const WATCH_MODE_SHORT = { both: "👫", separate: "👥", Isi: "I", Benji: "B" };
   const NO_PLATFORM = "__none__";
   const DAY_MS = 24 * 3600 * 1000;
 
@@ -110,7 +120,38 @@
     return base;
   }
 
-  const api = { STATUS_OPTIONS, TYPE_OPTIONS, NO_PLATFORM, emptyFilters, platformKey, statusOf, matches, activeCount, options, sanitize };
+  function isWatchMode(value) {
+    return WATCH_MODES.includes(value);
+  }
+
+  /* how each ticked episode was watched; ticks from before modes existed count as together */
+  function episodeModes(entry) {
+    const seen = Array.isArray(entry.episodes_seen) ? entry.episodes_seen : [];
+    const map = entry.episode_seen_by && typeof entry.episode_seen_by === "object" ? entry.episode_seen_by : {};
+    const result = {};
+    seen.forEach(key => { result[key] = isWatchMode(map[key]) ? map[key] : "both"; });
+    return result;
+  }
+
+  /* counts per mode, e.g. { both: 7, separate: 1, Isi: 2, Benji: 0 } */
+  function modeCounts(modes) {
+    const counts = { both: 0, separate: 0, Isi: 0, Benji: 0 };
+    Object.values(modes).forEach(mode => { if (isWatchMode(mode)) counts[mode]++; });
+    return counts;
+  }
+
+  /* a finished series: all episodes the same way → that way; Isi and Benji each alone → separately;
+     otherwise the way most episodes were watched (together wins a tie) */
+  function seriesSeenBy(modes) {
+    const counts = modeCounts(modes);
+    const used = WATCH_MODES.filter(mode => counts[mode] > 0);
+    if (used.length === 0) return "both";
+    if (used.length === 1) return used[0];
+    if (used.every(mode => mode === "Isi" || mode === "Benji")) return "separate";
+    return used.reduce((best, mode) => (counts[mode] > counts[best] ? mode : best), used[0]);
+  }
+
+  const api = { WATCH_MODES, WATCH_MODE_LABELS, WATCH_MODE_SHORT, isWatchMode, episodeModes, modeCounts, seriesSeenBy, STATUS_OPTIONS, TYPE_OPTIONS, NO_PLATFORM, emptyFilters, platformKey, statusOf, matches, activeCount, options, sanitize };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") window.WatchlistFilter = api;
 })();

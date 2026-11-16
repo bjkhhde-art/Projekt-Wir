@@ -1,3 +1,48 @@
+:root {
+  /* how something was watched – the same colours on episodes, pills and rows */
+  --mode-both: linear-gradient(135deg, #ff5c8a 0%, #8b5cf6 100%);
+  --mode-separate: #7c3aed;
+  --mode-isi: #f97362;
+  --mode-benji: #0ea5a4;
+}
+
+/* ---------- overview numbers ---------- */
+
+.wl-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.wl-stats:empty {
+  display: none;
+}
+
+.wl-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  box-shadow: var(--shadow-soft);
+}
+
+.wl-stat-value {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wl-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .watchlist-search {
   display: block;
   width: 100%;
@@ -204,28 +249,50 @@
 .watchlist-card-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.watchlist-poster {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 64px;
+  border-radius: 14px;
+  font-size: 26px;
+  background: linear-gradient(160deg, rgba(255, 92, 138, 0.18), rgba(139, 92, 246, 0.22));
+}
+
+.watchlist-poster[data-type="serie"] {
+  background: linear-gradient(160deg, rgba(139, 92, 246, 0.22), rgba(14, 165, 164, 0.2));
+}
+
+.watchlist-head-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .watchlist-type-badge {
-  font-size: 12.5px;
-}
-
-.watchlist-platform {
-  font-size: 12.5px;
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .watchlist-title {
-  margin: 0 0 4px;
-  font-size: 18px;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
   font-family: var(--font-heading);
+  overflow-wrap: anywhere;
 }
 
-.watchlist-added-by {
-  margin: 0 0 12px;
+.watchlist-meta {
   font-size: 12.5px;
   color: var(--text-faint);
 }
@@ -266,7 +333,8 @@
 .watchlist-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .watchlist-delete-btn {
@@ -367,6 +435,15 @@
   background: rgba(139, 92, 246, 0.08);
 }
 
+.watched-row[data-mode] {
+  box-shadow: inset 3px 0 0 var(--row-mode, transparent);
+}
+
+.watched-row[data-mode="both"] { --row-mode: var(--pink); }
+.watched-row[data-mode="separate"] { --row-mode: var(--mode-separate); }
+.watched-row[data-mode="Isi"] { --row-mode: var(--mode-isi); }
+.watched-row[data-mode="Benji"] { --row-mode: var(--mode-benji); }
+
 .watched-type {
   flex: none;
   font-size: 16px;
@@ -439,7 +516,7 @@
 
 .seen-by-choice {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   margin-bottom: 12px;
 }
@@ -468,8 +545,32 @@
 }
 
 .seen-by-big .seen-by-btn {
-  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  text-align: left;
+}
+
+.seen-by-big .seen-by-btn:hover,
+.seen-by-big .seen-by-btn:focus-visible {
+  border-color: var(--pink);
+}
+
+.seen-by-icon {
+  font-size: 24px;
+}
+
+.seen-by-big .seen-by-btn b {
+  display: block;
   font-size: 15px;
+}
+
+.seen-by-big .seen-by-btn small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 #watchlistSeenByField.hidden {
@@ -584,8 +685,121 @@
 }
 
 .watch-episode.seen {
-  background: var(--gradient-brand);
+  background: var(--mode-both);
   border-color: transparent;
   color: #fff;
   font-weight: 700;
+}
+
+.watch-episode.seen[data-mode="separate"] { background: var(--mode-separate); }
+.watch-episode.seen[data-mode="Isi"] { background: var(--mode-isi); }
+.watch-episode.seen[data-mode="Benji"] { background: var(--mode-benji); }
+
+/* Isi / Benji alone also carry their letter, so the colour is not the only hint */
+.watch-episode.seen[data-mode="Isi"],
+.watch-episode.seen[data-mode="Benji"],
+.watch-episode.seen[data-mode="separate"] {
+  position: relative;
+}
+
+.watch-episode.seen[data-mode="Isi"]::after,
+.watch-episode.seen[data-mode="Benji"]::after,
+.watch-episode.seen[data-mode="separate"]::after {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 2px;
+  border-radius: 8px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 15px;
+  box-shadow: var(--shadow-soft);
+}
+
+.watch-episode.seen[data-mode="Isi"]::after { content: "I"; }
+.watch-episode.seen[data-mode="Benji"]::after { content: "B"; }
+.watch-episode.seen[data-mode="separate"]::after { content: "2"; }
+
+.watch-episode.next {
+  border: 1.5px dashed var(--pink);
+  font-weight: 700;
+}
+
+.watch-season-count {
+  margin-left: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+/* ---------- how we watch: picker, summary ---------- */
+
+.watch-mode-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.watch-mode-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.watch-mode-btn {
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.watch-mode-btn.selected {
+  border-color: transparent;
+  color: #fff;
+  background: var(--mode-both);
+}
+
+.watch-mode-btn.selected[data-mode="separate"] { background: var(--mode-separate); }
+.watch-mode-btn.selected[data-mode="Isi"] { background: var(--mode-isi); }
+.watch-mode-btn.selected[data-mode="Benji"] { background: var(--mode-benji); }
+
+.watch-mode-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 12px;
+}
+
+.watch-mode-pill {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--pill-mode, var(--surface-border));
+}
+
+.watch-mode-pill[data-mode="both"] { --pill-mode: var(--pink); }
+.watch-mode-pill[data-mode="separate"] { --pill-mode: var(--mode-separate); }
+.watch-mode-pill[data-mode="Isi"] { --pill-mode: var(--mode-isi); }
+.watch-mode-pill[data-mode="Benji"] { --pill-mode: var(--mode-benji); }
+
+.watch-legend {
+  margin: 4px 0 12px;
+  font-size: 11.5px;
+  color: var(--text-faint);
 }

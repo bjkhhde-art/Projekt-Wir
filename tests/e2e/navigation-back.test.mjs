@@ -37,17 +37,17 @@ const back = async () => {
 };
 const activeTab = () => page.locator(".hub-tab.active").getAttribute("data-tab");
 
-/* ---------- Wir: three tabs ---------- */
+/* ---------- ToDos: Couple Quest and Watchlist ---------- */
 await page.goto("http://localhost:9091/index.html");
 await wait(400);
-await page.goto("http://localhost:9091/wir.html");
+await page.goto("http://localhost:9091/ziele.html");
 await wait(500);
-ok(await activeTab() === "watchlist", "Wir opens with the first tab");
-await page.click('.hub-tab[data-tab="briefe"]');
+ok(await activeTab() === "quest", "ToDos opens with the first tab");
+await page.click('.hub-tab[data-tab="watchlist"]');
 await wait(200);
-ok(page.url().endsWith("wir.html?tab=briefe"), "the address shows the open tab");
+ok(page.url().endsWith("ziele.html?tab=watchlist"), "the address shows the open tab");
 await back();
-ok(await activeTab() === "watchlist" && !page.url().includes("tab=briefe"), "back: the previous tab (Watchlist), not the start page");
+ok(await activeTab() === "quest" && !page.url().includes("tab=watchlist"), "back: the previous tab (Couple Quest), not the start page");
 await back();
 ok(page.url().endsWith("/index.html"), "only then back to the page before");
 

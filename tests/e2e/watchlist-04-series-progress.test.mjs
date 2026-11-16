@@ -23,7 +23,7 @@ await ctx.addInitScript(() => {
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/wir.html?tab=watchlist");
+await page.goto("http://localhost:9091/ziele.html?tab=watchlist");
 await page.waitForTimeout(800);
 
 ok(await page.locator(".watchlist-card", { hasText: "Dune" }).locator("button", { hasText: "Wir schauen gerade" }).count() === 0, "films have no 'watching' button");

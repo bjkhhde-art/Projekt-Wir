@@ -37,7 +37,7 @@ Auf GitHub laufen Lint und alle Tests automatisch bei jedem Push (siehe `.github
 | 🎯 Couple Quest (ToDos) | `npm test -- quest` | – | Reihenfolge, Hinzufügen, Abhaken, Zurücksetzen, Bearbeiten, Löschen; Absender, Doppeltipp, 16er-Grenze mit 2 Handys, gleichzeitiges Abhaken, überfällig |
 | 🔋 Kuschelakku | `npm test -- akku` | – | Anzeige, Wischen, Pfeiltasten, Speichern, Live-Änderung vom anderen Handy; eine Benachrichtigung pro Änderung, an den anderen |
 | 💌 Briefe | `npm test -- briefe` | – | Liste, „Neu“, Umschlag aufwischen, Schreiben + Benachrichtigung, Löschen; Absender aus „Wer bin ich“ |
-| 🎬 Watchlist | `npm test -- watchlist fuzzy` | Filter, unscharfe Suche | Gesehen (Zurücknehmen mit Rückfrage), Filter, Datum, Serienfortschritt |
+| 🎬 Watchlist (ToDos) | `npm test -- watchlist fuzzy` | Filter, unscharfe Suche, Art des Schauens | Gesehen (Zurücknehmen mit Rückfrage), Filter, Datum, Serienfortschritt, „Wie geschaut?“ für Filme, Serien und Folgen |
 | ✈️ Reisen | `npm test -- reise` | Aufnahmedatum von Fotos | Galerie, Fotodaten, Story-Modus, Karte, fehlgeschlagene Uploads bleiben in der Liste, HEIC |
 | 🍰 Mochi | `npm test -- mochi` | Pflege-Logik | Zusammen, klassisch, Schlaf, Garten & Sternenregen |
 | 📊 Chat-Wrapped | `npm test -- chat` | Auswertung, Verschlüsselung | Hochladen, ZIP, zwei Handys, Exporte zusammenführen |

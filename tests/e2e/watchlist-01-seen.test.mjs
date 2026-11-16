@@ -27,7 +27,7 @@ await ctx.addInitScript(() => localStorage.setItem("pw_person", "Isi"));
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto("http://localhost:9091/wir.html?tab=watchlist");
+await page.goto("http://localhost:9091/ziele.html?tab=watchlist");
 await page.waitForTimeout(800);
 
 ok(await page.locator(".watchlist-card").count() === 2, "titles still to watch stay big cards");
@@ -121,7 +121,7 @@ await page.click('#seenByModal .seen-by-btn[data-seen="Benji"]');
 await wait(700);
 ok((await rows()).find(r => r.id === 2).seen_by === "Benji", "'Benji allein' is stored");
 ok((await page.locator(".watched-title").first().textContent()) === "The Bear", "a freshly watched title appears at the top of the list");
-ok((await page.locator(".watched-meta").first().textContent()).includes("👤 Benji allein"), "the row says who watched it");
+ok((await page.locator(".watched-meta").first().textContent()).includes("🙋‍♂️ Nur Benji"), "the row says who watched it");
 
 /* recording it later for an older entry */
 await hold(page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-main"));
@@ -131,7 +131,7 @@ ok(await page.locator('#watchlistSeenByField .seen-by-btn[data-seen="both"]').ev
 await page.click("#saveWatchlistBtn");
 await wait(700);
 ok((await rows()).find(r => r.id === 3).seen_by === "both", "'zusammen' is stored for Past Lives");
-ok((await page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-meta").textContent()).includes("👫 zusammen"), "and shown in its row");
+ok((await page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-meta").textContent()).includes("👫 Zusammen live"), "and shown in its row");
 
 /* un-watching clears it */
 await hold(page.locator(".watched-row", { hasText: "Past Lives" }).locator(".watched-main"));
