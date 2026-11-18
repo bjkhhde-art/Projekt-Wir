@@ -74,6 +74,32 @@ Die Bilder sind schon da: `blau-1.webp` … `blau-11.webp`, `gruen-1.webp` … `
 | `murphy-m47.webp` | m47 | Die Aufgabe ist erfüllt, wenn du alle drei Farben hast: von einer 4 Karten, von einer 2 und von einer 1 – also NUR 7 Karten. |
 | `murphy-m48.webp` | m48 | Die Aufgabe ist erfüllt, wenn du NUR eine lückenlose Zahlenfolge aus genau 7 Karten hast (z. B. 2 bis 8) – Farbe egal. |
 | `murphy-m49.webp` | m49 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten in genau zwei Farben liegen. Es müssen mindestens 5 sein. |
+| `murphy-m50.webp` | m50 | Die Aufgabe ist erfüllt, wenn du NUR gelbe Karten mit geraden Zahlen hast. Du brauchst mindestens 4. |
+| `murphy-m51.webp` | m51 | Die Aufgabe ist erfüllt, wenn du NUR blaue Karten mit ungeraden Zahlen hast. Du brauchst mindestens 4. |
+| `murphy-m52.webp` | m52 | Die Aufgabe ist erfüllt, wenn du NUR Karten in zwei Farben hast, von jeder genau 4. |
+| `murphy-m53.webp` | m53 | Die Aufgabe ist erfüllt, wenn du NUR 5 Karten mit derselben Zahl hast – Farbe egal. |
+| `murphy-m54.webp` | m54 | Die Aufgabe ist erfüllt, wenn du NUR noch 2 Karten hast, die zusammen genau 22 ergeben. |
+| `murphy-m55.webp` | m55 | Die Aufgabe ist erfüllt, wenn du NUR 3 Karten hast, die zusammen genau 3 ergeben. |
+| `murphy-m56.webp` | m56 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit 1 oder 11 hast. Du brauchst mindestens 4. |
+| `murphy-m57.webp` | m57 | Die Aufgabe ist erfüllt, wenn du NUR Pärchen hast – jede Zahl genau zweimal, Farbe egal. Es müssen mindestens 4 Pärchen sein. |
+| `murphy-m58.webp` | m58 | Die Aufgabe ist erfüllt, wenn du NUR Karten einer Farbe hast, keine Zahl doppelt. Du brauchst mindestens 5. |
+| `murphy-m59.webp` | m59 | Die Aufgabe ist erfüllt, wenn du mindestens 7 Karten hast, die zusammen genau 60 ergeben. |
+| `murphy-m60.webp` | m60 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zahlen von 1 bis 5 hast. Du brauchst mindestens 7. |
+| `murphy-m61.webp` | m61 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zahlen ab 7 hast. Du brauchst mindestens 8. |
+| `murphy-m62.webp` | m62 | Die Aufgabe ist erfüllt, wenn du von jeder Farbe genau 3 Karten hast – also NUR 9 Karten. |
+| `murphy-m63.webp` | m63 | Die Aufgabe ist erfüllt, wenn du von jeder Farbe genau 2 Karten hast und alle zusammen eine lückenlose Zahlenfolge bilden (z. B. 3 bis 8). |
+| `murphy-m64.webp` | m64 | Die Aufgabe ist erfüllt, wenn du NUR zwei Pärchen und eine einzelne Karte hast (z. B. zwei 3en, zwei 8en und eine 10) – Farbe egal. |
+| `murphy-m65.webp` | m65 | Die Aufgabe ist erfüllt, wenn du NUR zwei Vierlinge hast (z. B. vier 5en und vier 9en) – Farbe egal. |
+| `murphy-m66.webp` | m66 | Die Aufgabe ist erfüllt, wenn du NUR einen Vierling und einen Drilling hast (z. B. vier 10en und drei 4en) – Farbe egal. |
+| `murphy-m67.webp` | m67 | Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zweierpotenzen hast. Du brauchst mindestens 5. (Zweierpotenzen: 1, 2, 4, 8) |
+| `murphy-m68.webp` | m68 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit ungeraden Zahlen liegen. Es müssen mindestens 4 sein. |
+| `murphy-m69.webp` | m69 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit Zahlen ab 6 liegen. Es müssen mindestens 4 sein. |
+| `murphy-m70.webp` | m70 | Die Aufgabe ist erfüllt, wenn bei Mac mindestens 4 Karten liegen, die zusammen höchstens 20 ergeben. |
+| `murphy-m71.webp` | m71 | Die Aufgabe ist erfüllt, wenn bei Mac alle drei Farben liegen, von jeder mindestens 2 Karten. |
+| `murphy-m72.webp` | m72 | Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit derselben Zahl liegen. Es müssen mindestens 3 sein. |
+| `murphy-m73.webp` | m73 | Die Aufgabe ist erfüllt, wenn du NUR grüne Karten mit Zahlen ab 6 hast. Du brauchst mindestens 5. |
+| `murphy-m74.webp` | m74 | Die Aufgabe ist erfüllt, wenn du NUR 6 Karten hast, die zusammen genau 36 ergeben. |
+| `murphy-m75.webp` | m75 | Die Aufgabe ist erfüllt, wenn du NUR blaue Karten mit geraden Zahlen ODER NUR gelbe Karten mit ungeraden Zahlen hast. Du brauchst mindestens 5. |
 
 ## Aktionskarten (alle mit Bild)
 
