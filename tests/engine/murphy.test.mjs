@@ -51,7 +51,7 @@ ok(numbers.filter(n => M.valueOf(n) === 2).length === 3 && numbers.filter(n => M
 ok(M.actionCards(rules).length === 17 && rules.murphy.length === 21, "the test cards: 17 action cards and 21 Murphy cards");
 ok(rules.actions.filter(a => a.colour === "blau").reduce((s, a) => s + a.copies, 0) === 9, "9 blue (instant) action cards, 8 green ones");
 const realRules = M.parseCards(real);
-ok(realRules.murphy.length === 32 && realRules.murphy.every(m => m.check && m.text.startsWith("Die Aufgabe ist erfüllt")), "the card file: the 12 real Murphy tasks and 20 new ones, each checked by the game");
+ok(realRules.murphy.length === 49 && realRules.murphy.every(m => m.check && m.text.startsWith("Die Aufgabe ist erfüllt")), "the card file: 49 Murphy tasks, each checked by the game");
 /* every new task: one hand that fulfils it and one that just misses (hand, or Mac for tasks about Mac) */
 const realTask = id => realRules.murphy.find(c => c.id === id).check;
 const NEW_TASKS = {
@@ -72,13 +72,30 @@ const NEW_TASKS = {
   m27: [["b1-0", "y4-0", "g9-0", "b9-0"], ["b1-0", "y4-0", "g9-0", "b8-0"]],
   m28: [["b2-0", "y3-0", "g5-0", "b7-0", "y11-0", "g11-0"], ["b2-0", "y3-0", "g5-0", "b7-0", "y11-0", "g9-0"]],
   m31: [["b11-0", "y10-0", "g9-0", "b8-0", "y7-0", "g5-0"], ["b11-0", "y10-0", "g9-0", "b8-0", "y7-0", "g4-0"]],
-  m32: [["b7-0", "y7-0", "g7-0"], ["b7-0", "b7-1", "g7-0"]]
+  m32: [["b7-0", "y7-0", "g7-0"], ["b7-0", "b7-1", "g7-0"]],
+  m33: [["b1-0", "b2-0", "b3-0", "b4-0", "b5-0"], ["b1-0", "b2-0", "b3-0", "b4-0", "y5-0"]],
+  m34: [["b1-0", "b4-0", "y5-0", "g9-0", "g11-0"], ["b1-0", "b4-0", "y5-0", "g9-0", "g10-0"]],
+  m35: [["b4-0", "y4-0", "g4-0", "b9-0", "y9-0", "g9-0"], ["b4-0", "y4-0", "g4-0", "b9-0", "y9-0", "g8-0"]],
+  m36: [["b4-0", "y5-0", "g6-0", "b7-0", "y8-0", "g8-0"], ["b4-0", "y5-0", "g6-0", "b7-0", "y8-0", "g9-0"]],
+  m37: [["b1-0", "y2-0", "g3-0"], ["b1-0", "y1-0", "g3-0"]],
+  m38: [["g1-0", "g3-0", "g5-0", "g7-0"], ["g1-0", "g3-0", "g5-0", "g8-0"]],
+  m39: [["b1-0", "b2-0", "b3-0", "b4-0", "y1-0", "y2-0", "y3-0", "y4-0"], ["b1-0", "b2-0", "b3-0", "b4-0", "y1-0", "y2-0", "y3-0", "g4-0"]],
+  m40: [["g11-0", "b1-0", "y1-0"], ["y11-0", "b1-0", "g1-0"]],
+  m43: [["b1-0", "y1-0", "g1-0", "b2-0", "y2-0"], ["b1-0", "y1-0", "g1-0", "b2-0", "y11-0"]],
+  m44: [["b7-0", "y7-0", "g7-0", "b7-1", "b5-0", "y5-0"], ["b7-0", "y7-0", "g7-0", "b7-1", "b5-0", "y6-0"]],
+  m45: [["b11-0", "y11-0", "g10-0", "b8-0"], ["b11-0", "y11-0", "g10-0", "b7-0"]],
+  m46: [["b9-0", "y9-0", "g9-0", "b2-0", "y2-0", "b6-0", "y6-0"], ["b9-0", "y9-0", "g9-0", "b2-0", "y2-0", "b6-0", "y5-0"]],
+  m47: [["b1-0", "b2-0", "b3-0", "b4-0", "y5-0", "y6-0", "g7-0"], ["b1-0", "b2-0", "b3-0", "b4-0", "y5-0", "y6-0", "y7-0"]],
+  m48: [["b2-0", "y3-0", "g4-0", "b5-0", "y6-0", "g7-0", "b8-0"], ["b2-0", "y3-0", "g4-0", "b5-0", "y6-0", "g7-0", "b9-0"]]
 };
 Object.entries(NEW_TASKS).forEach(([id, [yes, no]]) => {
   ok(M.fulfils(realTask(id), yes) && !M.fulfils(realTask(id), no), `new task ${id}: fulfilled exactly, and missed by one card`);
 });
 ok(M.fulfils(realTask("m29"), ["b1-0"], { mac: ["g1-0", "g4-0", "g8-0", "g11-0"] }) && !M.fulfils(realTask("m29"), ["b1-0"], { mac: ["g1-0", "g4-0", "g8-0", "y11-0"] }), "new task m29: Mac holds one colour only");
 ok(M.fulfils(realTask("m30"), ["b11-0"], { mac: ["g1-0", "y4-0", "b5-0"] }) && !M.fulfils(realTask("m30"), ["b11-0"], { mac: ["g1-0", "y4-0", "b6-0"] }), "new task m30: Mac holds nothing above 5");
+ok(M.fulfils(realTask("m41"), ["b1-0"], { mac: ["b2-0", "y4-0", "g6-0", "b8-0"] }) && !M.fulfils(realTask("m41"), ["b1-0"], { mac: ["b2-0", "y4-0", "g6-0", "b9-0"] }), "new task m41: Mac holds only even numbers");
+ok(M.fulfils(realTask("m42"), ["b1-0"], { mac: ["b1-0", "y2-0", "g3-0", "b4-0", "y5-0", "g6-0"] }) && !M.fulfils(realTask("m42"), ["b1-0"], { mac: ["b1-0", "y2-0", "g3-0", "b4-0", "y5-0", "g5-0"] }), "new task m42: Mac holds no number twice");
+ok(M.fulfils(realTask("m49"), ["b1-0"], { mac: ["b1-0", "y2-0", "b3-0", "b4-0", "y5-0"] }) && !M.fulfils(realTask("m49"), ["b1-0"], { mac: ["b1-0", "y2-0", "b3-0", "b4-0", "g5-0"] }), "new task m49: Mac holds exactly two colours");
 ok(realRules.actions.length === 16 && realRules.actions.filter(a => a.colour === "blau").length === 5 && realRules.actions.every(a => a.title && a.text), "the card file: 5 blue and 11 green action cards, each with title and text");
 ok(realRules.backImage === "rueckseite.webp" && !realRules.numberImages && realRules.actions.every(a => !a.image), "only the back is a picture – number and action cards are drawn");
 ok(M.parseCards({ ...real, aktionen: [{ id: "alt", farbe: "rot", wirkung: "ziehen" }] }).actions[0].colour === "blau", "an older file with \"rot\" still works: red means blue (instant)");
@@ -314,6 +331,30 @@ many.murphyBack = [];
 
 const refill = M.nextRound({ ...many, phase: "round-over", lastRound: { winner: "A" }, murphy: { A: null, B: null, C: null, D: null } }, "A", seeded(10));
 ok(["A", "B", "C", "D"].every(p => refill.murphy[p]), "… every player gets one");
+
+/* ---------- the Murphy bucket: long unseen cards come more likely ---------- */
+ok(realRules.bucket === 0.5 && M.parseCards({ ...real, bucket: 0 }).bucket === 0, "bucket comes from the card file");
+throwsWith(() => M.parseCards({ ...real, bucket: -1 }), /bucket/, "a negative bucket is refused");
+const bucketGame = M.createInitialState(["Isi", "Benji"], seeded(21), realRules);
+ok(bucketGame.murphyAge[bucketGame.murphy.Isi] === 1 && bucketGame.murphyAge[bucketGame.murphy.Benji] === 0
+  && Object.values(bucketGame.murphyAge).filter(a => a === 2).length === realRules.murphy.length - 2,
+  "every dealt card starts at 0 and then waits one deal longer per card dealt after it");
+/* m01 waited 40 deals, all others just came: with bucket 0.5 it weighs 21, each of the other 48 weighs 1 */
+const agesM01 = Object.fromEntries(realRules.murphy.map(c => [c.id, c.id === "m01" ? 40 : 0]));
+const m01Dealt = bucket => {
+  let n = 0;
+  for (let i = 0; i < 400; i++) {
+    const done = { ...bucketGame, rules: { ...realRules, bucket }, phase: "finished", murphyAge: agesM01 };
+    if (Object.values(M.newGame(done, "Isi", seeded(500 + i)).murphy).includes("m01")) n++;
+  }
+  return n;
+};
+const often = m01Dealt(0.5);
+ok(often > 150, `a card unseen for long comes much more often (${often} of 400 new games, plain chance would be about 16)`);
+const plain = m01Dealt(0);
+ok(plain < 40, `bucket 0 is plain chance again (${plain} of 400)`);
+const carried = M.newGame({ ...bucketGame, phase: "finished" }, "Isi", seeded(22));
+ok(carried.murphyAge[bucketGame.murphy.Isi] >= 2, "the ages go on into the next game");
 
 /* ---------- how many Murphy cards win, chosen in the lobby ---------- */
 const five = M.createInitialState(["Isi", "Benji"], seeded(7), rules, "5");
