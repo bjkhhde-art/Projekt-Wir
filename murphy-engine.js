@@ -20,6 +20,8 @@ const COLOUR_KEYS = { blau: "b", gelb: "y", gruen: "g", "grün": "g" };
 const BASAR_SIZE = 7;
 const FIRST_HAND = 8;
 const WIN_CARDS = 3;
+/* Murphy bucket: how much more likely a Murphy card gets with every other one dealt (see dealMurphy) */
+const BUCKET = 0.5;
 const PILES = 2;
 /* 1–3 once, 4–6 twice, 7–11 three times in each colour */
 const copiesOf = value => (value <= 3 ? 1 : value <= 6 ? 2 : 3);
@@ -311,7 +313,10 @@ function parseCards(json) {
     return card;
   });
 
-  return { murphy, actions, winCards, numberImages: json.zahlenBilder === true, backImage: cleanImage(json.rueckseite) };
+  const bucket = json.bucket === undefined ? BUCKET : json.bucket;
+  if (typeof bucket !== "number" || bucket < 0 || bucket > 5) throw new Error("„bucket“ muss eine Zahl von 0 bis 5 sein.");
+
+  return { murphy, actions, winCards, bucket, numberImages: json.zahlenBilder === true, backImage: cleanImage(json.rueckseite) };
 }
 
 /* the cards new games start with on this device (set by the page from murphy-karten.json) */
@@ -376,18 +381,58 @@ function drawNumber(state, rand) {
   return null;
 }
 
+/* the Murphy bucket: every Murphy card dealt adds a chance to all the others, so a card that has not come
+   for a long time is more and more likely to come next ("bucket" in murphy-karten.json: how much one deal adds;
+   0 = plain shuffle). The ages go on from game to game; a card new in the file counts as the longest unseen. */
+function murphyAgeOf(state, id) {
+  const ages = state.murphyAge || {};
+  if (ages[id] !== undefined) return ages[id];
+  const known = Object.values(ages);
+  return known.length ? Math.max(...known) : 0;
+}
+
+function murphyWeight(state, id) {
+  const age = murphyAgeOf(state, id);
+  const bonus = state.rules.bucket === undefined ? BUCKET : state.rules.bucket;
+  return 1 + bonus * age;
+}
+
+function pickWeighted(state, pool, rand) {
+  const weights = pool.map(id => murphyWeight(state, id));
+  let roll = rand() * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < pool.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) return i;
+  }
+  return pool.length - 1;
+}
+
+/* the card just dealt starts again at 0, all others wait one deal longer */
+function noteMurphy(state, id) {
+  if (!id) return id;
+  const next = {};
+  state.rules.murphy.forEach(m => { next[m.id] = m.id === id ? 0 : murphyAgeOf(state, m.id) + 1; });
+  state.murphyAge = next;
+  return id;
+}
+
 function dealMurphy(state, rand) {
   if (state.murphyDeck.length === 0) {
     state.murphyDeck = shuffle(state.murphyBack, rand);
     state.murphyBack = [];
   }
-  if (state.murphyDeck.length) return state.murphyDeck.pop();
-  /* all Murphy cards are kept or held (few cards, many players, many to win): a kept one comes back into play */
   const held = new Set(Object.values(state.murphy || {}).filter(Boolean));
+  const open = state.murphyDeck.filter(id => !held.has(id));
+  if (open.length) {
+    const id = open[pickWeighted(state, open, rand)];
+    state.murphyDeck.splice(state.murphyDeck.indexOf(id), 1);
+    return noteMurphy(state, id);
+  }
+  /* all Murphy cards are kept or held (few cards, many players, many to win): a kept one comes back into play */
   const ids = state.rules.murphy.map(m => m.id);
   const free = ids.filter(id => !held.has(id));
   const pool = free.length ? free : ids;
-  return pool[Math.floor(rand() * pool.length)] || null;
+  return pool.length ? noteMurphy(state, pool[pickWeighted(state, pool, rand)]) : null;
 }
 
 /* cards drawn outside a trade (effects, refills): red ones are put aside without acting – no chains */
@@ -430,7 +475,7 @@ function takeRandomNumbers(state, person, count, rand) {
   return taken;
 }
 
-function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
+function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules, murphyAge = null) {
   const chosen = rules || configuredRules;
   if (!chosen) throw new Error("Die Karten (murphy-karten.json) sind noch nicht geladen.");
   if (chosen.murphy.length < players.length) {
@@ -447,6 +492,7 @@ function newGameState(players, wins, gameNo, dealer, moveSeq, rand, rules) {
     won: perPlayer(players, () => []),
     murphyDeck: shuffle(chosen.murphy.map(m => m.id), rand),
     murphyBack: [],
+    murphyAge: murphyAge ? { ...murphyAge } : {},
     deck: shuffle([...numberCards(), ...actionCards(chosen)], rand),
     actionPile: [],
     hands: perPlayer(players, () => []),
@@ -1089,7 +1135,7 @@ function newGame(state, person, rand = Math.random) {
   /* a new game takes the cards as they are now in murphy-karten.json – otherwise those of the last game –
      and keeps the number of Murphy cards to win chosen in the lobby */
   const rules = withWinCards(configuredRules || state.rules, state.rules.winCards);
-  return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand, rules);
+  return newGameState(state.players, state.wins, (state.gameNo || 1) + 1, (state.dealer + 1) % state.players.length, state.moveSeq, rand, rules, state.murphyAge);
 }
 
 /* every card is somewhere: deck, open piles, played actions, Basar, a hand or waiting to act */

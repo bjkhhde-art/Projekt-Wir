@@ -17,9 +17,11 @@
     "  wirkung (blau und grün): ziehen, alleZiehen, aussetzen, richtung, weitergeben, handtausch, handUndMurphyTausch, murphyTausch, murphyNeu, murphyWeiter, murphyOffen, klauen, alleKlauen, alleGeben, abgeben, ablegen (mit \"eineFarbe\": true nur eine Farbe)",
     "  wirkung (nur grün): paarAbgeben, alleAblegen, basarAuffuellen, fordern, nehmen (vom Stapel oder von Mac), doppelzug.  anzahl = wie viele Karten (bei ziehen, alleZiehen, weitergeben, klauen, abgeben, ablegen).",
     "  Grüne Karten: man wählt Ziel und Karten selbst. Blaue Karten mit Ziel: wer sie zieht, wählt die Person; Karten nehmen sie zufällig.",
+    "bucket: je länger eine Murphy-Karte nicht kam, desto wahrscheinlicher kommt sie – jede andere ausgeteilte Murphy-Karte gibt ihr so viel Extra-Chance dazu (0.5 = nach 10 ausgeteilten Murphy-Karten ohne sie ist sie 6-mal so wahrscheinlich wie eine gerade gekommene; 0 = reiner Zufall).",
     "siegKarten: wie viele erfüllte Murphy-Karten zum Sieg nötig sind. zahlenBilder: true = statt der gezeichneten Zahlenkarten die Fotos blau-1.webp … gruen-11.webp zeigen (bild bei Aktionskarten genauso). rueckseite: Dateiname des Rückseiten-Bilds (sonst gezeichnet)."
   ],
   "siegKarten": 3,
+  "bucket": 0.5,
   "zahlenBilder": false,
   "rueckseite": "rueckseite.webp",
   "murphy": [
@@ -54,7 +56,24 @@
     {"id": "m29", "text": "Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten einer Farbe liegen. Es müssen mindestens 4 sein.", "bedingung": {"bei": "mac", "farben": 1, "anzahl": {"min": 4}}},
     {"id": "m30", "text": "Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit Zahlen bis höchstens 5 liegen. Es müssen mindestens 3 sein.", "bedingung": {"bei": "mac", "groesste": {"max": 5}, "anzahl": {"min": 3}}},
     {"id": "m31", "text": "Die Aufgabe ist erfüllt, wenn du mindestens 6 Karten hast, die zusammen genau 50 ergeben.", "bedingung": {"anzahl": {"min": 6}, "summe": 50}},
-    {"id": "m32", "text": "Die Aufgabe ist erfüllt, wenn du NUR 3 Karten mit derselben Zahl hast – in allen drei Farben.", "bedingung": {"anzahl": 3, "gleicheZahl": true, "farben": 3}}
+    {"id": "m32", "text": "Die Aufgabe ist erfüllt, wenn du NUR 3 Karten mit derselben Zahl hast – in allen drei Farben.", "bedingung": {"anzahl": 3, "gleicheZahl": true, "farben": 3}},
+    {"id": "m33", "text": "Die Aufgabe ist erfüllt, wenn du NUR blaue Karten hast. Du brauchst mindestens 5.", "bedingung": {"farbe": "blau", "anzahl": {"min": 5}}},
+    {"id": "m34", "text": "Die Aufgabe ist erfüllt, wenn du NUR 5 Karten hast, die zusammen genau 30 ergeben.", "bedingung": {"anzahl": 5, "summe": 30}},
+    {"id": "m35", "text": "Die Aufgabe ist erfüllt, wenn du NUR zwei Drillinge hast (z. B. drei 4en und drei 9en) – Farbe egal.", "bedingung": {"gruppen": [3, 3]}},
+    {"id": "m36", "text": "Die Aufgabe ist erfüllt, wenn du NUR Karten mit Zahlen von 4 bis 8 hast. Du brauchst mindestens 6.", "bedingung": {"kleinste": {"min": 4}, "groesste": {"max": 8}, "anzahl": {"min": 6}}},
+    {"id": "m37", "text": "Die Aufgabe ist erfüllt, wenn du NUR 3 Karten hast: eine von jeder Farbe, alle mit verschiedenen Zahlen.", "bedingung": {"jedeFarbe": 1, "verschieden": true}},
+    {"id": "m38", "text": "Die Aufgabe ist erfüllt, wenn du NUR grüne Karten mit ungeraden Zahlen hast. Du brauchst mindestens 4.", "bedingung": {"farbe": "gruen", "ungerade": true, "anzahl": {"min": 4}}},
+    {"id": "m39", "text": "Die Aufgabe ist erfüllt, wenn du NUR Karten in genau zwei Farben hast. Du brauchst mindestens 8.", "bedingung": {"farben": 2, "anzahl": {"min": 8}}},
+    {"id": "m40", "text": "Die Aufgabe ist erfüllt, wenn du NUR eine grüne 11 und zwei beliebige andere Karten hast.", "bedingung": {"anzahl": 3, "mitKarte": "gruen 11"}},
+    {"id": "m41", "text": "Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten mit geraden Zahlen liegen. Es müssen mindestens 4 sein.", "bedingung": {"bei": "mac", "gerade": true, "anzahl": {"min": 4}}},
+    {"id": "m42", "text": "Die Aufgabe ist erfüllt, wenn bei Mac NUR verschiedene Zahlen liegen – keine doppelt. Es müssen mindestens 6 sein.", "bedingung": {"bei": "mac", "verschieden": true, "anzahl": {"min": 6}}},
+    {"id": "m43", "text": "Die Aufgabe ist erfüllt, wenn du mindestens 5 Karten hast, die zusammen höchstens 15 ergeben.", "bedingung": {"anzahl": {"min": 5}, "summe": {"max": 15}}},
+    {"id": "m44", "text": "Die Aufgabe ist erfüllt, wenn du NUR einen Vierling und ein Pärchen hast (z. B. vier 7en und zwei 5en) – Farbe egal.", "bedingung": {"gruppen": [4, 2]}},
+    {"id": "m45", "text": "Die Aufgabe ist erfüllt, wenn du NUR 4 Karten hast, die zusammen genau 40 ergeben.", "bedingung": {"anzahl": 4, "summe": 40}},
+    {"id": "m46", "text": "Die Aufgabe ist erfüllt, wenn du NUR einen Drilling und zwei Pärchen hast (z. B. drei 9en, zwei 2en, zwei 6en) – Farbe egal.", "bedingung": {"gruppen": [3, 2, 2]}},
+    {"id": "m47", "text": "Die Aufgabe ist erfüllt, wenn du alle drei Farben hast: von einer 4 Karten, von einer 2 und von einer 1 – also NUR 7 Karten.", "bedingung": {"farbGruppen": [4, 2, 1]}},
+    {"id": "m48", "text": "Die Aufgabe ist erfüllt, wenn du NUR eine lückenlose Zahlenfolge aus genau 7 Karten hast (z. B. 2 bis 8) – Farbe egal.", "bedingung": {"reihe": true, "anzahl": 7}},
+    {"id": "m49", "text": "Die Aufgabe ist erfüllt, wenn bei Mac NUR Karten in genau zwei Farben liegen. Es müssen mindestens 5 sein.", "bedingung": {"bei": "mac", "farben": 2, "anzahl": {"min": 5}}}
   ],
   "aktionen": [
     {"id": "alle-klauen", "titel": "Von allen eine", "text": "Ziehe von jeder Person eine Handkarte.", "farbe": "blau", "wirkung": "alleKlauen", "stueck": 1},
