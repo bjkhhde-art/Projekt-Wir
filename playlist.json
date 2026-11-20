@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-18T13:06:28.697Z",
+ "updatedAt": "2026-11-20T12:56:47.323Z",
  "id": "0Gg0v83SQDmGt36cVHcyk5",
  "name": "Hau raus🎧",
  "owner": "ben.kzyk",
@@ -7,7 +7,7 @@
  "url": "https://open.spotify.com/playlist/0Gg0v83SQDmGt36cVHcyk5",
  "cover": "https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da8427890dd591a6678132c882f5",
  "source": "player",
- "total": 156,
+ "total": 157,
  "tracks": [
   {
    "id": "6bs1myCEARQoI7oOLxqHkp",
@@ -979,7 +979,7 @@
    ],
    "durationMs": 213815,
    "released": "2023-06-16",
-   "preview": "https://p.scdn.co/mp3-preview/361263f08f21227ddba7bb49c626df1d918ae7ab",
+   "preview": "https://p.scdn.co/mp3-preview/6456f4842f1f103b0b1cdf1a4723bed4ec7e5b41",
    "cover": "https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e026a5b883f4d39ccd5f7477ae6"
   },
   {
