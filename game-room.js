@@ -25,7 +25,8 @@ const GameRoom = (() => {
     "sticker-lach": { src: "icons/sticker-lach.png", label: "Lach-Sticker" },
     "sticker-finger": { src: "icons/sticker-finger.png", label: "Mittelfinger-Sticker" },
     "sticker-schlaf": { src: "icons/sticker-schlaf.png", label: "Schlaf-Sticker" },
-    "sticker-baby": { src: "icons/sticker-baby.png", label: "Baby-Sticker" }
+    "sticker-baby": { src: "icons/sticker-baby.png", label: "Baby-Sticker" },
+    "sticker-wut": { src: "icons/sticker-wut.png", label: "Wut-Sticker" }
   };
   const REACTIONS = ["😂", "😭", "😍", "😘", "🫂", "😡", "😱", "🤯", "🔥", "👏", "🙈", "😏", ...Object.keys(STICKERS)];
   const reactionLabel = emoji => STICKERS[emoji] ? STICKERS[emoji].label : emoji;

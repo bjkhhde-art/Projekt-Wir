@@ -42,10 +42,10 @@ await wait(1200);
 
 ok(await isi.locator("#grReactBtn").isVisible() && await lena.locator("#grReactBtn").isVisible(), "at the table everybody has the 😊 button, friends too");
 await isi.click("#grReactBtn");
-ok(await isi.locator(".gr-react-emoji").count() === 16, "it opens twelve emojis and four stickers");
+ok(await isi.locator(".gr-react-emoji").count() === 17, "it opens twelve emojis and five stickers");
 ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😘🫂"), "a kiss and a hug are there");
 ok((await isi.locator(".gr-react-emoji").allTextContents()).join("").includes("😂😭"), "laughing and crying are there");
-ok(await isi.locator(".gr-react-emoji img.gr-sticker").count() === 4, "our four photo stickers are there");
+ok(await isi.locator(".gr-react-emoji img.gr-sticker").count() === 5, "our five photo stickers are there");
 await isi.click('.gr-react-emoji[data-emoji="😂"]');
 ok(await isi.locator("#grReactTray").isHidden(), "the row closes after sending");
 ok((await isi.locator(".gr-reaction").first().textContent()).includes("😂") && (await isi.locator(".gr-reaction-name").first().textContent()) === "Du", "Isi sees her own 😂 marked 'Du'");
