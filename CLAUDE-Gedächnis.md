@@ -56,7 +56,7 @@ Hubs mit Tabs nutzen `hub-tabs.js` (`data-tab`, `data-panel`, merkt Tab in `loca
 | `supabase-client.js` | Einzige Supabase-Verbindung: globales `supabaseClient` + `PW_SUPABASE` (URL, publishable Key – darf öffentlich sein) |
 | `shared.js` / `shared.css` | Design-System + Helfer: `PwMilestones`, `escapeHtml`, `formatDate`, `daysBetween`, `timeAgo`, `shrinkImageForUpload`, `InPageHistory`, `PwInstall`, Push (`subscribeToPush`, `setDevicePerson`, `sendAppNotification`), `animateCountUp`, Toasts, Navigation |
 | `sw.js` | Service Worker: Netzwerk zuerst (4 s Timeout, dann Cache), offline `offline.html`. **`CACHE = "pw-pages-vN"` hochzählen, wenn Dateien umbenannt/entfernt/aufgeteilt werden** |
-| `manifest.webmanifest`, `icons/` | PWA-Installation, App-Icons, 4 Foto-Sticker für Spiel-Reaktionen |
+| `manifest.webmanifest`, `icons/` | PWA-Installation, App-Icons, 5 Foto-Sticker für Spiel-Reaktionen (`sticker-*.png`, Liste `STICKERS` in `game-room.js`) |
 
 **Escaping:** Nutzertexte immer über `escapeHtml()` in `innerHTML`.
 
@@ -178,3 +178,4 @@ npm run lint             # ESLint (Regeln: ../eslint.config.mjs)
 - **10.11.**: Echter Login (Members-only RLS), Migrationen mit Zeitstempel, Archiv-Schema, Struktur-Aufräumen, ESLint, CI.
 - **11.–20.11.**: Murphys Gesetz (neu, viele Iterationen, 75 Murphy-Karten, Bucket-Ziehen, Bots, Browsertests),
   Watchlist-Redesign + „Wie geschaut?“, Song-Quiz + Playlist Wrapped, Spiele-Statistik mit genauer Spielzeit, Mochi-Speicher-Queue.
+- **23.11.**: Fünfter Foto-Sticker „Wut-Sticker“ (`icons/sticker-wut.png`, wie 😡) für die Spiel-Reaktionen.
